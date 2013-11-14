@@ -1,0 +1,46 @@
+Explanation on the variables used for bidding :
+
+Each party has the following bidding-related variables :
+bid (int) : The amount of money spent on bidding so far
+bidDone (bool) : Whether or not this party is done bidding
+bidWith (Senator) : With which senator this party is bidding
+
+The game has the following bidding-related variables :
+initiative (int) : The current initiative number from 1 to 6
+currentBidder (party) : The party which turn's it is to bid
+persuasionTarget (senator) : The senator being persuaded
+
+We ALWAYS know who has the initiative :
+- If $game->initiative <= nbPlayers, the play order from HRAO gives us the user_id
+- Else, the only player left with bidDone=FALSE has the initiative
+- this means that bidDone CANNOT BE USED FOR PERSUASION
+
+Bidding has meaning in two different situations : Initiative & Persuasion
+
+1 - Initiative
+
+- At the end of the 'SponsorGames' subPhase, current $game->initiative is increased by 1
+- If $game->initiative <= nbPlayers, we don't need to bid, move to 'rollEvent' subPhase
+- Else : initialise all parties to :
+    $party[$user_id]->bid = 0 ;
+    $party[$user_id]->bidDone = FALSE ;
+    $party[$user_id]->bidWith = NULL ;
+    And initialise $game->currentBidder to HRAO
+- The bidding sequence for initiative consists in :
+    > Checking if bidding is finished, which is the case if all but one party have bidDone == FALSE ;
+    > Going through all parties :
+        * If a party has bidDone==FALSE but bidWith==NULL, they need to set the bidding Senator (who needs to have money)
+        * Arbitrarily set the bidDone to TRUE if they have no more money for the bidding Senator;
+        * Wait for the user to choose the amount of money he is bidding in $party->bid
+        * Get next bidder : game->currentBidder is set to the first party in play order (starting with HRAO) who has money and has bidDone==FALSE
+        * Exception : The HRAO doesn't need money to win the initiative. If all bids are 0 after a bidding round, he gets the initiative with a Senator of his choice.
+
+2 - Persuasion
+
+- Note : bidDone CANNOT BE USED FOR PERSUASION as it is used to know who has the initiative with the $game->whoseInitiative() function
+- The persuading senator is known from $party->bidWith. Based on rules variant, it can be set to any senator at the persuader's choice, or is set to the senator who has the initiative.
+- The persuader picks a target recorded in $game->persuasionTarget
+- The persuader spends money IRREVOCABLY, moving it from the treasury of the persuader to $party->bid
+- currentBidder goes around the table, each party deciding to spend money IRREVOCABLY from $party->treasury to resist the persuasion, putting it in $party->bid
+- Once back to persuader, give opportunity to spend more money and start again.
+- This going around the table, and any further such cycle can be easily identified by the fact that $game->persuasionTarget is already set.
