@@ -1,0 +1,75 @@
+{% extends layout_template  %}
+
+{% block title %}View game{% endblock %}
+
+{% block content %}
+{% set party_name_set =  0 %}
+{% set has_joined =  false %}
+    <div class="page-header">
+        <h1>Game : {{ game['name'] }}</h1>
+        <h3 class="muted">Scenario : {{ game['scenario'] }}</h3>
+    </div>
+             
+    {% if players|length == 0 %}
+        No players have joined this game yet.
+    {% else %}
+        <div class="span10">
+        <form class="form-horizontal" method="POST" name ="View game from"action="{{ path('ViewGame' ,  {'game_id' : game.game_id }) }}">
+        <input type="hidden" name="start" value="0">
+        <table class="table table-bordered table-hover table-condensed">
+            <tr>
+                <th>
+                    Player name
+                </th>
+                <th>
+                    Party name
+                </th>
+                <th>
+                    Joined
+                </th>
+            </tr>
+        {% for player in players %}
+            <tr>
+                <td>
+                    {% if app.user.id==player['user_id'] %}
+                    <i class="icon-user"></i>
+                    {% endif %}
+                    {{ player['name']}}
+                </td>
+                <td>
+                    {% if app.user.id==player['user_id'] %}
+                                <input name="party_name" type="text" id="party_name" value="{{ player['party_name'] }}">
+                                {% set party_name_set =  player['party_name']|length %}
+                                {% set has_joined =  true %}
+                    {% else %}
+                        {{ player['party_name'] }}
+                    {% endif %}
+                </td>
+                <td>
+                    {{ player['time_joined']|date('Y/m/d (H:i:s)')}}
+                </td>
+            </tr>
+        {% endfor %}
+        </table>
+            <div class="control-group">
+                <div class="controls">
+                    {% if has_joined %}
+                        <button type="submit" class="btn btn-info">{{ (party_name_set==0) ? 'Set' : 'Change' }} your party's name</button>
+                    {% endif %}
+                        
+                </div>
+            </div>
+        </form>
+        {% if ( (players|length >= 3) and has_joined ) %}
+            <form class="form-horizontal" method="POST" name ="Start game from" action="{{ path('ViewGame' ,  {'game_id' : game.game_id }) }}">
+                <input type="hidden" name="start" value="1">
+                <div class="control-group">
+                    <div class="controls">
+                        <button type="submit" class="btn btn-success">START GAME</button>
+                    </div>
+                </div>
+            </form>
+        {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}
