@@ -1,14 +1,53 @@
-{% if content['game'].subPhase=='RollEvent' %}
+{% if content['game'].whoseInitiative()===FALSE %}
+{# CURRENTLY BIDDING FOR INITIATIVE #}
+Currently bidding for initiative number {{content['game'].initiative}}<br>
+    {% if content['game'].currentBidder.user_id == user_id %}
+    {# THIS USER IS THE CURRENT BIDDER #}
+You are the current bidder<br>
+        {% if content['game'].party['user_id'].bidWith === NULL %}
+Pick a Senator to bid for initiative :<br>
+        {# THIS USER HASN'T PICKED A BIDDING SENATOR YET #}
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bidSenator'} ) }}">
+            {# USER CAN ONLY PICK FROM SENATORs IN ROME WHO HAVE MONEY #}
+            {%for senator in content['game'].party['user_id'].senators.cards %}
+                {% if senator.inRome==FALSE %}
+{{senator.name}} cannot bid as he is not in Rome.<br>
+                {% elseif senator.treasury==0 %}
+{{senator.name}} is too poor to bid.<br>
+                {% else %}
+    <input type="radio" name="senator" value="{{senator.id}}">{{senator.name}}<br>
+                {% endif %}
+            {% endfor %}
+    <button type="submit" class="btn btn-info">DONE</button>
+</form>
+        {% else %}
+        {# USER CHOOSES BIDDING AMOUNT #}
+You are currently bidding {{content['game'].party['user_id'].bid}}T with {{content['game'].party['user_id'].bidWith.name}} to get this initiative.<br>
+{% set highestBidder = content['game'].forum_highestBidder() %}
+The highest bidder is : {{highestBidder['message']}}
+Choose the amount to add to your bid. You need to bid at least {{highestBidder['bid']+1-content['game'].party['user_id'].bid}} more :<br>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bidAmount'} ) }}">
+</form>
+        {% endif %}
+    {% else %}
+    {# WAITING FOR CURRENT BIDDER #}
+Waiting for {{content['game'].currentBidder.fullName()}} to bid<br>
+    {% endif %}
+{% else %}
+{# WHO HAS THE INITIATIVE IS KNOWN #}
+
+    {% if content['game'].subPhase=='RollEvent' %}
 Rolling for events :<br>
 Provide a button to Roll<br>
 If event : display it and apply it if needed<br>
 If card : based on its type put it in the hand of the player or in the forum<br>
 DONE<br>
-{% elseif content['game'].subPhase=='Persuasion' %}
-{% elseif content['game'].subPhase=='Knights' %}
-{% elseif content['game'].subPhase=='ChangeLeader' %}
-{% elseif content['game'].subPhase=='SponsorGames' %}
-{% elseif content['game'].subPhase=='curia' %}
-{% else %}
+    {% elseif content['game'].subPhase=='Persuasion' %}
+    {% elseif content['game'].subPhase=='Knights' %}
+    {% elseif content['game'].subPhase=='ChangeLeader' %}
+    {% elseif content['game'].subPhase=='SponsorGames' %}
+    {% elseif content['game'].subPhase=='curia' %}
+    {% else %}
 ERROR - strange forum subphase.
+    {% endif %}
 {% endif %}
