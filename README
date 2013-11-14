@@ -32,7 +32,7 @@ Bidding has meaning in two different situations : Initiative & Persuasion
         * If a party has bidDone==FALSE but bidWith==NULL, they need to set the bidding Senator (who needs to have money)
         * Arbitrarily set the bidDone to TRUE if they have no more money for the bidding Senator;
         * Wait for the user to choose the amount of money he is bidding in $party->bid
-        * Get next bidder : game->currentBidder is set to the first party in play order (starting with HRAO) who has money and has bidDone==FALSE
+        * Get next bidder : game->currentBidder is set to the first party in play order (starting with HRAO) who has enough money to bid more than the current highest bid and has bidDone==FALSE
         * Exception : The HRAO doesn't need money to win the initiative. If all bids are 0 after a bidding round, he gets the initiative with a Senator of his choice.
 
 2 - Persuasion

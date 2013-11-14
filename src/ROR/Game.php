@@ -16,8 +16,7 @@ namespace ROR;
  * $nbPlayers (int) : number of human players from 1 to 6
  * --- FORUM PHASE ---
  * $currentBidder (party) : The party which turn it currently is to bid
- * $persuasionTarget (string) : senatorID of senator being persuaded
- * $persuasionWith (string) : senatorID of senator doing the persuasion
+ * $persuasionTarget (Senator) : The senator being persuaded
  * --- THE PARTIES ---
  * $party Array (Party) /!\ key : user_id ; value : party_name
  * --- THE DECKS ---
@@ -54,7 +53,7 @@ class Game
     public $name ;
     public $turn , $phase , $subPhase , $initiative ;
     public $scenario , $unrest , $treasury , $nbPlayers ;
-    public $currentBidder , $persuasionTarget ,$persuasionWith ;
+    public $currentBidder , $persuasionTarget ;
     public $party ;
     public $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
     public $landBill ,$events , $legion , $fleet ;
@@ -95,7 +94,6 @@ class Game
         }
         $this->currentBidder = null;
         $this->persuasionTarget = null;
-        $this->persuasionWith = null ;
         $this->earlyRepublic = new Deck ;
         $this->earlyRepublic->createFromFile ($scenario) ;
         $this->middleRepublic = new Deck ;
@@ -252,7 +250,7 @@ class Game
     
     /**
      * Returns the Senator, Party, and user_id of the HRAO
-     * @return Array 'senator' , 'arty' , 'user_id'
+     * @return Array 'senator' , 'party' , 'user_id'
      */
     public function HRAO() {
         $allSenators = Array ();
@@ -380,7 +378,7 @@ class Game
         // This initiative was up for bidding, the winner has the initiative. The winner is the only one left with initiativeBidDone==FALSE
             $candidates=Array() ;
             foreach ($this->party as $user_id=>$party) {
-                if ($party->initiativeBidDone===FALSE) {
+                if ($party->bidDone===FALSE) {
                     array_push($candidates , $user_id);
                 }
             }
@@ -908,6 +906,25 @@ class Game
      * Functions for FORUM phase
      ************************************************************/
 
+    /**
+     * A message saying who is currently the highest bidder
+     */
+    public function forum_highestBidder () {
+        $result['bid']=0 ;
+        $result['message']='' ;
+        foreach ($this->party as $party) {
+            if ($party->bid>$result['bid']) {
+                $result['bid']=$party->bid ;
+                $result['message']=$party->fullName().' with a bid of '.$result['bid'].'T.' ;
+            }
+        }
+        if ($result['bid']==0) {
+            $HRAO = $this->HRAO() ;
+            $result['message']='The HRAO '.$HRAO['party']->fullName().' as all bets are 0.';
+        }
+        return $result ;
+    }
+    
     /************************************************************
      * Functions for REVOLUTION phase
      ************************************************************/
