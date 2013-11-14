@@ -7,7 +7,8 @@ Maybe drawCardWithValue could be getCardWithValue, and only draw it when necessa
 
 
 CURRENT :
-- Revenue
+- Forum phase. See /docs for details on bidding
+- Files : action_forum.twig
 
 BUG :
 - Prevent player from entering the same party name in ViewGame
