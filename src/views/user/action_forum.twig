@@ -1,0 +1,14 @@
+{% if content['game'].subPhase=='RollEvent' %}
+Rolling for events :<br>
+Provide a button to Roll<br>
+If event : display it and apply it if needed<br>
+If card : based on its type put it in the hand of the player or in the forum<br>
+DONE<br>
+{% elseif content['game'].subPhase=='Persuasion' %}
+{% elseif content['game'].subPhase=='Knights' %}
+{% elseif content['game'].subPhase=='ChangeLeader' %}
+{% elseif content['game'].subPhase=='SponsorGames' %}
+{% elseif content['game'].subPhase=='curia' %}
+{% else %}
+ERROR - strange forum subphase.
+{% endif %}

@@ -1,0 +1,31 @@
+{% block content %}
+<pre>
+{{ senator.name }} ({{ senator.senatorID }}) - {{ senator.type }}
+{% if senator.senatorID==leader %}
+LEADER
+{% endif %}
+{% if senator.office %}
+{{ senator.office }}
+{% else %}
+
+{% endif %}
+MIL {{ senator.MIL }}     ORA {{ senator.ORA }}
+LOY {{ senator.LOY }}     INF {{ senator.INF }}
+{% if senator.priorConsul %}
+Prior Consul
+{% else %}
+
+{% endif %}
+{{ senator.knights }} knights , {{ senator.treasury }} T.
+{% if playable is defined %}
+{{ playable['flag'] ? 'PLAYABLE' : 'NOT PLAYABLE' }}
+{{ playable['message'] }}
+{% endif %}
+{% if senator.controls.cards|length >0 %}
+Controls :
+{% for card in senator.controls.cards %}
+{{ card.name }}
+{% endfor %}
+{% endif %}
+</pre>
+{% endblock %}

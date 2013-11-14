@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        {% block head %}
+            <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css" rel="stylesheet">
+            <title>{% block title %}{% endblock %}</title>
+            <style type="text/css">
+                body { padding: 10px; }
+            </style>
+        {% endblock %}
+    </head>
+    <body>
+        <div class="navbar">
+            <div class="navbar-inner">
+                <a class="brand" >The Republic of Rome
+                        {% if content['game'] is defined %} - Game : {{ content['game'].name }} - Party : {{ content['game'].party[user_id].name }} - Player  : {{app['user.manager'].getUser(user_id).getName}}{% endif %}
+                </a>
+                {% if app.user %}
+                    <ul class="nav pull-left">
+                        <li><a href="{{ path('ListGames') }}"><i class="icon-list"></i> List games</a></li>
+                        <li><a href="{{ path('CreateGame') }}"><i class="icon-plus-sign"></i> Create game</a></li>
+                    </ul>
+                {% endif %}
+                <ul class="nav pull-right">
+                    <li><a href="{{ path('user.list') }}"><i class="icon-list"></i> List users</a></li>
+                    <li class="divider-vertical"></li>
+                    {% if app.user %}
+                        <li><a href="{{ path('user') }}"><i class="icon-user"></i> {{ app.user.displayName }}</a></li>
+                        <li class="divider-vertical"></li>
+                        <li><a href="{{ path('user.logout') }}"><i class="icon-off"></i> Sign out</a></li>
+                    {% else %}
+                        <li><a href="{{ path('user.login') }}">Sign in</a></li>
+                        <li class="divider-vertical"></li>
+                        <li><a href="{{ path('user.register') }}">Create account</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        {% for type,messages in app.session.flashbag.all() %}
+            {%for message in messages %}
+                <div class="alert alert-{{type}}">{{message}}</div>
+            {% endfor %}
+        {% endfor %}
+        {#
+        {% if app.session.flashbag.has('alert') %}
+            {% for flashMessage in app.session.flashbag.get('alert') %}
+                <div class="alert">{{ flashMessage }}</div>
+            {% endfor %}
+        {% endif %}
+        {% if app.session.flashbag.has('error') %}
+            {% for flashMessage in app.session.flashbag.get('error') %}
+                <div class="alert alert-error">{{ flashMessage }}</div>
+            {% endfor %}
+        {% endif %}
+        #}
+        {% block content %}{% endblock %}
+    </body>
+</html>
