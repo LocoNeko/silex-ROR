@@ -122,7 +122,7 @@ class RORControllerProvider implements ControllerProviderInterface
 
         $controllers->match('/Log/{game_id}/{user_id}' , function($game_id , $user_id) use ($app) {
             $logs = $app['db']->fetchAll("SELECT * FROM logs WHERE game_id='".$game_id."' AND (recipients IS NULL OR recipients='".$user_id."' OR recipients LIKE '%".$user_id.";%')");
-            return "Et hop :<br>".var_dump($logs);
+            return "Et hop :<br>".print_r($logs,TRUE);
         })
         ->bind('Log');
         
