@@ -4,7 +4,7 @@
 
 IDEA :
 Maybe drawCardWithValue could be getCardWithValue, and only draw it when necessary (with a boolean flag ?)
-
+* iFrame page : add "overflow-x:hidden;"
 
 CURRENT :
 - Forum phase. See /docs for details on bidding
