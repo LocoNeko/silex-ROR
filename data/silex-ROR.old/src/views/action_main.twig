@@ -1,0 +1,56 @@
+{% extends layout_template  %}
+
+{% block title %}Game main view & action{% endblock %}
+
+{% block content %}
+HRAO : {{ content['game'].HRAO()['senator'].name }} ({{ content['game'].HRAO()['party'].name }} - {{ app['user.manager'].getUser(content['game'].HRAO()['party'].user_id).getName  }} ) , 
+{# ORDER OF PLAY BASED on game->whoseTurn() #}
+Order of play :
+{% for temp_user_id in content['game'].orderOfPlay() %} 
+{% if (temp_user_id == content['game'].whoseTurn()) %}
+<font style="font-weight:bold ; color: blue ;{{ (temp_user_id==user_id ? ' text-decoration: underline;' : '' )}}">
+{% else %}
+<font style="font-weight:bold ; color: gray ;{{ (temp_user_id==user_id ? ' text-decoration: underline;' : '' )}}">
+{% endif %}
+{{app['user.manager'].getUser(temp_user_id).getName}}</font>
+ <i class="icon-arrow-right"></i>
+{% endfor %}
+<br>
+{# PHASE-SPECIFIC #}
+{% if content['game'].phase == 'Setup' %}
+Phase : Setup ({{content['game'].subPhase}})<br>
+{% embed 'action_setup.twig' %}
+{% endembed %}
+{% elseif content['game'].phase == 'Mortality' %}
+Phase : Mortality<br>
+{% elseif content['game'].phase == 'Revenue' %}
+Phase : Revenue<br>
+{% embed 'action_revenue.twig' %}
+{% endembed %}
+{% endif %}
+<hr>
+{# DISPLAY PLAYER'S PARTY #}
+YOUR PARTY :<br>
+{% embed 'action_viewParty.twig' %}
+{% endembed %}
+
+<hr>
+{# DISPLAY PLAYER'S HAND #}
+YOUR HAND :<br>
+{% embed 'action_viewHand.twig' %}
+{% endembed %}
+
+<hr>
+{# DISPLAY GAME LOG #}
+Game Log :<br>
+<pre>
+{% for message in content['log'] %}
+{{ message['time_created']|number_format(0,'','')|date('Y/m/d (H:i:s)')}}: {{ message['message']}}
+{% endfor %}
+</pre>
+Debug :<br>
+<pre>
+{{ dump(content['game']) }}
+</pre>
+
+{% endblock %}

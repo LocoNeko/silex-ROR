@@ -1,0 +1,109 @@
+{% block myJavascript %}
+<script type="text/javascript">
+  function updateAmount() {
+      x = fromTI.value.indexOf("|TREASURY")+9; 
+      y = fromTI.value.indexOf("|",x+1);
+      value =  fromTI.value.substr(x,y-x) ;
+      while ( amount.options.length ) amount.options[0] = null ;
+      for ( i = 1; i <= value; i++ ) {
+          option = new Option( i , i );
+          amount.options[amount.length] = option;
+      }
+  }
+  updateAmount();
+</script>
+{% endblock %}  
+
+{# BASE SUBPHASE#}
+{% if content['game'].subPhase=='Base' %}
+Sub phase : Collect revenue<br>
+
+    {# ALREADY PLAYED - WAIT #}
+    {% if content['game'].party[user_id].phase_done%}
+Waiting for 
+        {% for current_user_id in content['game'].party %}
+            {% if content['game'].party[current_user_id.user_id].phase_done==FALSE %}
+                {{ app['user.manager'].getUser(current_user_id.user_id).getName }} ,
+            {% endif %}
+        {% endfor %}
+            
+    {# HASN'T PLAYED YET - PLAY #}
+    {% else %}
+        {% set revenueBase = content['game'].revenue_base(user_id) %}
+Revenue collected from {{revenueBase['senators']}} senators : {{revenueBase['senators']}}<br>
+Revenue collected from Leader {{revenueBase['leader']}} : 3<br>
+Revenue collected from {{revenueBase['knights']}} knights : {{revenueBase['knights']}}<br>
+Revenue collected from concessions :<br>
+        {% for concession in revenueBase['concessions'] %}
+{{concession['income']}} from {{concession['name']}} ({{concession['senator_name']}})
+        {% endfor %}
+<br>
+Total base revenue : {{ revenueBase['total'] }}<br>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_ProvincialSPoils'} ) }}">
+        {%if revenueBase['provinces']|length == 0 %}
+No revenue from Provinces<br>
+        {%else%}
+Revenue from Provincial spoils :<br>
+    <fieldset>
+            {% for province in revenueBase['provinces'] %}
+        <div class="control-group">
+            <label class="control-label">{{ province['province'].name }} ({{province['senator'].name}})</label>
+                <div class="controls">
+                    <select name="{{province['province'].id}}">
+                        <option value="YES" selected>Take spoils</option>
+                        <option value="NO">Don't take spoils</option>
+                    </select>
+                </div>
+        </div>
+            {% endfor %}
+    </fieldset>
+        {%endif%}
+    <button type="submit" class="btn btn-info">DONE</button>
+</form>
+    {% endif %}
+
+{# REDISTRIBUTION SUBPHASE#}
+{% elseif content['game'].subPhase=='Redistribution' %}
+    {# ALREADY PLAYED - WAIT #}
+    {% if content['game'].party[user_id].phase_done%}
+    Waiting for 
+        {% for current_user_id in content['game'].party %}
+            {% if content['game'].party[current_user_id.user_id].phase_done==FALSE %}
+                {{ app['user.manager'].getUser(current_user_id.user_id).getName }} ,
+            {% endif %}
+        {% endfor %}
+
+    {# HASN'T PLAYED YET - PLAY #}
+    {% else %}
+<form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Redistribution'} ) }}">
+    <fieldset>
+Give from 
+        <select id="fromTI" name="fromTI" onClick="updateAmount()">
+            {% for listRedistribute in content['game'].revenue_ListRedistribute(user_id) %}
+            {% if listRedistribute['list']=='from' %}
+            <option value="TYPE{{listRedistribute['type']}}|ID{{listRedistribute['id']}}|TREASURY{{listRedistribute['treasury']}}|">
+                {{(( listRedistribute['type']=='party' and listRedistribute['id']==user_id) ? 'Party treasury' : listRedistribute['name'])}}
+            </option>
+            {% endif %}
+            {% endfor %}
+        </select>
+to
+        <select id="toTI" name="toTI">
+            {% for listRedistribute in content['game'].revenue_ListRedistribute(user_id) %}
+            {% if listRedistribute['list']=='to' %}
+            <option value="TYPE{{listRedistribute['type']}}|ID{{listRedistribute['id']}}|">
+                {{(( listRedistribute['type']=='party' and listRedistribute['id']==user_id) ? 'Party treasury' : listRedistribute['name'])}}
+            </option>
+            {% endif %}
+            {% endfor %}
+        </select>
+amount
+        <select id="amount" name="amount">
+        </select>
+    </fieldset>
+</form>
+        <pre>
+            {{dump(content['game'].revenue_ListRedistribute(user_id))}}
+        </pre>
+    {% endif %}
+{% endif %}

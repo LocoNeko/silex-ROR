@@ -1,0 +1,13 @@
+<div class="row">
+{% for card in content['game'].party[user_id].hand.cards %}
+    <div class="span3">
+        {% if card.type=='Stateman' %}
+            {% embed "senator.twig" with {'senator': card , 'playable': content['game'].statemanPlayable (user_id , card) , 'leader': FALSE} only %}
+            {% endembed %}
+        {% else %}
+            {% embed "card.twig" with {'card': card } only %}
+            {% endembed %}
+        {% endif %}
+    </div>
+{% endfor %}
+</div>
