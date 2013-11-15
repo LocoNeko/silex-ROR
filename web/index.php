@@ -5,6 +5,7 @@
  * - Twitter Bootstrap
  * 
  */
+
 require __DIR__.'/../vendor/autoload.php';
 use Symfony\Component\HttpKernel\Debug\ExceptionHandler;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,12 +16,14 @@ ExceptionHandler::register();
 $app = new Silex\Application();
 $app['debug'] = true;
 
+$config=parse_ini_file(__DIR__.'/../application.ini');
+ 
 $app->register(new Provider\DoctrineServiceProvider(), array('db.options' => array(
     'driver'   => 'pdo_mysql',
-    'dbname' => 'silex_ROR',
-    'host' => 'localhost',
-    'user' => 'root',
-    'password' => '',
+    'dbname' => $config[MYSQL_DB],
+    'host' => $config[MYSQL_HOST],
+    'user' => $config[MYSQL_USER],
+    'password' => $config[MYSQL_PASSWORD],
 )));
 
 $app->register(new Provider\SecurityServiceProvider(), array(
