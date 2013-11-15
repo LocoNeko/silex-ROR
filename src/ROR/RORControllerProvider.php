@@ -120,6 +120,12 @@ class RORControllerProvider implements ControllerProviderInterface
         ->value ('action' , NULL )
         ->bind('Action');
 
+        $controllers->match('/Log/{game_id}/{user_id}' , function($game_id , $user_id) use ($app) {
+            $logs = $app['db']->fetchAll("SELECT * FROM logs WHERE game_id='".$game_id."' AND (recipients IS NULL OR recipients='".$user_id."' OR recipients LIKE '%".$user_id.";%')");
+            return "Et hop :<br>".var_dump($logs);
+        })
+        ->bind('Log');
+        
         /**
          * For debug purposes : Load a saved game
          */
