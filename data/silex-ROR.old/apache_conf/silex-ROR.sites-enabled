@@ -1,0 +1,13 @@
+<VirtualHost *:80>
+    DocumentRoot "/vagrant/silex-ROR/web"
+
+    <Directory "/vagrant/silex-ROR/web">
+      RewriteEngine On
+      RewriteCond %{REQUEST_FILENAME} -s [OR]
+      RewriteCond %{REQUEST_FILENAME} -l
+      RewriteRule ^.*$ - [NC,L]
+      RewriteRule ^.*$ web/index.php [NC,L]
+
+  </Directory>
+
+</VirtualHost>

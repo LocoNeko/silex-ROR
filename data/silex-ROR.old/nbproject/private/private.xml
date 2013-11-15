@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project-private xmlns="http://www.netbeans.org/ns/project-private/1">
+    <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
+    <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
+        <group>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/ROR/Party.php</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/views/action_revenue.twig</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/ROR/Province.php</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/views/game_list.twig</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/data/scenarios/EarlyRepublic.csv</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/ROR/Action.php</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/ROR/Game.php</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/views/action_main.twig</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/TODO</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/views/action_setup.twig</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/ROR/Concession.php</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/src/sql/mysql.sql</file>
+            <file>file:/home/Jeux/RoR/silex-ROR/data/scenarios/Provinces.csv</file>
+        </group>
+    </open-files>
+</project-private>
