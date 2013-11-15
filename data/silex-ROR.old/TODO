@@ -1,9 +1,0 @@
-* DELETE GAME
-* i18n
-* Chat
-
-IDEA :
-Maybe drawCardWithValue could be getCardWithValue, and only draw it when necessary (with a boolean flag ?)
-
-CURRENT :
-- Revenue

@@ -1,2 +1,0 @@
-AddType application/x-httpd-php5-4 .php
-FallbackResource web/index.php
