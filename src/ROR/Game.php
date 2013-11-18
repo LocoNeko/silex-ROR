@@ -649,13 +649,16 @@ class Game
         while (count($deadSenator->controls->cards)>0) {
             $card = $deadSenator->controls->drawTopCard() ;
             if ($card->type=='Concession') {
-                $this->forum->putOnTop($card);
-                $message.=$card->name.' is returned to the forum. ';
+                $this->curia->putOnTop($card);
+                $message.=$card->name.' is returned to the curia. ';
             } elseif ($card->type=='Family') {
                 $party->senators->putOnTop($card);
                 $message.=$card->name.' stays in the party. ';
+            } elseif ($card->type=='Province') {
+                $this->forum->putOnTop($card);
+                $message.=$card->name.' is returned to the forum. ';
             } else {
-                return Array('A card controlled by the dead Senator was neither a Family nor a Concession.','error');
+                return Array('A card controlled by the dead Senator was neither a Family, a Province nor a Concession.','error');
             }
         }
         return Array($message) ;
@@ -769,6 +772,11 @@ class Game
         }
     }
     
+    /**
+     * Lists all the possible "From" and "To" for redistribution of wealth
+     * @param type $user_id
+     * @return array
+     */
     public function revenue_ListRedistribute ($user_id) {
         $result=Array() ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
