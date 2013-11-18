@@ -12,8 +12,6 @@ CURRENT :
 
 BUG :
 - Prevent player from entering the same party name in ViewGame
--Mortality phase :
-Dead senators' Province got to Forum, Concessions go to curia
 
 Revenue :
 - Senator taking spoil MAY decide to pay negative values or let Rome do so.
