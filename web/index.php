@@ -16,14 +16,14 @@ ExceptionHandler::register();
 $app = new Silex\Application();
 $app['debug'] = true;
 
-$config=parse_ini_file(__DIR__.'/../application.ini');
+$config=parse_ini_file(__DIR__.'/../src/application.ini');
  
 $app->register(new Provider\DoctrineServiceProvider(), array('db.options' => array(
     'driver'   => 'pdo_mysql',
-    'dbname' => $config[MYSQL_DB],
-    'host' => $config[MYSQL_HOST],
-    'user' => $config[MYSQL_USER],
-    'password' => $config[MYSQL_PASSWORD],
+    'dbname' => $config['MYSQL_DB'],
+    'host' => $config['MYSQL_HOST'],
+    'user' => $config['MYSQL_USER'],
+    'password' => $config['MYSQL_PASSWORD'],
 )));
 
 $app->register(new Provider\SecurityServiceProvider(), array(

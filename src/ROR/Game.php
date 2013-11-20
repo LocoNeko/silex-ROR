@@ -649,6 +649,9 @@ class Game
         while (count($deadSenator->controls->cards)>0) {
             $card = $deadSenator->controls->drawTopCard() ;
             if ($card->type=='Concession') {
+                $this->curia->putOnTop($card);
+                $message.=$card->name.' is returned to the curia. ';
+            } elseif ($card->type=='Province') {
                 $this->forum->putOnTop($card);
                 $message.=$card->name.' is returned to the forum. ';
             } elseif ($card->type=='Family') {
@@ -665,6 +668,11 @@ class Game
      * Functions for REVENUE phase
      ************************************************************/
 
+    /**
+     * Initialises revenue phase :
+     * - subPhase is 'Base'
+     * - For every Senator with a Province, set Province->doneThisTurn to FALSE
+     */
     public function revenue_init() {
         $this->resetPhaseDone() ;
         $this->subPhase='Base';
