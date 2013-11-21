@@ -35,3 +35,4 @@ Correct this :
 - Senator taking spoil MAY decide to pay negative values or let Rome do so.
 - All provinces revenue for Rome should happen after all senators revenue, because the province might have bedome developed this turn, which changes the income.
 - Rebel legions maintenance.
+- Possibility to earn more from some concessions in case of a drought (Sicilian and Egyptian grain)
