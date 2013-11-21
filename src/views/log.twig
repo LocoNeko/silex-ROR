@@ -5,7 +5,6 @@
         <style type="text/css">
             body { padding: 10px; }
         </style>
-        <meta HTTP-EQUIV="refresh" CONTENT="3">
     </head>
     <body>
         {% set logs = app['db'].fetchAll("SELECT * FROM logs WHERE game_id='" ~ game_id ~ "' AND (recipients IS NULL OR recipients='" ~ user_id ~ "' OR recipients LIKE '%" ~ user_id ~ ";%') ORDER BY time_created DESC") %}
