@@ -15,17 +15,18 @@ BUG :
 
 Revenue :
 PROPER Revenue Sequence :
-----------------------
+---------------------- revenue_Base
 - Personal revenues (none for rebel or captive) -> given as a lump sum
 - Provincial spoils (+choose if Rome pays if negative or not) -> each senator chooses
 - Develop province (NOT for Barbarian raids))
 - Rebel maintenance (BEFORE redistribution)
+---------------------- revenue_DoRedistribute
+- Redistribute SUBPHASE : Redistribution
+---------------------- revenue_stateRevenue
+- State revenue (includes Rome's Provincial revenues) SUBPHASE : Done after redistribution, no need to create a new one
 ----------------------
-- Redistribute
-----------------------
-- State revenue (includes Rome's Provincial revenues)
-----------------------
-- Contributions
+- Contributions SUBPHASE : Contributions ("S" at the end !)
+TO DO : Move contributions away from redistribution, create subPhase, create function (modify template as well)
 ----------------------
 - Debits (Maintenance, active conflicts, land bills)
 - Returning governors
