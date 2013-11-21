@@ -776,7 +776,12 @@ class Game
             return $messages ;
         }
     }
-    
+
+    /**
+    * Lists all the possible "From" and "To" for redistribution of wealth
+    * @param type $user_id
+    * @return array
+    */
     public function revenue_ListRedistribute ($user_id) {
         $result=Array() ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
@@ -790,14 +795,13 @@ class Game
             foreach($this->party as $key=>$value) {
                 array_push($result , Array('list' => 'to' , 'type' => 'party' , 'id' => $key , 'name' => $this->party[$key]->name ));
             }
-            array_push($result , Array('list' => 'to' , 'type' => 'rome' , 'id' => NULL , 'name' => 'ROME') );
         }
         return $result ;
     }
 
     /**
      * 
-     * $fromTI and $toTI are arrays in the form [0] =>'senator'|'party'|'rome' , [1] => 'id'
+     * $fromTI and $toTI are arrays in the form [0] =>'senator'|'party' , [1] => 'id'
      * @param type $user_id
      * @param type $from
      * @param type $to
@@ -808,9 +812,7 @@ class Game
             $fromTI = explode('|' , $fromRaw);
             $toTI = explode('|' , $toRaw);
             $from = ( $fromTI[0]=='senator' ? $this->getSenatorWithID($fromTI[1]) : $this->party[$fromTI[1]] );
-            if ($toTI[0]=='rome') {
-                $to = $this ;
-            } elseif ($toTI[0]=='senator') {
+            if ($toTI[0]=='senator') {
                 $to = $this->getSenatorWithID($toTI[1]) ;
             } else {
                 $to = $this->party[$toTI[1]] ;
@@ -821,15 +823,15 @@ class Game
             if (!isset($from)) { return Array(Array('Giving from wrong Party','error',$user_id)); }
             if (!isset($to)) { return Array(Array('Giving to wrong Party','error',$user_id)); }
             if ($from->treasury < $amount) { return Array(Array('Not enough money','error',$user_id)); }
-            if ($toTI[0]== 'rome' && $fromTI[0]!='senator') { return Array(Array('Only a senator can give to Rome','error',$user_id)); }
             if ($toTI[0]== 'senator' && $fromTI[0]=='senator' && $toTI[1]==$fromTI[1] ) { return Array(Array('Stop drinking','error',$user_id)); }
             $from->treasury-=$amount ;
             $to->treasury+=$amount ;
-            if ($toTI[0]== 'rome') {
-                if ($amount>=50) { $INFgain = 7 ; } elseif ($amount>=25) { $INFgain = 3 ; } elseif ($amount>=10) { $INFgain = 1 ; } else { $INFgain = 0 ; }
-                $from->INF+=$INFgain ;
-                return Array(Array($from->name.' gives '.$amount.'T to Rome.'.( ($INFgain!=0) ? ' He gains '.$INFgain.' Influence.' : '') ));
-            } elseif ($toTI[0]== 'senator') {
+            /* Giving to rome : TO DO - move it to contribution function 
+            if ($amount>=50) { $INFgain = 7 ; } elseif ($amount>=25) { $INFgain = 3 ; } elseif ($amount>=10) { $INFgain = 1 ; } else { $INFgain = 0 ; }
+            $from->INF+=$INFgain ;
+            return Array(Array($from->name.' gives '.$amount.'T to Rome.'.( ($INFgain!=0) ? ' He gains '.$INFgain.' Influence.' : '') ));
+            */
+            if ($toTI[0]== 'senator') {
                 // This is a different message for public and private use
                 return Array(
                     Array($from->name.' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ) ,
@@ -842,17 +844,41 @@ class Game
         return Array(Array('Undocumented Redistribution error','error'));
     }
     
+    public function revenue_stateRevenue() {
+        $messages = Array () ;
+        if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->whoseTurn()==FALSE) ) {
+            array_push($messages , Array('The redistribution sub phase is finished.')) ;
+            array_push($messages , Array('State revenues.')) ;
+            // Rome gets 100T.
+            $this->treasury+=100 ;
+            array_push($messages , Array('Rome collects 100 T.'));
+            foreach ($this->party as $party) {
+                foreach ($party->senators->cards as $senator) {
+                    foreach ($senator->controls->cards as $province) {
+                        if ($province->type=='Province') {
+                            $revenue = $province->rollRevenues();
+                            array_push($messages , Array($province->name.' : Rome\'s revenue is '.$revenue['rome'].'T . ') );
+                            $this->treasury+=$revenue['rome'];
+                        }
+                    }
+                }
+            }
+            array_push($messages , Array('The state revenue sub phase is finished.')) ;
+            array_push($messages , Array('Contributions.')) ;
+            $this->subPhase='Contributions';
+            $this->resetPhaseDone();
+        }
+        return $messages ;
+    }
+    
     public function revenue_Finished ($user_id) {
         $messages = Array () ;
-        if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
+        if ( ($this->phase=='Revenue') && ($this->subPhase=='Contributions') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $this->party[$user_id]->phase_done=TRUE ;
-            array_push($messages , Array($this->party[$user_id]->fullName().' has finished redistributing his wealth.')) ;
+            array_push($messages , Array($this->party[$user_id]->fullName().' has finished contributions to Rome.')) ;
             if ($this->whoseTurn()===FALSE) {
                 // Finish revenue Phase
-                // Rm\ome gets 100T.
-                $this->treasury+=100 ;
-                array_push($messages , Array('Rome collects 100 T.'));
-                // Pay for active wars
+                // Pay for active (including unprosecuted) wars
                 $textWars = '' ;
                 $nbWars = 0 ;
                 foreach ($this->activeWars->cards as $activeWar) {
@@ -880,7 +906,7 @@ class Game
                     $this->treasury-=$totalCostForces ;
                     array_push($messages , Array('Rome pays '.$totalCostForces.'T for the maintenance of '.count($this->legion).' legions and '.count($this->fleet).' fleets. '));
                 }
-                // Provinces governors
+                // Return of provinces governors
                 foreach($this->party as $party) {
                     foreach ($party->senators->cards as $senator) {
                         foreach ($senator->controls->cards as $card) {
