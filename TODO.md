@@ -13,7 +13,10 @@ CURRENT :
 BUG :
 - Prevent player from entering the same party name in ViewGame
 
-Revenue :
+***********
+* Revenue *
+***********
+
 PROPER Revenue Sequence :
 ---------------------- revenue_Base
 - Personal revenues (none for rebel or captive) -> given as a lump sum
@@ -26,17 +29,17 @@ PROPER Revenue Sequence :
 - State revenue (includes Rome''s Provincial revenues) SUBPHASE : Done after redistribution, no need to create a new one
 ----------------------
 - Contributions SUBPHASE : Contributions ("S" at the end !)
-TO DO : Move contributions away from redistribution, create subPhase, create function (modify template as well)
+TO DO : Modify template for Contributions
+TO DO : Check where to branch revenu finished
 ----------------------
 - Debits (Maintenance, active conflicts, land bills)
 - Returning governors
+/---------------------------/
 
-Correct this :
-- Senator taking spoil MAY decide to pay negative values or let Rome do so.
-- All provinces revenue for Rome should happen after all senators revenue, because the province might have bedome developed this turn, which changes the income.
+TO ADD :
 - Rebel legions maintenance.
 - Possibility to earn more from some concessions in case of a drought (Sicilian and Egyptian grain)
 
 Modify : Provinces roll revenues :
 - Evil omens
-- Maybe separate senator and Rome revenue as they are separated.
+- Maybe separate senator and Rome revenue function as they are separated.
