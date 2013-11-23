@@ -28,11 +28,11 @@ class Province extends Card {
 		$this->governor = null ;
 	}
         
-        public function rollRevenues() {
+        public function rollRevenues($modifier) {
             $result = Array() ;
             $status = ($this->developed) ? 'developed' : 'undeveloped' ;
-            $result['rome'] = $this->income[$status]['rome']['variable']*mt_rand(1,6) + $this->income[$status]['rome']['fixed'];
-            $result['senator'] = $this->income[$status]['senator']['variable']*mt_rand(1,6) + $this->income[$status]['senator']['fixed'];
+            $result['rome'] = $this->income[$status]['rome']['variable']*mt_rand(1,6) + $this->income[$status]['rome']['fixed'] + $modifier;
+            $result['senator'] = $this->income[$status]['senator']['variable']*mt_rand(1,6) + $this->income[$status]['senator']['fixed'] + $modifier;
             return $result ;
         }
 }

@@ -33,7 +33,7 @@ namespace ROR;
  * $curia
  * --- LAND BILLS, EVENTS, LEGIONS & FLEETS ---
  * $landBill Array (int)=>(int) : landBill[X]=Y means there is Y land bills of type X
- * $events Array (int) : array of events
+ * $events Array (string => int) : array of events in the form 'Name of event' => level, 0 means event is not in play
  * $legion Array of legion objects
  * $fleet Array of fleet objects
  * --- SENATE ---
@@ -425,11 +425,8 @@ class Game
             $result[$i]+=mt_rand(1,6);
             $result['total']+=$result[$i];
         }
-        if ( in_array($this->events , 'Evil Omens') ) {
-            $total += $evilOmensEffect;
-        } elseif ( in_array($this->events , 'More Evil Omens') ) {
-            $total += (2*$evilOmensEffect);
-        }
+        // Add evil omens effects to the roll
+        $result['total'] += $evilOmensEffect * $this->getEventLevel('Evil Omens');
         return $result ;
     }
     
@@ -455,6 +452,14 @@ class Game
             }
         }
         return $result ;
+    }
+    
+    public function getEventLevel ($eventName) {
+        if (array_key_exists($eventName, $this->events)) {
+            return $this->events[$eventName] ;
+        } else {
+            return 0 ;
+        }
     }
        
     /************************************************************
@@ -737,20 +742,28 @@ class Game
                 if (is_null($request[$province->id])) {
                     return Array('Undefined province.','error');
                 }
-                $revenue = $province->rollRevenues();
-                // No spoils
-                $message = $province->name.' : Rome\'s revenue is '.$revenue['rome'].'T . ';
-                $this->treasury+=$revenue['rome'];
+                $revenue = $province->rollRevenues(-$this->getEventLevel('Evil Omens'));
+                $message = $province->name.' : ';
+                // Spoils
                 if ($request[$province->id] == 'YES') {
-                    // Spoils
                     $senator->corrupt = TRUE ;
-                    $message .= $senator->name.' takes provincial spoils for '.$revenue['senator'].'T .'.( ($revenue['senator']<0) ? ' As it\'s negative, it\'s paid by Rome. ' : ''.' The senator is now corrupt.') ;
+                    $message .= $senator->name.' takes provincial spoils for '.$revenue['senator'].'T .';
                     if ($revenue['senator']>0) {
                         $senator->treasury+=$revenue['senator'];
                     } else {
-                        $this->treasury+=$revenue['senator'];
+                        if ($request[$province->id.'_LET_ROME_PAY'] == 'YES') {
+                            // The Senator decided to let Rome pay for it
+                            $message .= ' He decides to let the negative amount be paid by Rome. ' ;
+                            $this->treasury+=$revenue['senator'];
+                        } else {
+                            // The Senator decided to pay for it
+                            $message .= ' He decides to pay the negative amount. ' ;
+                            $senator->treasury+=$revenue['senator'];
+                        }
                     }
+                    $message .= ' He is now corrupt.';
                 } else {
+                // No spoils
                     $message.=$senator->name.' doesn\'t take Provincial spoils.';
                 }
                 // Develop province
@@ -759,6 +772,7 @@ class Game
                     $modifier = ( ($senator->corrupt) ? 0 : 1) ;
                     if ( ($roll+$modifier) >= 6 ) {
                         $message.=' A '.$roll.' is rolled'.($modifier==1 ? ' (modified by +1 since senator is not corrupt)' : '').', the province is developed. '.$senator->name.' gains 3 INFLUENCE.';
+                        $province->developed = TRUE ;
                         $senator->INF+=3;
                     } else {
                         $message.=' A '.$roll.' is rolled'.($modifier==1 ? ' (modified by +1 since senator is not corrupt)' : '').', the province is not developed.';
@@ -826,11 +840,7 @@ class Game
             if ($toTI[0]== 'senator' && $fromTI[0]=='senator' && $toTI[1]==$fromTI[1] ) { return Array(Array('Stop drinking','error',$user_id)); }
             $from->treasury-=$amount ;
             $to->treasury+=$amount ;
-            /* Giving to rome : TO DO - move it to contribution function 
-            if ($amount>=50) { $INFgain = 7 ; } elseif ($amount>=25) { $INFgain = 3 ; } elseif ($amount>=10) { $INFgain = 1 ; } else { $INFgain = 0 ; }
-            $from->INF+=$INFgain ;
-            return Array(Array($from->name.' gives '.$amount.'T to Rome.'.( ($INFgain!=0) ? ' He gains '.$INFgain.' Influence.' : '') ));
-            */
+
             if ($toTI[0]== 'senator') {
                 // This is a different message for public and private use
                 return Array(
@@ -841,32 +851,75 @@ class Game
                 return Array(Array($from->name.' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ));
             }
         }
-        return Array(Array('Undocumented Redistribution error','error'));
+        return Array(Array('Undocumented Redistribution error','error',$user_id));
     }
-    
-    public function revenue_stateRevenue() {
+
+    /**
+     * Finish the redistribution of wealth for $user_id
+     * If everyone is done, do State revenue :
+     * > 100 T
+     * > Provinces
+     * Then move to Contributions subphase
+     * @param type $user_id
+     * @return array
+     */
+    public function revenue_finishRedistribution ($user_id) {
         $messages = Array () ;
-        if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->whoseTurn()==FALSE) ) {
-            array_push($messages , Array('The redistribution sub phase is finished.')) ;
-            array_push($messages , Array('State revenues.')) ;
-            // Rome gets 100T.
-            $this->treasury+=100 ;
-            array_push($messages , Array('Rome collects 100 T.'));
-            foreach ($this->party as $party) {
-                foreach ($party->senators->cards as $senator) {
-                    foreach ($senator->controls->cards as $province) {
-                        if ($province->type=='Province') {
-                            $revenue = $province->rollRevenues();
-                            array_push($messages , Array($province->name.' : Rome\'s revenue is '.$revenue['rome'].'T . ') );
-                            $this->treasury+=$revenue['rome'];
+        if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
+            $this->party[$user_id]->phase_done=TRUE ;
+            array_push($messages , Array($this->party[$user_id]->fullName().' has finished redistributing wealth.')) ;
+            if ($this->whoseTurn()===FALSE) {
+                array_push($messages , Array('The redistribution sub phase is finished.')) ;
+                array_push($messages , Array('State revenues.')) ;
+                // Rome gets 100T.
+                $this->treasury+=100 ;
+                array_push($messages , Array('Rome collects 100 T.'));
+                foreach ($this->party as $party) {
+                    foreach ($party->senators->cards as $senator) {
+                        foreach ($senator->controls->cards as $province) {
+                            if ($province->type=='Province') {
+                                $revenue = $province->rollRevenues(-$this->getEventLevel('Evil Omens'));
+                                array_push($messages , Array($province->name.' : Rome\'s revenue is '.$revenue['rome'].'T . ') );
+                                $this->treasury+=$revenue['rome'];
+                            }
                         }
                     }
                 }
+                array_push($messages , Array('The state revenue sub phase is finished.')) ;
+                array_push($messages , Array('Contributions.')) ;
+                $this->subPhase='Contributions';
+                $this->resetPhaseDone();
             }
-            array_push($messages , Array('The state revenue sub phase is finished.')) ;
-            array_push($messages , Array('Contributions.')) ;
-            $this->subPhase='Contributions';
-            $this->resetPhaseDone();
+        }
+        return $messages ;       
+    }
+   
+    public function revenue_listContributions($user_id) {
+        $result = array() ;
+        if ( ($this->phase=='Revenue') && ($this->subPhase=='Contributions') && ($this->party[$user_id]->phase_done==FALSE) ) {
+            foreach($this->party[$user_id]->senators->cards as $senator) {
+                if ($senator->treasury > 0 ) {
+                    array_push( array('senator_id' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury));
+                }
+            }
+        }
+        return $result ;
+    }
+    
+    public function revenue_doContributions($user_id , $senatorID , $amount) {
+        $messages = array() ;
+        foreach ($this->party[$user_id]->senators->cards as $senator) {
+            if ($senator->senatorID==$senatorID) {
+                if ($senator->treasury < $amount) {
+                    return array('This senator doesn\'t have enough money','error',$user_id);
+                } else {
+                    if ($amount>=50) { $INFgain = 7 ; } elseif ($amount>=25) { $INFgain = 3 ; } elseif ($amount>=10) { $INFgain = 1 ; } else { $INFgain = 0 ; }
+                    $senator->INF+=$INFgain ;
+                    $senator->treasury-=$amount ;
+                    $this->treasury+=$amount ;
+                    return Array(Array($senator->name.' gives '.$amount.'T to Rome.'.( ($INFgain!=0) ? ' He gains '.$INFgain.' Influence.' : '') ));
+                }
+            }
         }
         return $messages ;
     }

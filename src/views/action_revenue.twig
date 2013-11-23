@@ -53,6 +53,10 @@ Revenue from Provincial spoils :<br>
                         <option value="YES" selected>Take spoils</option>
                         <option value="NO">Don't take spoils</option>
                     </select>
+                    <select name="{{province['province'].id}}_LET_ROME_PAY">
+                        <option value="YES" selected>Let Rome pay if negative</option>
+                        <option value="NO">Let Senator pay if negative</option>
+                    </select>
                 </div>
         </div>
             {% endfor %}
@@ -106,7 +110,10 @@ amount
     <button type="submit" class="btn btn-sucess">TRANSFER</button>
 </form>
     {% endif %}
-<form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Finished'} ) }}">
+<form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_RedistributionFinished'} ) }}">
     <button type="submit" class="btn btn-danger">DONE</button>
 </form>
+{# CONTRIBUTIONS SUBPHASE#}
+{% elseif content['game'].subPhase=='Contributions' %}
+
 {% endif %}
