@@ -1,6 +1,6 @@
 {% block myJavascript %}
 <script type="text/javascript">
-  function updateAmount() {
+  function updateRedistributionAmount() {
       x = fromRaw.value.indexOf("|"); 
       y = fromRaw.value.indexOf("|",x+1);
       value =  fromRaw.value.substr(y+1) ;
@@ -10,7 +10,15 @@
           amount.options[amount.length] = option;
       }
   }
-  updateAmount();
+  function updateContributionAmount() {
+    value =  senator.value.substr(senator.value.indexOf("|")+1) ;
+    while ( amount.options.length ) amount.options[0] = null ;
+    for ( i = 1; i <= value; i++ ) {
+        option = new Option( i , i );
+        amount.options[amount.length] = option;
+    }
+  }
+
 </script>
 {% endblock %}  
 
@@ -68,6 +76,8 @@ Revenue from Provincial spoils :<br>
 
 {# REDISTRIBUTION SUBPHASE#}
 {% elseif content['game'].subPhase=='Redistribution' %}
+Sub Phase : Redistribution<br>
+
     {# ALREADY PLAYED - WAIT #}
     {% if content['game'].party[user_id].phase_done%}
     Waiting for 
@@ -83,7 +93,7 @@ Revenue from Provincial spoils :<br>
 <form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Redistribution'} ) }}">
     <fieldset>
 Give from 
-        <select id="fromRaw" name="fromRaw" onClick="updateAmount()">
+        <select id="fromRaw" name="fromRaw" onClick="updateRedistributionAmount()">
             {% for listRedistribute in content['game'].revenue_ListRedistribute(user_id) %}
             {% if listRedistribute['list']=='from' %}
             <option value="{{listRedistribute['type']}}|{{listRedistribute['id']}}|{{listRedistribute['treasury']}}">
@@ -115,5 +125,35 @@ amount
 </form>
 {# CONTRIBUTIONS SUBPHASE#}
 {% elseif content['game'].subPhase=='Contributions' %}
+Sub Phase : Contributions<br>
+    {# ALREADY PLAYED - WAIT #}
+    {% if content['game'].party[user_id].phase_done%}
+Waiting for 
+        {% for current_user_id in content['game'].party %}
+            {% if content['game'].party[current_user_id.user_id].phase_done==FALSE %}
+                {{ app['user.manager'].getUser(current_user_id.user_id).getName }} ,
+            {% endif %}
+        {% endfor %}
+            
+    {# HASN'T PLAYED YET - PLAY #}
+{% else %}
+<br>
+<form class="form-horizontal" id="contributions" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Contributions'} ) }}">
+    <fieldset>
+Give from 
+        <select id="senator" name="senator" onClick="updateContributionAmount()">
+            {% for list in content['game'].revenue_listContributions(user_id) %}
+            <option value="{{list['senatorID']}}|{{list['treasury']}}">
+                {{list['name']}}
+            </option>
+            {% endfor %}
+        </select>
+amount
+        <select id="amount" name="amount">
+        </select>
+    </fieldset>
+    <br>
+    <button type="submit" class="btn btn-sucess">GIVE TO ROME</button>
+</form>
 
 {% endif %}

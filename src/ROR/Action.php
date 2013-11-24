@@ -59,6 +59,8 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         log ($app , $game_id , $user_id , $game->revenue_DoRedistribute ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
     } elseif ($action=='revenue_RedistributionFinished') {
         log ($app , $game_id , $user_id , $game->revenue_finishRedistribution ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
+    } elseif ($action=='revenue_Contributions') {
+        log ($app , $game_id , $user_id , $game->revenue_doContributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) ) ;
     } elseif ($action=='revenue_Finished') {
         log ($app , $game_id , $user_id , $game->revenue_Finished ($user_id) );
     }

@@ -906,9 +906,11 @@ class Game
         return $result ;
     }
     
-    public function revenue_doContributions($user_id , $senatorID , $amount) {
+    public function revenue_doContributions($user_id , $rawSenator , $amount) {
         $messages = array() ;
         foreach ($this->party[$user_id]->senators->cards as $senator) {
+            $lessRaw = explode('|' , $rawSenator);
+            $senatorID = $lessRaw[0];
             if ($senator->senatorID==$senatorID) {
                 if ($senator->treasury < $amount) {
                     return array('This senator doesn\'t have enough money','error',$user_id);
