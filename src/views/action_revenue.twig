@@ -136,7 +136,7 @@ Waiting for
         {% endfor %}
             
     {# HASN'T PLAYED YET - PLAY #}
-{% else %}
+    {% else %}
 <br>
 <form class="form-horizontal" id="contributions" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Contributions'} ) }}">
     <fieldset>
@@ -155,5 +155,6 @@ amount
     <br>
     <button type="submit" class="btn btn-sucess">GIVE TO ROME</button>
 </form>
+    {% endif %}
 
 {% endif %}

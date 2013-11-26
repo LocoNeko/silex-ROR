@@ -821,7 +821,7 @@ class Game
      * @param type $to
      * @return string
      */
-    public function revenue_DoRedistribute ($user_id , $fromRaw , $toRaw , $amount) {
+    public function revenue_Redistribution ($user_id , $fromRaw , $toRaw , $amount) {
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $fromTI = explode('|' , $fromRaw);
             $toTI = explode('|' , $toRaw);
@@ -844,7 +844,7 @@ class Game
             if ($toTI[0]== 'senator') {
                 // This is a different message for public and private use
                 return Array(
-                    Array($from->name.' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ) ,
+                    Array(($fromTI[0]=='senator' ? ($from->name) : 'The party ' ).' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ) ,
                     Array($this->party[$user_id]->fullName().' moves some money around'  , 'message' , $this->getAllButOneUserID($user_id) )
                     ) ;
             } else {
@@ -863,7 +863,7 @@ class Game
      * @param type $user_id
      * @return array
      */
-    public function revenue_finishRedistribution ($user_id) {
+    public function revenue_RedistributionFinished ($user_id) {
         $messages = Array () ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $this->party[$user_id]->phase_done=TRUE ;
@@ -906,7 +906,7 @@ class Game
         return $result ;
     }
     
-    public function revenue_doContributions($user_id , $rawSenator , $amount) {
+    public function revenue_Contributions($user_id , $rawSenator , $amount) {
         $messages = array() ;
         foreach ($this->party[$user_id]->senators->cards as $senator) {
             $lessRaw = explode('|' , $rawSenator);
