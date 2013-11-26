@@ -18,7 +18,7 @@
         amount.options[amount.length] = option;
     }
   }
-
+  updateContributionAmount();
 </script>
 {% endblock %}  
 
@@ -119,10 +119,10 @@ amount
     <br>
     <button type="submit" class="btn btn-sucess">TRANSFER</button>
 </form>
-    {% endif %}
 <form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_RedistributionFinished'} ) }}">
     <button type="submit" class="btn btn-danger">DONE</button>
 </form>
+    {% endif %}
 {# CONTRIBUTIONS SUBPHASE#}
 {% elseif content['game'].subPhase=='Contributions' %}
 Sub Phase : Contributions<br>
@@ -154,6 +154,9 @@ amount
     </fieldset>
     <br>
     <button type="submit" class="btn btn-sucess">GIVE TO ROME</button>
+</form>
+<form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Finished'} ) }}">
+    <button type="submit" class="btn btn-danger">DONE</button>
 </form>
     {% endif %}
 

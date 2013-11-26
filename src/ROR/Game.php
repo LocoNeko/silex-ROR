@@ -899,7 +899,7 @@ class Game
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Contributions') && ($this->party[$user_id]->phase_done==FALSE) ) {
             foreach($this->party[$user_id]->senators->cards as $senator) {
                 if ($senator->treasury > 0 ) {
-                    array_push( array('senator_id' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury));
+                    array_push( $result , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury));
                 }
             }
         }
@@ -907,23 +907,25 @@ class Game
     }
     
     public function revenue_Contributions($user_id , $rawSenator , $amount) {
-        $messages = array() ;
+        $amount=(int)$amount;
+        $lessRaw = explode('|' , $rawSenator);
+        $senatorID = $lessRaw[0];
         foreach ($this->party[$user_id]->senators->cards as $senator) {
-            $lessRaw = explode('|' , $rawSenator);
-            $senatorID = $lessRaw[0];
             if ($senator->senatorID==$senatorID) {
                 if ($senator->treasury < $amount) {
-                    return array('This senator doesn\'t have enough money','error',$user_id);
+                    return array(array('This senator doesn\'t have enough money','error',$user_id));
+                } elseif ($amount<1) {
+                    return array(array('Wrong amount','error',$user_id));
                 } else {
                     if ($amount>=50) { $INFgain = 7 ; } elseif ($amount>=25) { $INFgain = 3 ; } elseif ($amount>=10) { $INFgain = 1 ; } else { $INFgain = 0 ; }
                     $senator->INF+=$INFgain ;
                     $senator->treasury-=$amount ;
                     $this->treasury+=$amount ;
-                    return Array(Array($senator->name.' gives '.$amount.'T to Rome.'.( ($INFgain!=0) ? ' He gains '.$INFgain.' Influence.' : '') ));
+                    return array(array($senator->name.' gives '.$amount.'T to Rome.'.( ($INFgain!=0) ? ' He gains '.$INFgain.' Influence.' : '') ));
                 }
             }
         }
-        return $messages ;
+        return array('Error retrieving Senator','error',$user_id);
     }
     
     public function revenue_Finished ($user_id) {
