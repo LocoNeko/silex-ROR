@@ -51,16 +51,16 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         log ($app , $game_id , $user_id , $game->playStateman ( $user_id , $request->request->get('card_id') ) ) ;
     } elseif ($action=='playConcession') {
         log ($app , $game_id , $user_id , $game->playConcession ( $user_id , $request->request->get('card_id') , $request->request->get('senator_id') ) ) ;
-    } elseif ($action=='setupFinished') {
+    } elseif ($action=='setup_Finished') {
         log ($app , $game_id , $user_id , $game->setup_Finished($user_id));
     } elseif ($action=='revenue_ProvincialSPoils') {
         log ($app , $game_id , $user_id , $game->revenue_ProvincialSpoils( $user_id , $request->request->all() ));
     } elseif ($action=='revenue_Redistribution') {
-        log ($app , $game_id , $user_id , $game->revenue_DoRedistribute ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
+        log ($app , $game_id , $user_id , $game->revenue_Redistribution ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
     } elseif ($action=='revenue_RedistributionFinished') {
-        log ($app , $game_id , $user_id , $game->revenue_finishRedistribution ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
+        log ($app , $game_id , $user_id , $game->revenue_RedistributionFinished ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
     } elseif ($action=='revenue_Contributions') {
-        log ($app , $game_id , $user_id , $game->revenue_doContributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) ) ;
+        log ($app , $game_id , $user_id , $game->revenue_Contributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) ) ;
     } elseif ($action=='revenue_Finished') {
         log ($app , $game_id , $user_id , $game->revenue_Finished ($user_id) );
     }

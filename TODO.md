@@ -23,9 +23,9 @@ PROPER Revenue Sequence :
 - Provincial spoils (+choose if Rome pays if negative or not) -> each senator chooses
 - Develop province (NOT for Barbarian raids))
 - Rebel maintenance (BEFORE redistribution)
----------------------- revenue_DoRedistribute
+---------------------- revenue_Redistribution
 - Redistribute SUBPHASE : Redistribution
----------------------- revenue_stateRevenue
+- revenue_stateRevenue :
 - State revenue (includes Rome''s Provincial revenues) SUBPHASE : Done after redistribution, no need to create a new one
 ----------------------
 - Contributions SUBPHASE : Contributions ("S" at the end !)
