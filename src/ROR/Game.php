@@ -982,7 +982,7 @@ class Game
                     }
                 }
                 // Done, move to Forum phase.
-                array_push($messages , Array('Revenue phase is finished. Starting Forum phase.'));
+                array_push($messages , Array('Revenue phase is finished. Rome now has '.$this->treasury.'T. Starting Forum phase.'));
                 $this->resetPhaseDone();
                 $this->phase='Forum';
                 array_push($messages , Array('FORUM PHASE','alert'));
