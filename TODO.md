@@ -41,5 +41,6 @@ TO ADD :
 - Possibility to earn more from some concessions in case of a drought (Sicilian and Egyptian grain)
 
 Modify : Provinces roll revenues :
-- Evil omens
 - Maybe separate senator and Rome revenue function as they are separated.
+
+Load/Save game : Should change rate of save to subphase only, and write current Turn/Phase/Subphase into the save game
