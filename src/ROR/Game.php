@@ -18,7 +18,7 @@ namespace ROR;
  * $currentBidder (party) : The party which turn it currently is to bid
  * $persuasionTarget (Senator) : The senator being persuaded
  * --- THE PARTIES ---
- * $party Array (Party) /!\ key : user_id ; value : party_name
+ * $party array (Party) /!\ key : user_id ; value : party_name
  * --- THE DECKS ---
  * $earlyRepublic
  * $middleRepublic
@@ -32,10 +32,10 @@ namespace ROR;
  * $forum
  * $curia
  * --- LAND BILLS, EVENTS, LEGIONS & FLEETS ---
- * $landBill Array (int)=>(int) : landBill[X]=Y means there is Y land bills of type X
- * $events Array (string => int) : array of events in the form 'Name of event' => level, 0 means event is not in play
- * $legion Array of legion objects
- * $fleet Array of fleet objects
+ * $landBill array (int)=>(int) : landBill[X]=Y means there is Y land bills of type X
+ * $events array (string => int) : array of events in the form 'Name of event' => level, 0 means event is not in play
+ * $legion array of legion objects
+ * $fleet array of fleet objects
  * --- SENATE ---
  * TO DO
  */
@@ -56,7 +56,7 @@ class Game
     public $currentBidder , $persuasionTarget ;
     public $party ;
     public $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
-    public $landBill ,$events , $eventPool , $legion , $fleet ;
+    public $landBill ,$events , $eventPool , $eventTable , $legion , $fleet ;
     
     public function get_id() {
             return $this->id;
@@ -71,12 +71,12 @@ class Game
      * 
      * @param ($name) Game name
      * @param ($scenario) Scenario name
-     * @param ($partyNames) Array of 'user_id'=>'party name' the order is the standard order of play
-     * @param ($userNames) Array of 'user_id'=>'user name'
-     * @return mixed FALSE (failure) OR $messages Array (success)
+     * @param ($partyNames) array of 'user_id'=>'party name' the order is the standard order of play
+     * @param ($userNames) array of 'user_id'=>'user name'
+     * @return mixed FALSE (failure) OR $messages array (success)
      */
     public function create($name , $scenario , $partyNames , $userNames) {
-        $messages = Array () ;
+        $messages = array () ;
         $this->id = substr(md5(uniqid(rand())),0,8) ;
         $this->name = $name;
         $this->turn = 1 ;
@@ -107,19 +107,20 @@ class Game
         $this->unprosecutedWars = new Deck ;
         $this->forum = new Deck ;
         $this->curia = new Deck ;
-        $this->landBill = Array() ;
+        $this->landBill = array() ;
         $this->landBill[1] = 0 ;
         $this->landBill[2] = 0 ;
         $this->landBill[3] = 0 ;
-        $this->events = Array() ;
-        $this->eventPool = Array() ;
-        $this->legion = Array () ;
-        $this->fleet = Array () ;
         // Create eventPool
+        $this->events = array() ;
+        $this->eventPool = array() ;
+        $this->eventTable = array() ;
         $this->createEventPool();
+        $this->legion = array () ;
+        $this->fleet = array () ;
         // Creating parties
         $this->firstParty = null ;
-        $this->party = Array () ;
+        $this->party = array () ;
         foreach ($partyNames as $key=>$value) {
             $this->party[$key] = new Party ;
             $this->party[$key]->create($value , $key , $userNames[$key]);
@@ -129,8 +130,8 @@ class Game
          * Then create 4 legions in Rome, the rest of the legions and all the fleets are non-existent (Legions and Fleet objects should never be created during a game)
          */
         $this->inactiveWars->putOnTop($this->earlyRepublic->drawCardWithValue('name', '1ST PUNIC WAR'));
-        array_push($messages , Array('SETUP PHASE' , 'alert') ) ;
-        array_push($messages , Array('The First Punic war is now an inactive war') ) ;
+        array_push($messages , array('SETUP PHASE' , 'alert') ) ;
+        array_push($messages , array('The First Punic war is now an inactive war') ) ;
         $this->discard->putOnTop($this->earlyRepublic->drawCardWithValue('name', 'ERA ENDS')) ;
         for ($i=1 ; $i<=25 ; $i++) {
             $this->legion[$i] = new Legion () ;
@@ -141,7 +142,7 @@ class Game
         for ($i=1 ; $i<=4 ; $i++) {
             $this->legion[$i]->location = 'Rome';
         }
-        array_push($messages , Array('Rome starts with 4 Legions') ) ;
+        array_push($messages , array('Rome starts with 4 Legions') ) ;
         /* 
          * Give initial senators to parties
          * - Create a temporary deck with all 20 families (not statemen)
@@ -158,7 +159,7 @@ class Game
             for ($j=0 ; $j<3 ; $j++)
             {
                 $party->senators->putOnTop($tempDeck->drawTopCard());
-                array_push($messages , Array($party->fullName().' receives Senator '.$party->senators->cards[0]->name) ) ;
+                array_push($messages , array($party->fullName().' receives Senator '.$party->senators->cards[0]->name) ) ;
             }
         }
         while (count($tempDeck->cards)>0) {
@@ -183,12 +184,12 @@ class Game
                         $this->earlyRepublic->putOnTop($card);
                 }
             }
-            array_push($messages , Array($party->fullName().' receives 3 cards.')) ;
+            array_push($messages , array($party->fullName().' receives 3 cards.')) ;
         }
         /*
          * Give temporary Rome Consul office to random Senator in Rome
          */
-        $senatorsInPlay = Array() ;
+        $senatorsInPlay = array() ;
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 array_push($senatorsInPlay,$senator) ;
@@ -199,7 +200,7 @@ class Game
         $temporaryRomeConsul->priorConsul = true ;
         $temporaryRomeConsul->INF += 5 ;
         $party = $this->getPartyOfSenator($temporaryRomeConsul);
-        array_push($messages , Array($temporaryRomeConsul->name.' '.$party->fullName().' becomes temporary Rome consul.','alert'));
+        array_push($messages , array($temporaryRomeConsul->name.' '.$party->fullName().' becomes temporary Rome consul.','alert'));
         return $messages ;
     }
     
@@ -207,16 +208,28 @@ class Game
      * Convenience function (could be inside CreateGame)
      * The event file should have 4 columns :
      * Event number (should be VG card number) ; event name ; increased event name ; maximum level of the event of 0 if none
+     * The event table file should have 3 columns :
+     * event number for Early Republic ; Middle Republic ; Late Republic 
      */
     public function createEventPool() {
         $filePointer = fopen(dirname(__FILE__).'/../../data/events.csv', 'r');
         if (!$filePointer) {
-            throw new Exception("Could not open the file");
+            throw new Exception("Could not open the events file");
         }
         while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
-            array_push ($this->eventPool , array($data[0] , $data[1] , $data[2] , $data[3])) ;
+            $this->eventPool[$data[0]] = array($data[1] , $data[2] , $data[3]);
         }
-        
+        $filePointer = fopen(dirname(__FILE__).'/../../data/eventTable.csv', 'r');
+        if (!$filePointer) {
+            throw new Exception("Could not open the event table file");
+        }
+        $i=3;
+        while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
+            $this->eventTable[$i]['EarlyRepublic'] = $data[0] ;
+            $this->eventTable[$i]['MiddleRepublic'] = $data[1] ;
+            $this->eventTable[$i]['LateRepublic'] = $data[2] ;
+            $i++;
+        }
     }
     
     /**
@@ -269,26 +282,26 @@ class Game
     
     /**
      * Returns the Senator, Party, and user_id of the HRAO
-     * @return Array 'senator' , 'party' , 'user_id'
+     * @return array 'senator' , 'party' , 'user_id'
      */
     public function HRAO() {
-        $allSenators = Array ();
+        $allSenators = array ();
         foreach ($this->party as $user_id=>$party) {
             foreach ($party->senators->cards as $senator) {
                 if ($senator->inRome) {
                     switch ($senator->office) {
                         case ('Dictator') :
-                            return Array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
+                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
                         case ('Rome Consul') :
-                            return Array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
+                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
                         case ('Field Consul') :
-                            return Array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
+                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
                         case ('Censor') :
-                            return Array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
+                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
                         case ('Master of Horse') :
-                            return Array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
+                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
                         case ('Pontifex Maximus') :
-                            return Array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
+                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
                         default :
                     }
                 }
@@ -315,51 +328,51 @@ class Game
         $senator = $allSenators[0] ;
         $party = $this->getPartyOfSenator($senator) ;
         $user_id = $party->user_id ;
-        return Array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
+        return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
     }
     
     /**
      * 
      * @param user_id $user_id
      * @param \ROR\Senator $stateman
-     * @return Array 'flag' = TRUE|FALSE , 'message'
+     * @return array 'flag' = TRUE|FALSE , 'message'
      */
     public function statemanPlayable ($user_id , Senator $stateman) {
         if ($stateman->type != 'Stateman') {
-            return Array('flag' => FALSE, 'message' => '***ERROR***');
+            return array('flag' => FALSE, 'message' => '***ERROR***');
         }
         foreach ($this->party as $otherUser_id=>$party) {
             foreach ($party->senators->cards as $senator) {
                 // Check if the family is already in play
                 if ( ($senator->type == 'Family') && ($senator->senatorID == $stateman->statemanFamily()) ) {
                     if ($otherUser_id != $user_id) {
-                        return Array('flag' => FALSE , 'message' => 'The Family is already in party '.$party->name);
+                        return array('flag' => FALSE , 'message' => 'The Family is already in party '.$party->name);
                     } else {
-                        return Array('flag' => TRUE , 'message' => 'You have the family');
+                        return array('flag' => TRUE , 'message' => 'You have the family');
                     }
                 }
                 // Check if a related Stateman is already in play
                 if ( ($senator->type == 'Stateman') && ($senator->statemanFamily() == $stateman->statemanFamily()) ) {
                     if ( ($stateman->statemanFamily()!=25) && ($stateman->statemanFamily()!=29) ) {
-                        return Array('flag' => FALSE , 'message' => 'The related stateman '.$senator->name.' is already in play.');
+                        return array('flag' => FALSE , 'message' => 'The related stateman '.$senator->name.' is already in play.');
                     } else {
                         // The other brother is in play : this is valid
-                        return Array('flag' => TRUE , 'message' => $stateman->name.' playable, but the other brother '.$senator->name.' is in play.');
+                        return array('flag' => TRUE , 'message' => $stateman->name.' playable, but the other brother '.$senator->name.' is in play.');
                     }
                 }
             }
         }
         foreach ($this->forum->cards as $card) {
             if ($card->type=='Senator' && ($card->senatorID == $stateman->statemanFamily()) ) {
-                return Array('flag' => TRUE , 'message' => 'The corresponding family card is in the forum');
+                return array('flag' => TRUE , 'message' => 'The corresponding family card is in the forum');
             }
         }
-        return Array('flag' => TRUE , 'message' => 'The corresponding family card is not in play');
+        return array('flag' => TRUE , 'message' => 'The corresponding family card is not in play');
     }
     
     /**
-     * returns array of user_id from HRAO, clockwise in the same order as the Array $this->party (order of joining game)
-     * @return Array 
+     * returns array of user_id from HRAO, clockwise in the same order as the array $this->party (order of joining game)
+     * @return array 
      */
     public function orderOfPlay() {
         $result = array_keys ($this->party) ;
@@ -412,7 +425,7 @@ class Game
         if ( ($evilOmensEffect!=-1) || ($evilOmensEffect!=0) || ($evilOmensEffect!=1) ) {
             return FALSE ;
         }
-        $result = Array() ;
+        $result = array() ;
         $result['total'] = 0 ;
         for ($i=0 ; $i<=$nb ; $i++) {
             $result[$i]+=mt_rand(1,6);
@@ -461,10 +474,10 @@ class Game
     
     public function setup_setPartyLeader( $user_id , $senatorID ) {
         if ($this->subPhase!='PickLeaders') {
-            return Array(Array('Wrong phase','error'));
+            return array(array('Wrong phase','error'));
         }
         if ($this->party[$user_id]->leader !== NULL) {
-            return Array(Array('The leader is already set','error'));
+            return array(array('The leader is already set','error'));
         }
         foreach ($this->party[$user_id]->senators->cards as $senator) {
             if ( ($senator->senatorID == $senatorID) && is_null($this->party[$user_id]->leader) ) {
@@ -476,26 +489,26 @@ class Game
                     $this->subPhase = 'PlayCards' ;
                     $this->resetPhaseDone() ;
                 }
-                return Array(Array($senator->name.' is the new leader of party '.$this->party[$user_id]->name , 'alert'));
+                return array(array($senator->name.' is the new leader of party '.$this->party[$user_id]->name , 'alert'));
             }
         }
-        return Array(Array('Undocumented error - party leader not set.','error'));
+        return array(array('Undocumented error - party leader not set.','error'));
     }
     
     public function setup_possibleActions($user_id) {
-        $result = Array() ;
+        $result = array() ;
         foreach ($this->party[$user_id]->hand->cards as $card) {
             // TO DO : Check what happens of statemanPlayable['message'], it seems unused
             if ( (($card->type == 'Stateman') && $this->statemanPlayable($user_id, $card)['flag']) ) {
-                array_push($result, Array('action' => 'Stateman' , 'card_id' => $card->id , 'message' => $card->name)) ;
+                array_push($result, array('action' => 'Stateman' , 'card_id' => $card->id , 'message' => $card->name)) ;
             } elseif ($card->type == 'Concession') {
                 // The Land Commissioner is not playable without Land bills in play
                 if ($card->name!='LAND COMMISSIONER' || $this->landCommissionerPlaybale()) {
-                    array_push($result, Array('action' => 'Concession' , 'card_id' => $card->id , 'message' => $card->name)) ;                
+                    array_push($result, array('action' => 'Concession' , 'card_id' => $card->id , 'message' => $card->name)) ;                
                 }
             }
         }
-        array_push($result , Array ('action' => 'Done' , 'card_id' => '', 'message' => 'Done playing cards') );
+        array_push($result , array ('action' => 'Done' , 'card_id' => '', 'message' => 'Done playing cards') );
         return $result;
     }
     
@@ -504,7 +517,7 @@ class Game
         if ($this->whoseTurn()===FALSE) {
             return $this->mortality();
         }
-        return Array();
+        return array();
     }
 
     /************************************************************
@@ -517,13 +530,13 @@ class Game
      */
     public function mortality() {
         if ( ($this->whoseTurn() === FALSE) && ($this->phase=='Setup') )  {
-            $messages = Array() ;
-            array_push($messages , Array('Setup phase is finished. Starting Mortality phase.'));
+            $messages = array() ;
+            array_push($messages , array('Setup phase is finished. Starting Mortality phase.'));
             $this->phase = 'Mortality';
-            array_push($messages , Array('MORTALITY PHASE','alert'));
+            array_push($messages , array('MORTALITY PHASE','alert'));
             // Activate imminent wars
             if (count($this->imminentWars->cards)==0) {
-               array_push($messages , Array('There is no imminent conflict to activate.')); 
+               array_push($messages , array('There is no imminent conflict to activate.')); 
             } else {
                 // This orders the imminent wars deck by conflict id
                 usort ($this->imminentWars->cards , function ($a,$b)
@@ -536,7 +549,7 @@ class Game
                     $conflict = $this->imminentWars->drawTopCard() ;
                     $matchingName = $conflict->matches ;
                     $this->activeWars->putOnTop($conflict) ;
-                    array_push($messages , Array('Imminent conflict '.$conflict->name.' has been activated.','alert'));
+                    array_push($messages , array('Imminent conflict '.$conflict->name.' has been activated.','alert'));
                     foreach ($this->imminentWars->cards as $matchingConflict) {
                         if ($matchingConflict->matches == $matchingName) {
                             $temp->putOnTop($matchingConflict) ;
@@ -553,14 +566,14 @@ class Game
             foreach ($chits as $chit) {
                 if ($chit!='NONE' && $chit!='DRAW 2') {
                     $returnedMessage= $this->killSenator((string)$chit) ;
-                    array_push($messages , Array('Chit drawn : '.$chit.'. '.$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
+                    array_push($messages , array('Chit drawn : '.$chit.'. '.$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
                 } else {
-                    array_push($messages , Array('Chit drawn : '.$chit));
+                    array_push($messages , array('Chit drawn : '.$chit));
                 }
             }
-            array_push($messages , Array('Mortality phase is finished. Starting revenue phase.'));
+            array_push($messages , array('Mortality phase is finished. Starting revenue phase.'));
             $this->phase = 'Revenue';
-            array_push($messages , Array('REVENUE PHASE','alert'));
+            array_push($messages , array('REVENUE PHASE','alert'));
             $this->revenue_init();
             return $messages ;
         }
@@ -572,8 +585,8 @@ class Game
      */
     public function mortality_chits( $qty ) {
         $qty = (int)$qty ;
-        $result = Array() ;
-        $chits = Array() ;
+        $result = array() ;
+        $chits = array() ;
         for ($i=1 ; $i<=30 ; $i++) { $chits[$i] = $i ; }
         for ($i=31 ; $i<=34 ; $i++) { $chits[$i] = 0 ; }
         $chits [35] = -1 ; $chits [36] = -1 ;
@@ -602,7 +615,7 @@ class Game
     public function killSenator($senatorID) {
         $message = '' ;
         // $deadSenator needs to be an array, as 2 brothers could be in play
-        $deadSenators = Array() ;
+        $deadSenators = array() ;
         foreach($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 if ( ($senator->type == 'Stateman') && ($senator->statemanFamily() == $senatorID ) ) {
@@ -614,7 +627,7 @@ class Game
         }
         // Returns either no dead (Senator not in play), 1 dead (found just 1 senator matching the chit), or pick 1 of two brothers if they are both legally in play
         if (count($deadSenators)==0) {
-            return Array('This senator is not in Play, nobody dies.') ;
+            return array('This senator is not in Play, nobody dies.') ;
         } elseif (count($deadSenators)>1) {
             // Pick one of two brothers
             $deadSenator = array_rand($deadSenators) ;
@@ -625,7 +638,7 @@ class Game
         }
         $party = $this->getPartyOfSenator($deadSenator) ;
         if ($party === FALSE) {
-            return Array('ERROR retrieving the party of the dead Senator','error');
+            return array('ERROR retrieving the party of the dead Senator','error');
         }
         if ($deadSenator->type == 'Stateman') {
             // Death of a Statesman
@@ -662,10 +675,10 @@ class Game
                     $message.=$card->name.' goes to the curia. ';
                 }
             } else {
-                return Array('A card controlled by the dead Senator was neither a Family nor a Concession.','error');
+                return array('A card controlled by the dead Senator was neither a Family nor a Concession.','error');
             }
         }
-        return Array($message) ;
+        return array($message) ;
     }
 
     /************************************************************
@@ -695,16 +708,16 @@ class Game
     /**
      * 
      * @param type $user_id
-     * @return Array ['total'] , ['senators'] , ['leader'] , ['knights'] , Array ['concessions'] , Array ['province_name'] , Array ['province_senatorID']
+     * @return array ['total'] , ['senators'] , ['leader'] , ['knights'] , array ['concessions'] , array ['province_name'] , array ['province_senatorID']
      */
     public function revenue_base($user_id) {
-        $result = Array() ;
+        $result = array() ;
         $result['total'] = 0 ;
         $result['senators'] = 0 ;
         $result['leader'] = '' ;
         $result['knights'] = 0 ;
-        $result['concessions'] = Array() ;
-        $result['provinces'] = Array() ;
+        $result['concessions'] = array() ;
+        $result['provinces'] = array() ;
         foreach ($this->party[$user_id]->senators->cards as $senator) {
             if ($this->party[$user_id]->leader->senatorID == $senator->senatorID) {
                 $result['total']+=3 ;
@@ -719,9 +732,9 @@ class Game
                 if ( $card->type == 'Concession' ) {
                     $card->corrupt = TRUE ;
                     $result['total']+=$card->income ;
-                    array_push($result['concessions'] , Array( 'name' => $card->name , 'income' => $card->income , 'senator_name' => $senator->name ) );
+                    array_push($result['concessions'] , array( 'name' => $card->name , 'income' => $card->income , 'senator_name' => $senator->name ) );
                 } elseif ( $card->type == 'Province' ) {
-                    array_push($result['provinces'] , Array('province' => $card , 'senator' => $senator ) );
+                    array_push($result['provinces'] , array('province' => $card , 'senator' => $senator ) );
                 }
             }
         }
@@ -731,15 +744,15 @@ class Game
     
     public function revenue_ProvincialSpoils ($user_id , $request ) {
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Base') && ($this->party[$user_id]->phase_done==FALSE) ) {
-            $messages = Array() ;
+            $messages = array() ;
             $base = $this->revenue_base($user_id);
             $this->party[$user_id]->treasury+=$base['total'] ;
-            array_push ($messages , Array($this->party[$user_id]->fullName().' gains '.$base['total'].' T : '.($base['leader']!=NULL ? 3 : 0).'T from leader, '.$base['senators'].'T from senators, '.$base['knights'].'T from knights and '.($base['total']-($base['leader']!=NULL ? 3 : 0)-$base['senators']-$base['knights']).'T from Concessions.')) ;
+            array_push ($messages , array($this->party[$user_id]->fullName().' gains '.$base['total'].' T : '.($base['leader']!=NULL ? 3 : 0).'T from leader, '.$base['senators'].'T from senators, '.$base['knights'].'T from knights and '.($base['total']-($base['leader']!=NULL ? 3 : 0)-$base['senators']-$base['knights']).'T from Concessions.')) ;
             foreach ($base['provinces'] as $data) {
                 $province = $data['province'];
                 $senator = $data['senator'];
                 if (is_null($request[$province->id])) {
-                    return Array('Undefined province.','error');
+                    return array('Undefined province.','error');
                 }
                 $revenue = $province->rollRevenues(-$this->getEventLevel('Evil Omens'));
                 $message = $province->name.' : ';
@@ -777,14 +790,14 @@ class Game
                         $message.=' A '.$roll.' is rolled'.($modifier==1 ? ' (modified by +1 since senator is not corrupt)' : '').', the province is not developed.';
                     }
                 }
-                array_push ($messages , Array($message)) ;
+                array_push ($messages , array($message)) ;
             }
             // Phase done for this player. If all players are done, 
             $this->party[$user_id]->phase_done = TRUE ;
             if ($this->whoseTurn() === FALSE ) {
                 $this->resetPhaseDone() ;
                 $this->subPhase='Redistribution' ;
-                array_push ($messages , Array('All revenues collected, parties can now redistribute money.')) ;
+                array_push ($messages , array('All revenues collected, parties can now redistribute money.')) ;
             }
             return $messages ;
         }
@@ -796,17 +809,17 @@ class Game
     * @return array
     */
     public function revenue_ListRedistribute ($user_id) {
-        $result=Array() ;
+        $result=array() ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             foreach($this->party[$user_id]->senators->cards as $senator) {
                 if ($senator->treasury > 0 ) {
-                    array_push($result , Array('list' => 'from' , 'type' => 'senator' , 'id' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury ));
+                    array_push($result , array('list' => 'from' , 'type' => 'senator' , 'id' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury ));
                 }
-                array_push($result , Array('list' => 'to' , 'type' => 'senator' , 'id' => $senator->senatorID , 'name' => $senator->name ));
+                array_push($result , array('list' => 'to' , 'type' => 'senator' , 'id' => $senator->senatorID , 'name' => $senator->name ));
             }
-            array_push($result , Array('list' => 'from' , 'type' => 'party' , 'id' => $user_id , 'name' => $this->party[$user_id]->name , 'treasury' => $this->party[$user_id]->treasury ));
+            array_push($result , array('list' => 'from' , 'type' => 'party' , 'id' => $user_id , 'name' => $this->party[$user_id]->name , 'treasury' => $this->party[$user_id]->treasury ));
             foreach($this->party as $key=>$value) {
-                array_push($result , Array('list' => 'to' , 'type' => 'party' , 'id' => $key , 'name' => $this->party[$key]->name ));
+                array_push($result , array('list' => 'to' , 'type' => 'party' , 'id' => $key , 'name' => $this->party[$key]->name ));
             }
         }
         return $result ;
@@ -830,27 +843,27 @@ class Game
             } else {
                 $to = $this->party[$toTI[1]] ;
             }
-            if ($amount<=0) { return Array(Array('You have no talent. ','error',$user_id)); }
-            if ($from===FALSE) { return Array(Array('Giving from wrong Senator','error',$user_id)); }
-            if ($to===FALSE) { return Array(Array('Giving to wrong Senator','error',$user_id)); }
-            if (!isset($from)) { return Array(Array('Giving from wrong Party','error',$user_id)); }
-            if (!isset($to)) { return Array(Array('Giving to wrong Party','error',$user_id)); }
-            if ($from->treasury < $amount) { return Array(Array('Not enough money','error',$user_id)); }
-            if ($toTI[0]== 'senator' && $fromTI[0]=='senator' && $toTI[1]==$fromTI[1] ) { return Array(Array('Stop drinking','error',$user_id)); }
+            if ($amount<=0) { return array(array('You have no talent. ','error',$user_id)); }
+            if ($from===FALSE) { return array(array('Giving from wrong Senator','error',$user_id)); }
+            if ($to===FALSE) { return array(array('Giving to wrong Senator','error',$user_id)); }
+            if (!isset($from)) { return array(array('Giving from wrong Party','error',$user_id)); }
+            if (!isset($to)) { return array(array('Giving to wrong Party','error',$user_id)); }
+            if ($from->treasury < $amount) { return array(array('Not enough money','error',$user_id)); }
+            if ($toTI[0]== 'senator' && $fromTI[0]=='senator' && $toTI[1]==$fromTI[1] ) { return array(array('Stop drinking','error',$user_id)); }
             $from->treasury-=$amount ;
             $to->treasury+=$amount ;
 
             if ($toTI[0]== 'senator') {
                 // This is a different message for public and private use
-                return Array(
-                    Array(($fromTI[0]=='senator' ? ($from->name) : 'The party ' ).' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ) ,
-                    Array($this->party[$user_id]->fullName().' moves some money around'  , 'message' , $this->getAllButOneUserID($user_id) )
+                return array(
+                    array(($fromTI[0]=='senator' ? ($from->name) : 'The party ' ).' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ) ,
+                    array($this->party[$user_id]->fullName().' moves some money around'  , 'message' , $this->getAllButOneUserID($user_id) )
                     ) ;
             } else {
-                return Array(Array($from->name.' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ));
+                return array(array($from->name.' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ));
             }
         }
-        return Array(Array('Undocumented Redistribution error','error',$user_id));
+        return array(array('Undocumented Redistribution error','error',$user_id));
     }
 
     /**
@@ -863,29 +876,29 @@ class Game
      * @return array
      */
     public function revenue_RedistributionFinished ($user_id) {
-        $messages = Array () ;
+        $messages = array () ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $this->party[$user_id]->phase_done=TRUE ;
-            array_push($messages , Array($this->party[$user_id]->fullName().' has finished redistributing wealth.')) ;
+            array_push($messages , array($this->party[$user_id]->fullName().' has finished redistributing wealth.')) ;
             if ($this->whoseTurn()===FALSE) {
-                array_push($messages , Array('The redistribution sub phase is finished.')) ;
-                array_push($messages , Array('State revenues.')) ;
+                array_push($messages , array('The redistribution sub phase is finished.')) ;
+                array_push($messages , array('State revenues.')) ;
                 // Rome gets 100T.
                 $this->treasury+=100 ;
-                array_push($messages , Array('Rome collects 100 T.'));
+                array_push($messages , array('Rome collects 100 T.'));
                 foreach ($this->party as $party) {
                     foreach ($party->senators->cards as $senator) {
                         foreach ($senator->controls->cards as $province) {
                             if ($province->type=='Province') {
                                 $revenue = $province->rollRevenues(-$this->getEventLevel('Evil Omens'));
-                                array_push($messages , Array($province->name.' : Rome\'s revenue is '.$revenue['rome'].'T . ') );
+                                array_push($messages , array($province->name.' : Rome\'s revenue is '.$revenue['rome'].'T . ') );
                                 $this->treasury+=$revenue['rome'];
                             }
                         }
                     }
                 }
-                array_push($messages , Array('The state revenue sub phase is finished.')) ;
-                array_push($messages , Array('Contributions.')) ;
+                array_push($messages , array('The state revenue sub phase is finished.')) ;
+                array_push($messages , array('Contributions.')) ;
                 $this->subPhase='Contributions';
                 $this->resetPhaseDone();
             }
@@ -928,10 +941,10 @@ class Game
     }
     
     public function revenue_Finished ($user_id) {
-        $messages = Array () ;
+        $messages = array () ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Contributions') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $this->party[$user_id]->phase_done=TRUE ;
-            array_push($messages , Array($this->party[$user_id]->fullName().' has finished contributions to Rome.')) ;
+            array_push($messages , array($this->party[$user_id]->fullName().' has finished contributions to Rome.')) ;
             if ($this->whoseTurn()===FALSE) {
                 // Finish revenue Phase
                 // Pay for active (including unprosecuted) wars
@@ -948,19 +961,19 @@ class Game
                 if ($nbWars>0) {
                     $this->treasury-=$nbWars*20 ;
                     $textWars = substr($textWars, 0 , -3) ;
-                    array_push($messages , Array('Rome pays '.($nbWars*20).'T for '.$nbWars.' active Conflicts : '.$textWars.'.'));
+                    array_push($messages , array('Rome pays '.($nbWars*20).'T for '.$nbWars.' active Conflicts : '.$textWars.'.'));
                 }
                 // Land bills
                 $totalLandBills =  $this->landBill[1]*10 + $this->landBill[2]*5 + $this->landBill[3]*10 ;
                 if ($totalLandBills>0) {
                     $this->treasury-=$totalLandBills;
-                    array_push($messages , Array('Rome pays '.$totalLandBills.' talents for land bills (I , II & III): '.($this->landBill[1]*10).'T for '.$this->landBill[1].' (I) which are then discarded, '.($this->landBill[2]*5).'T for (II) and '.($this->landBill[3]*10).'T for (III).'));
+                    array_push($messages , array('Rome pays '.$totalLandBills.' talents for land bills (I , II & III): '.($this->landBill[1]*10).'T for '.$this->landBill[1].' (I) which are then discarded, '.($this->landBill[2]*5).'T for (II) and '.($this->landBill[3]*10).'T for (III).'));
                 }
                 // Forces maintenance
                 $totalCostForces=2*(count($this->legion) + count($this->fleet)) ;
                 if ($totalCostForces>0) {
                     $this->treasury-=$totalCostForces ;
-                    array_push($messages , Array('Rome pays '.$totalCostForces.'T for the maintenance of '.count($this->legion).' legions and '.count($this->fleet).' fleets. '));
+                    array_push($messages , array('Rome pays '.$totalCostForces.'T for the maintenance of '.count($this->legion).' legions and '.count($this->fleet).' fleets. '));
                 }
                 // Return of provinces governors
                 foreach($this->party as $party) {
@@ -969,22 +982,22 @@ class Game
                             if ($card->type=='province') {
                                 $card->mandate++;
                                 if ($card->mandate == 3) {
-                                    array_push($messages , Array($senator->name.' returns from '.$card->name.' which is placed in the Forum.'));
+                                    array_push($messages , array($senator->name.' returns from '.$card->name.' which is placed in the Forum.'));
                                     $senator->inRome=TRUE;
                                     $card->mandate=0;
                                     $this->forum->putOnTop($senator->controls->drawCardWithValue('id',$card->id));
                                 } else {
-                                    array_push($messages , Array($senator->name.' spends '.( ($card->mandate==1) ? 'First' : 'Second' ).' game turn in '.$card->name.'.'));
+                                    array_push($messages , array($senator->name.' spends '.( ($card->mandate==1) ? 'First' : 'Second' ).' game turn in '.$card->name.'.'));
                                 }
                             }
                         }
                     }
                 }
                 // Done, move to Forum phase.
-                array_push($messages , Array('Revenue phase is finished. Rome now has '.$this->treasury.'T. Starting Forum phase.'));
+                array_push($messages , array('Revenue phase is finished. Rome now has '.$this->treasury.'T. Starting Forum phase.'));
                 $this->resetPhaseDone();
                 $this->phase='Forum';
-                array_push($messages , Array('FORUM PHASE','alert'));
+                array_push($messages , array('FORUM PHASE','alert'));
                 // TO DO : remove events that expire at the beginning of the forum phase
                 $this->subPhase='RollEvent';
                 $this->initiative=1;
@@ -1027,7 +1040,7 @@ class Game
             return $currentOrder[$this->initiative-1] ;
         } else {
         // This initiative was up for bidding, the winner has the initiative. The winner is the only one left with initiativeBidDone==FALSE
-            $candidates=Array() ;
+            $candidates=array() ;
             foreach ($this->party as $user_id=>$party) {
                 if ($party->bidDone===FALSE) {
                     array_push($candidates , $user_id);
@@ -1045,8 +1058,15 @@ class Game
     public function forum_rollEvent($user_id) {
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
-            // TO DO : I'm here now
-            array_push($messages , array('Roll em bones'));
+            $roll = $this->rollDice(2, 0) ;
+            if ($roll==7) {
+                // Event
+                array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, draws event '));
+                $eventRoll = $this->rollDice(3,0) ;
+                $newEvent = $this->eventPool[$this->eventTable[$eventRoll][$this->scenario]];
+            } else {
+                // Card
+            }
         } else {
         }
         return $messages ;
@@ -1063,16 +1083,16 @@ class Game
      * @return array
      */
     public function playStateman( $user_id , $card_id ) {
-        $messages = Array() ;
+        $messages = array() ;
         $stateman = $this->party[$user_id]->hand->drawCardWithValue('id', $card_id);
         if ($stateman === FALSE ) {
-            array_push($messages , Array('The card is not in '.$this->party[$user_id]->fullName().'\'s hand','error'));
+            array_push($messages , array('The card is not in '.$this->party[$user_id]->fullName().'\'s hand','error'));
             return $messages ;   
         } else {
                 if ($stateman->type!='Stateman') {
                     // This is not a stateman, put the card back and report an error
                     $this->party[$user_id]->hand->putOnTop($stateman);
-                    array_push($messages , Array('"'.$stateman->name.'" is not a stateman','error'));
+                    array_push($messages , array('"'.$stateman->name.'" is not a stateman','error'));
                     return $messages ;
                 } else {
                     // This is a Stateman, proceed
@@ -1081,7 +1101,7 @@ class Game
                     if ($family === FALSE) {
                         // This family is weird. Put the card back and report the error
                         $this->party[$user_id]->hand->putOnTop($stateman);
-                        array_push($messages , Array('Weird family.','error'));
+                        array_push($messages , array('Weird family.','error'));
                         return $messages ;
                     }
                     // Check if family is already in player's party
@@ -1092,7 +1112,7 @@ class Game
                             if ($matchedFamily === FALSE) {
                                 $this->party[$user_id]->hand->putOnTop($stateman);
                                 $this->party[$user_id]->senators->putOnTop($matchedFamily);
-                                array_push($messages , Array('Weird family.','error'));
+                                array_push($messages , array('Weird family.','error'));
                                 return $messages ;
                             } else {
                                 // SUCCESS : Family is in player's party - put it under the Stateman
@@ -1110,7 +1130,7 @@ class Game
                                 if ($this->party[$user_id]->leader->senatorID == $matchedFamily->senatorID) {
                                     $this->party[$user_id]->leader=$stateman;
                                 }
-                                array_push($messages , Array($this->party[$user_id]->fullName().' plays Stateman '.$stateman->name.' on top of senator '.$matchedFamily->name));
+                                array_push($messages , array($this->party[$user_id]->fullName().' plays Stateman '.$stateman->name.' on top of senator '.$matchedFamily->name));
                                 return $messages ;
                             }
                         }
@@ -1122,14 +1142,14 @@ class Game
                             // SUCCESS : Family is unaligned in the forum - put it under the Stateman
                             $this->party[$user_id]->senators->putOnTop($stateman) ;
                             $stateman->controls->putOnTop($matchedFamily);
-                            array_push($messages , Array($this->party[$user_id]->fullName().' plays Stateman '.$stateman->name.' and gets the matching unaligned family from the Forum.'));
+                            array_push($messages , array($this->party[$user_id]->fullName().' plays Stateman '.$stateman->name.' and gets the matching unaligned family from the Forum.'));
                             return $messages ;
                         }
                         
                     }
                     // SUCCESS : There was no matched family in the player's party or the Forum
                     $this->party[$user_id]->senators->putOnTop($stateman) ;
-                    array_push($messages , Array($this->party[$user_id]->fullName().' plays Stateman '.$stateman->name));
+                    array_push($messages , array($this->party[$user_id]->fullName().' plays Stateman '.$stateman->name));
                     return $messages ;
                 }
         }
@@ -1143,37 +1163,37 @@ class Game
      * @return array
      */
     public function playConcession( $user_id , $card_id , $senator_id) {
-        $messages = Array() ;
+        $messages = array() ;
         $partyOfTargetSenator = $this->getPartyOfSenatorWithID($senator_id) ;
         if (!$partyOfTargetSenator) {
-            array_push($messages , Array('This senator is not in play','alert')) ;
+            array_push($messages , array('This senator is not in play','alert')) ;
             return $messages;
         }
         $senator = $this->party[$user_id]->senators->drawCardWithValue('senatorID', $senator_id);
         if ($senator === FALSE ) {
-            array_push($messages , Array('The senator is not in '.$this->party[$user_id]->fullName().'\'s party' , 'error'));
+            array_push($messages , array('The senator is not in '.$this->party[$user_id]->fullName().'\'s party' , 'error'));
             return $messages ;   
         }
         $concession = $this->party[$user_id]->hand->drawCardWithValue('id', $card_id);
         if ($concession === FALSE ) {
             $this->party[$user_id]->senators->putOnTop($senator);
-            array_push($messages , Array('The card is not in '.$this->party[$user_id]->fullName().'\'s hand' , 'error'));
+            array_push($messages , array('The card is not in '.$this->party[$user_id]->fullName().'\'s hand' , 'error'));
             return $messages ;   
         } else {
             if ($concession->type!='Concession') {
                $this->party[$user_id]->senators->putOnTop($senator);
                $this->party[$user_id]->hand->putOnTop($concession);
-               array_push($messages , Array($concession->name.'" is not a concession' , 'error'));
+               array_push($messages , array($concession->name.'" is not a concession' , 'error'));
                return $messages ;
             } elseif($concession->name=='LAND COMMISSIONER' && !$this->landCommissionerPlaybale()) {
                $this->party[$user_id]->senators->putOnTop($senator);
                $this->party[$user_id]->hand->putOnTop($concession);
-               array_push($messages , Array('The Land commissioner can only be played while Land bills are enacted.','error'));
+               array_push($messages , array('The Land commissioner can only be played while Land bills are enacted.','error'));
                return $messages ;
             } else {
                 $senator->controls->putOnTop($concession);
                 $this->party[$user_id]->senators->putOnTop($senator);
-                array_push($messages , Array($this->party[$user_id]->fullName().' plays Concession '.$concession->name.' on Senator '.$senator->name));
+                array_push($messages , array($this->party[$user_id]->fullName().' plays Concession '.$concession->name.' on Senator '.$senator->name));
                 return $messages ;
             }
         }
