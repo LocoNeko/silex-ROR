@@ -1026,6 +1026,7 @@ class Game
     public function forum_rollEvent($user_id) {
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
+            // TO DO : I'm here now
             array_push($messages , array('Roll em bones'));
         } else {
         }
