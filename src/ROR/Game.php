@@ -56,7 +56,7 @@ class Game
     public $currentBidder , $persuasionTarget ;
     public $party ;
     public $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
-    public $landBill ,$events , $legion , $fleet ;
+    public $landBill ,$events , $eventPool , $legion , $fleet ;
     
     public function get_id() {
             return $this->id;
@@ -111,9 +111,12 @@ class Game
         $this->landBill[1] = 0 ;
         $this->landBill[2] = 0 ;
         $this->landBill[3] = 0 ;
-        $this->events = Array() ; 
+        $this->events = Array() ;
+        $this->eventPool = Array() ;
         $this->legion = Array () ;
         $this->fleet = Array () ;
+        // Create eventPool
+        $this->createEventPool();
         // Creating parties
         $this->firstParty = null ;
         $this->party = Array () ;
@@ -198,6 +201,22 @@ class Game
         $party = $this->getPartyOfSenator($temporaryRomeConsul);
         array_push($messages , Array($temporaryRomeConsul->name.' '.$party->fullName().' becomes temporary Rome consul.','alert'));
         return $messages ;
+    }
+    
+    /*
+     * Convenience function (could be inside CreateGame)
+     * The event file should have 4 columns :
+     * Event number (should be VG card number) ; event name ; increased event name ; maximum level of the event of 0 if none
+     */
+    public function createEventPool() {
+        $filePointer = fopen(dirname(__FILE__).'/../../data/events.csv', 'r');
+        if (!$filePointer) {
+            throw new Exception("Could not open the file");
+        }
+        while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
+            array_push ($this->eventPool , array($data[0] , $data[1] , $data[2] , $data[3])) ;
+        }
+        
     }
     
     /**
