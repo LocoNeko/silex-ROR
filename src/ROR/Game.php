@@ -366,32 +366,6 @@ class Game
     }
     
     /**
-     * Returns the $user_id of the user currently having the initiative or FALSE if bidding is still underway
-     * @return boolean|array
-     */
-    public function whoseInitiative() {
-        // If the current initiative is <= nbPlayers, we don't need to bid. Initiative number X belongs to player number X in the order of play
-        if ($this->initiative<=$this->nbPlayers) {
-            $currentOrder = $this->orderOfPlay() ;
-            return $currentOrder[$this->initiative-1] ;
-        } else {
-        // This initiative was up for bidding, the winner has the initiative. The winner is the only one left with initiativeBidDone==FALSE
-            $candidates=Array() ;
-            foreach ($this->party as $user_id=>$party) {
-                if ($party->bidDone===FALSE) {
-                    array_push($candidates , $user_id);
-                }
-            }
-            if (count($candidates)==1) {
-                return $candidates[0] ;
-            } else {
-                return FALSE;
-            }
-        }
-        
-    }
-    
-    /**
      * Resets party->phaseDone to FALSE for all parties 
      */
     public function resetPhaseDone () {
@@ -992,6 +966,7 @@ class Game
                 $this->resetPhaseDone();
                 $this->phase='Forum';
                 array_push($messages , Array('FORUM PHASE','alert'));
+                // TO DO : remove events that expire at the beginning of the forum phase
                 $this->subPhase='RollEvent';
                 $this->initiative=1;
             }
@@ -1020,6 +995,41 @@ class Game
             $result['message']='The HRAO '.$HRAO['party']->fullName().' as all bets are 0.';
         }
         return $result ;
+    }
+
+    /**
+     * Returns the $user_id of the user currently having the initiative or FALSE if bidding is still underway
+     * @return boolean|array
+     */
+    public function forum_whoseInitiative() {
+        // If the current initiative is <= nbPlayers, we don't need to bid. Initiative number X belongs to player number X in the order of play
+        if ($this->initiative<=$this->nbPlayers) {
+            $currentOrder = $this->orderOfPlay() ;
+            return $currentOrder[$this->initiative-1] ;
+        } else {
+        // This initiative was up for bidding, the winner has the initiative. The winner is the only one left with initiativeBidDone==FALSE
+            $candidates=Array() ;
+            foreach ($this->party as $user_id=>$party) {
+                if ($party->bidDone===FALSE) {
+                    array_push($candidates , $user_id);
+                }
+            }
+            if (count($candidates)==1) {
+                return $candidates[0] ;
+            } else {
+                return FALSE;
+            }
+        }
+        
+    }
+    
+    public function forum_rollEvent($user_id) {
+        $messages = array() ;
+        if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
+            array_push($messages , array('Roll em bones'));
+        } else {
+        }
+        return $messages ;
     }
     
     /************************************************************
