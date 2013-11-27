@@ -7,13 +7,14 @@ HRAO : {{ content['game'].HRAO()['senator'].name }} ({{ content['game'].HRAO()['
 {# ORDER OF PLAY BASED on game->whoseTurn() #}
 Order of play :
 {% for temp_user_id in content['game'].orderOfPlay() %} 
-{% if (temp_user_id == content['game'].whoseTurn()) %}
+    {% if (temp_user_id == content['game'].whoseTurn()) %}
 <font style="font-weight:bold ; color: blue ;{{ (temp_user_id==user_id ? ' text-decoration: underline;' : '' )}}">
-{% else %}
+    {% else %}
 <font style="font-weight:bold ; color: gray ;{{ (temp_user_id==user_id ? ' text-decoration: underline;' : '' )}}">
-{% endif %}
+    {% endif %}
 {{app['user.manager'].getUser(temp_user_id).getName}}</font>
- <i class="icon-arrow-right"></i>
+{# Do not display the arrow for the last record#}
+        {% if loop.index!=loop.length %}<i class="icon-arrow-right"></i>{% endif %}
 {% endfor %}
 <br>
 {# PHASE-SPECIFIC #}
