@@ -324,8 +324,8 @@ class Game
                     if ( ($stateman->statemanFamily()!=25) && ($stateman->statemanFamily()!=29) ) {
                         return Array('flag' => FALSE , 'message' => 'The related stateman '.$senator->name.' is already in play.');
                     } else {
-                        // TO DO : brothers
-                        return Array('flag' => TRUE , 'message' => 'The infamous brothers '.$stateman->name);
+                        // The other brother is in play : this is valid
+                        return Array('flag' => TRUE , 'message' => $stateman->name.' playable, but the other brother '.$senator->name.' is in play.');
                     }
                 }
             }
@@ -619,6 +619,7 @@ class Game
                 }
             }
         }
+        // Returns either no dead (Senator not in play), 1 dead (found just 1 senator matching the chit), or pick 1 of two brothers if they are both legally in play
         if (count($deadSenators)==0) {
             return Array('This senator is not in Play, nobody dies.') ;
         } elseif (count($deadSenators)>1) {
@@ -635,8 +636,8 @@ class Game
         }
         if ($deadSenator->type == 'Stateman') {
             // Death of a Statesman
-            // TO DO : what happens when the stateman was leader ?
             $deadStateman = $party->senators->drawCardWithValue('senatorID',$deadSenator->senatorID) ;
+            $deadStateman->resetSenator();
             $this->discard->putOnTop($deadStateman);
             $message.=$deadStateman->name.' ('.$party->fullName().') dies. The card is discarded. ' ;
         } else {
@@ -647,7 +648,7 @@ class Game
             } else {
                 $deadSenator = $party->senators->drawCardWithValue('senatorID',$senatorID) ;
                 $this->curia->putOnTop($deadSenator);
-                $message.=$deadSenator->name.' ('.$party->fullName().') dies. The family returns to the curia. ' ;
+                $message.=$deadSenator->name.' ('.$party->fullName().') dies. The family goes to the curia. ' ;
             }
         }
         // Handle dead senators' controlled cards, including Families
@@ -655,13 +656,18 @@ class Game
             $card = $deadSenator->controls->drawTopCard() ;
             if ($card->type=='Concession') {
                 $this->curia->putOnTop($card);
-                $message.=$card->name.' is returned to the curia. ';
+                $message.=$card->name.' goes to the curia. ';
             } elseif ($card->type=='Province') {
                 $this->forum->putOnTop($card);
-                $message.=$card->name.' is returned to the forum. ';
+                $message.=$card->name.' goes to the forum. ';
             } elseif ($card->type=='Family') {
-                $party->senators->putOnTop($card);
-                $message.=$card->name.' stays in the party. ';
+                if ($party->leader->senatorID == $deadStateman->senatorID) {
+                    $party->senators->putOnTop($card);
+                    $message.=$card->name.' stays in the party. ';
+                } else {
+                    $this->curia->putOnTop($card);
+                    $message.=$card->name.' goes to the curia. ';
+                }
             } else {
                 return Array('A card controlled by the dead Senator was neither a Family nor a Concession.','error');
             }
