@@ -1,0 +1,73 @@
+{# CURRENTLY BIDDING FOR INITIATIVE #}
+{% if content['game'].forum_whoseInitiative()==FALSE %}
+Currently bidding for initiative number {{content['game'].initiative}}<br>
+
+    {# THIS USER IS THE CURRENT BIDDER #}
+    {% if content['game'].currentBidder.user_id == user_id %}
+You are the current bidder<br>
+    
+        {# PICK BIDDING SENATOR (THIS USER HASN'T PICKED A BIDDING SENATOR YET) #}
+        {% if content['game'].party['user_id'].bidWith == NULL %}
+Pick a Senator to bid for initiative :<br>
+
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bidSenator'} ) }}">
+            {# USER CAN ONLY PICK FROM SENATORs IN ROME WHO HAVE MONEY #}
+            {%for senator in content['game'].party['user_id'].senators.cards %}
+                {% if senator.inRome==FALSE %}
+{{senator.name}} cannot bid as he is not in Rome.<br>
+                {% elseif senator.treasury==0 %}
+{{senator.name}} is too poor to bid.<br>
+                {% else %}
+    <input type="radio" name="senator" value="{{senator.id}}">{{senator.name}}<br>
+                {% endif %}
+            {% endfor %}
+    <button type="submit" class="btn btn-info">DONE</button>
+</form>
+
+        {# BIDDING SENATOR IS NULL - CHOOSE BIDDING AMOUNT #}
+        {% else %}
+You are currently bidding {{content['game'].party['user_id'].bid}}T with {{content['game'].party['user_id'].bidWith.name}} to get this initiative.<br>
+{% set highestBidder = content['game'].forum_highestBidder() %}
+The highest bidder is : {{highestBidder['message']}}
+Choose the amount to add to your bid. You need to bid at least {{highestBidder['bid']+1-content['game'].party['user_id'].bid}} more :<br>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bidAmount'} ) }}">
+</form>
+        {% endif %}
+
+    {# WAITING FOR CURRENT BIDDER #}
+    {% else %}
+Waiting for {{content['game'].currentBidder.fullName()}} to bid<br>
+    {% endif %}
+
+{# WE KNOW WHO HAS THE INITIATIVE #}
+{% else %}
+Initiative #{{content['game'].initiative}} ({{content['game'].party[content['game'].forum_whoseInitiative()].fullName()}})
+    
+    {% if content['game'].forum_whoseInitiative()==user_id %}
+    {# THIS USER HAS THE INITIATIVE - GO THROUGH ALL SUBPHASES #}
+- YOU HAVE THE INITIATIVE<br>
+        {% if content['game'].subPhase=='RollEvent' %}
+Roll for Events :
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_rollEvent'} ) }}">
+    <button type="submit" class="btn btn-danger">ROLL</button>
+</form>
+        {% elseif content['game'].subPhase=='Persuasion' %}
+        {% elseif content['game'].subPhase=='Knights' %}
+        {% elseif content['game'].subPhase=='ChangeLeader' %}
+        {% elseif content['game'].subPhase=='SponsorGames' %}
+        {% elseif content['game'].subPhase=='curia' %}
+        {% else %}
+ERROR - strange forum subphase.
+        {% endif %}
+
+    {% else %}
+    {# THIS USER DOES NOT HAVE THE INITIATIVE - #}
+    {# WARNING : Even though he doesn't have the initiative, he might have to play to spend money to resist the persuasion attempt of the player who has the initiative #}
+- Waiting for this player to finish his initiative<br>
+        {% if content['game'].subPhase=='Persuasion' %}
+        {% else %}
+        {% endif %}
+    {% endif %}
+    
+    
+{% endif %}

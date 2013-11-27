@@ -63,6 +63,15 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         log ($app , $game_id , $user_id , $game->revenue_Contributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) ) ;
     } elseif ($action=='revenue_Finished') {
         log ($app , $game_id , $user_id , $game->revenue_Finished ($user_id) );
+    } elseif ($action=='forum_bidSenator') {
+        // TO DO
+        log ($app , $game_id , $user_id , $game->forum_bidSenator ($user_id) );
+    } elseif ($action=='forum_bidAmount') {
+        // TO DO
+        log ($app , $game_id , $user_id , $game->forum_bidAmount ($user_id) );
+    } elseif ($action=='forum_rollEvent') {
+        // TO DO
+        log ($app , $game_id , $user_id , $game->forum_rollEvent ($user_id) );
     }
     /* 
      * Finally serialize the $game object representing the new game state and store it in the database 
