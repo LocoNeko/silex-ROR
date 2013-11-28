@@ -1059,15 +1059,28 @@ class Game
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
             $roll = $this->rollDice(2, 0) ;
+            var_dump($roll);
+            $roll = $roll['total'];
             if ($roll==7) {
                 // Event
-                array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, draws event '));
                 $eventRoll = $this->rollDice(3,0) ;
+                array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, then rolls a '.$eventRoll.' on the events table.'));
+                
+                // $newEvent is an array (0 => name , 1 => increased name , 2=> max level)
                 $newEvent = $this->eventPool[$this->eventTable[$eventRoll][$this->scenario]];
+                if (in_array($newEvent[0] , $this->events)) {
+                    // The event is already in play, check its level and check if level can be increased
+                } else {
+                    // The event was not in play
+                    $this->events[$newEvent[0]]=1;
+                    array_push($messages, array($newEvent[0].' is now in play.'));
+                }
             } else {
                 // Card
+                array_push($messages , array($this->party[$user_id]->fullName().' rolls a '.$roll.' and draws a forum card.'));
             }
         } else {
+            array_push($messages , array ('Error - Tis is not the Forum roll event sub phase','error',$user_id) );
         }
         return $messages ;
     }
