@@ -70,7 +70,6 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         // TO DO
         log ($app , $game_id , $user_id , $game->forum_bidAmount ($user_id) );
     } elseif ($action=='forum_rollEvent') {
-        // TO DO
         log ($app , $game_id , $user_id , $game->forum_rollEvent ($user_id) );
     }
     /* 
