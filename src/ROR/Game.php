@@ -232,6 +232,26 @@ class Game
         }
     }
     
+    public function nbOfLegions() {
+        $result = 0 ;
+        foreach($this->legion as $legion) {
+            if ($legion->location <> 'nonexistent' ) {
+                $result++;
+            }
+        }
+        return $result ;
+    }
+    
+    public function nbOfFleets() {
+        $result = 0 ;
+        foreach($this->fleet as $fleet) {
+            if ($fleet->location <> 'nonexistent' ) {
+                $result++;
+            }
+        }
+        return $result ;
+    }
+    
     /**
      * 
      * @param type $senator
@@ -422,13 +442,13 @@ class Game
             return FALSE ;
         }
         $evilOmensEffect = (int)$evilOmensEffect ;
-        if ( ($evilOmensEffect!=-1) || ($evilOmensEffect!=0) || ($evilOmensEffect!=1) ) {
+        if ( ($evilOmensEffect!=-1) && ($evilOmensEffect!=0) && ($evilOmensEffect!=1) ) {
             return FALSE ;
         }
         $result = array() ;
         $result['total'] = 0 ;
         for ($i=0 ; $i<=$nb ; $i++) {
-            $result[$i]+=mt_rand(1,6);
+            $result[$i]=mt_rand(1,6);
             $result['total']+=$result[$i];
         }
         // Add evil omens effects to the roll
@@ -970,10 +990,12 @@ class Game
                     array_push($messages , array('Rome pays '.$totalLandBills.' talents for land bills (I , II & III): '.($this->landBill[1]*10).'T for '.$this->landBill[1].' (I) which are then discarded, '.($this->landBill[2]*5).'T for (II) and '.($this->landBill[3]*10).'T for (III).'));
                 }
                 // Forces maintenance
-                $totalCostForces=2*(count($this->legion) + count($this->fleet)) ;
+                $nbLegions = $this->nbOfLegions();
+                $nbFleets = $this->nbOfFleets();
+                $totalCostForces=2*($nbLegions + $nbFleets) ;
                 if ($totalCostForces>0) {
                     $this->treasury-=$totalCostForces ;
-                    array_push($messages , array('Rome pays '.$totalCostForces.'T for the maintenance of '.count($this->legion).' legions and '.count($this->fleet).' fleets. '));
+                    array_push($messages , array('Rome pays '.$totalCostForces.'T for the maintenance of '.$nbLegions.' legions and '.$nbFleets.' fleets. '));
                 }
                 // Return of provinces governors
                 foreach($this->party as $party) {
@@ -1059,13 +1081,12 @@ class Game
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
             $roll = $this->rollDice(2, 0) ;
-            var_dump($roll);
             $roll = $roll['total'];
             if ($roll==7) {
                 // Event
                 $eventRoll = $this->rollDice(3,0) ;
+                $eventRoll = $eventRoll['total'];
                 array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, then rolls a '.$eventRoll.' on the events table.'));
-                
                 // $newEvent is an array (0 => name , 1 => increased name , 2=> max level)
                 $newEvent = $this->eventPool[$this->eventTable[$eventRoll][$this->scenario]];
                 if (in_array($newEvent[0] , $this->events)) {
