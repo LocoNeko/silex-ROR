@@ -13,6 +13,9 @@ CURRENT :
 BUG :
 - Prevent player from entering the same party name in ViewGame
 
+TO DO : remove events that expire at the beginning of the forum phase
+TO DO : Change Early/Middle/Late Republic decks to drawDeck or ForumDeck (but the latter is too easy to mistake with Forum) Maybe simply mainDeck ??
+
 ***********
 * Revenue *
 ***********
@@ -43,6 +46,6 @@ TO ADD :
 Modify : Provinces roll revenues :
 - Maybe separate senator and Rome revenue function as they are separated.
 
-TO DO : Load/Save game : Should change rate of save to subphase only, and write current Turn/Phase/Subphase into the save game
-TO DO : remove events that expire at the beginning of the forum phase
-TO DO : Change Early/Middle/Late Republic decks to drawDeck
+***********
+*  Forum  *
+***********
