@@ -96,7 +96,7 @@
                         <form class="form-horizontal" method="POST" action="{{ path('Load' , {'game_id' : game.game_id } ) }}">
                             <select name="SavedGame">
                                 {% for save in saved_games[game.game_id] %}
-                                <option value="{{save}}">{{save|number_format(0,'','')|date('Y/m/d (H:i:s)')}}<options>
+                                <option value="{{save['time_saved']}}">Turn {{save['turn']}} - {{save['phase']}} - {{save['subPhase']}} - {{save['time_saved']|number_format(0,'','')|date('Y/m/d (H:i:s)')}}<options>
                                 {% endfor %}
                             </select>
                             <button type="submit" class="btn btn-info">LOAD</button>

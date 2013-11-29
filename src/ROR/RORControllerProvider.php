@@ -268,12 +268,12 @@ class RORControllerProvider implements ControllerProviderInterface
     
     public function listSavedGames(Application $app) {
         $result = Array();
-        $data = $app['db']->fetchAll("SELECT game_id , time_saved FROM saved_games") ;
+        $data = $app['db']->fetchAll("SELECT game_id , time_saved , turn , phase , subPhase FROM saved_games") ;
         foreach ($data as $row) {
             if (!isset($result[$row['game_id']])) {
                 $result[$row['game_id']] = Array() ;
             }
-            array_push ($result[$row['game_id']] , $row['time_saved'] );
+            array_push ($result[$row['game_id']] , array('time_saved' => $row['time_saved'] , 'turn' => $row['turn'] , 'phase' => $row['phase'] , 'subPhase' => $row['subPhase']) );
         }
         return $result ;
     }
