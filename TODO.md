@@ -45,3 +45,4 @@ Modify : Provinces roll revenues :
 
 TO DO : Load/Save game : Should change rate of save to subphase only, and write current Turn/Phase/Subphase into the save game
 TO DO : remove events that expire at the beginning of the forum phase
+TO DO : Change Early/Middle/Late Republic decks to drawDeck

@@ -1,0 +1,36 @@
+<div class="row">
+    <div class="span3">ACTIVE :</div>
+{% for card in content['game'].activeWars.cards %}
+    <div class="span3">
+        {% embed "card.twig" with {'card': card } only %}
+        {% endembed %}
+    </div>
+{% endfor %}
+</div>
+<div class="row">
+    <div class="span3">UNPROSECUTED :</div>
+{% for card in content['game'].unprosecutedWars.cards %}
+    <div class="span3">
+        {% embed "card.twig" with {'card': card } only %}
+        {% endembed %}
+    </div>
+{% endfor %}
+</div>
+<div class="row">
+    <div class="span3">IMMINENT :</div>
+{% for card in content['game'].imminentWars.cards %}
+    <div class="span3">
+        {% embed "card.twig" with {'card': card } only %}
+        {% endembed %}
+    </div>
+{% endfor %}
+</div>
+<div class="row">
+    <div class="span3">INACTIVE :</div>
+{% for card in content['game'].inactiveWars.cards %}
+    <div class="span3">
+        {% embed "card.twig" with {'card': card } only %}
+        {% endembed %}
+    </div>
+{% endfor %}
+</div>
