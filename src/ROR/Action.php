@@ -35,6 +35,8 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         if ($messages !== FALSE) {
             $game_data = serialize($game);
             $app['db']->update('games' , Array ('game_data' => $game_data ) , Array('game_id' => $game_id) );
+            // First game save
+            $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => $game->phase , 'subPhase' => $game->subPhase , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
             log($app , $game_id , $user_id , $messages ) ;
         } else {
             // TO DO : Failure to create game
@@ -45,6 +47,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     /*
      * Second, we handle any action sent through $action and $request
      */
+    $currentSubPhase = $game->subPhase ;
     if ($action=='setup_PickLeader') {
         log ($app , $game_id , $user_id , $game->setup_setPartyLeader( $user_id , $request->request->get('senatorID') ));
     } elseif ($action=='playStateman') {
@@ -77,7 +80,10 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
      */
     $game_data = serialize($game);
     $app['db']->update('games' , Array ('game_data' => $game_data ) , Array('game_id' => $game_id) );
-    $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
+    // Save game only if we've just moved to a new subPhase
+    if ($game->subPhase != $currentSubPhase) {
+        $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => $game->phase , 'subPhase' => $game->subPhase , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
+    }
     // Get the log
     $content['log'] = getLog($app , $game_id , $user_id);
     $content['game'] = $game ;

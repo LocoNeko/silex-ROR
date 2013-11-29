@@ -219,6 +219,7 @@ class Game
         while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
             $this->eventPool[$data[0]] = array($data[1] , $data[2] , $data[3]);
         }
+        fclose($filePointer);
         $filePointer = fopen(dirname(__FILE__).'/../../data/eventTable.csv', 'r');
         if (!$filePointer) {
             throw new Exception("Could not open the event table file");
@@ -230,6 +231,7 @@ class Game
             $this->eventTable[$i]['LateRepublic'] = $data[2] ;
             $i++;
         }
+        fclose($filePointer);
     }
     
     public function nbOfLegions() {

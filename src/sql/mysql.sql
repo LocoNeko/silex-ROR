@@ -31,6 +31,9 @@ DROP TABLE IF EXISTS `saved_games`;
 CREATE TABLE `saved_games` (
   `game_id` varchar(8) NOT NULL,
   `time_saved` double NOT NULL DEFAULT '0',
+  `turn` int(3) unsigned NOT NULL DEFAULT 1,
+  `phase` varchar(64) NOT NULL DEFAULT '',
+  `subPhase` varchar(64) NOT NULL DEFAULT '',
   `game_data` blob
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
