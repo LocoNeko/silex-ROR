@@ -37,8 +37,8 @@ namespace ROR;
  * $legion array of legion objects
  * $fleet array of fleet objects
  * --- SENATE ---
- * TO DO
  */
+
 class Game 
 {
     /*
@@ -1081,12 +1081,10 @@ class Game
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
             $roll = $this->rollDice(2, 0) ;
-            $roll = $roll['total'];
-            if ($roll==7) {
+            if ($roll['total']==7) {
                 // Event
                 $eventRoll = $this->rollDice(3,0) ;
-                $eventRoll = $eventRoll['total'];
-                array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, then rolls a '.$eventRoll.' on the events table.'));
+                array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, then rolls a '.$eventRoll['total'].' on the events table.'));
                 // $newEvent is an array (0 => name , 1 => increased name , 2=> max level)
                 $newEvent = $this->eventPool[$this->eventTable[$eventRoll][$this->scenario]];
                 if (in_array($newEvent[0] , $this->events)) {
@@ -1098,10 +1096,25 @@ class Game
                 }
             } else {
                 // Card
-                array_push($messages , array($this->party[$user_id]->fullName().' rolls a '.$roll.' and draws a forum card.'));
+                array_push($messages , array($this->party[$user_id]->fullName().' rolls a '.$roll['total'].' and draws a card.'));
+                $card = $this->earlyRepublic->drawTopCard() ;
+                if ($card !== NULL) {
+                    if ($card->type == 'Stateman' || $card->type == 'Faction' || $card->type == 'Concession') {
+                        // Keep the card
+                        $this->party[$user_id]->hand->putOnTop($card);
+                        array_push($messages , array($this->party[$user_id]->fullName().' draws a faction card and keeps it.','message',$this->getAllButOneUserID($user_id)));
+                        array_push($messages , array('You draw '.$card->name.' and put it in your hand.','message',$user_id));
+                    } else {
+                        // Card goes to forum
+                        $this->forum->putOnTop($card) ;
+                        array_push($messages , array($this->party[$user_id]->fullName().' draws '.$card->name.' that goes to the forum.'));
+                    }
+                } else {
+                    array_push($messages , array('There is no more cards in the deck.','alert'));
+                }
             }
         } else {
-            array_push($messages , array ('Error - Tis is not the Forum roll event sub phase','error',$user_id) );
+            array_push($messages , array ('Error - This is not the Forum roll event sub phase','error',$user_id) );
         }
         return $messages ;
     }
