@@ -46,12 +46,20 @@ Initiative #{{content['game'].initiative}} ({{content['game'].party[content['gam
     {% if content['game'].forum_whoseInitiative()==user_id %}
     {# THIS USER HAS THE INITIATIVE - GO THROUGH ALL SUBPHASES #}
 - YOU HAVE THE INITIATIVE<br>
+
+{# ROLL FOR EVENTS #}
         {% if content['game'].subPhase=='RollEvent' %}
 Roll for Events :
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_rollEvent'} ) }}">
     <button type="submit" class="btn btn-danger">ROLL</button>
 </form>
+
+{# PERSUASION #}
         {% elseif content['game'].subPhase=='Persuasion' %}
+Persuasion attempt :
+            {% if content['game'].persuasionTarget == NULL%}
+Choose your persuasion target
+            {% endif %}
         {% elseif content['game'].subPhase=='Knights' %}
         {% elseif content['game'].subPhase=='ChangeLeader' %}
         {% elseif content['game'].subPhase=='SponsorGames' %}

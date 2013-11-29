@@ -1088,7 +1088,7 @@ class Game
                 $eventRoll = $this->rollDice(3,0) ;
                 array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, then rolls a '.$eventRoll['total'].' on the events table.'));
                 // $newEvent is an array (0 => name , 1 => increased name , 2=> max level)
-                $newEvent = $this->eventPool[$this->eventTable[$eventRoll][$this->scenario]];
+                $newEvent = $this->eventPool[$this->eventTable[$eventRoll['total']][$this->scenario]];
                 if (in_array($newEvent[0] , $this->events)) {
                     // The event is already in play, check its level and check if level can be increased
                 } else {
@@ -1115,8 +1115,27 @@ class Game
                     array_push($messages , array('There is no more cards in the deck.','alert'));
                 }
             }
-        } else {
-            array_push($messages , array ('Error - This is not the Forum roll event sub phase','error',$user_id) );
+            // Persuasion initialisation
+            $this->subPhase = 'Persuasion';
+            array_push($messages , array ('Persuasion Sub Phase') );
+            foreach ($this->party as $party) {
+                $party->bid=0;
+                $party->bidWith=NULL;
+            }
+            $this->currentBidder = $this->party[$user_id];
+            $this->persuasionTarget = NULL;
+        }
+        return $messages ;
+    }
+    
+    public function forum_persuasion($user_id) {
+        $messages = array() ;
+        if ( ($this->phase=='Forum') && ($this->subPhase=='persuasion') ) {
+            if ($this->persuasionTarget===NULL) {
+                if ($this->forum_whoseInitiative()==$user_id) {
+                    array_push($messages , array ('Pick a persuasion target','message',$user_id));
+                }
+            }
         }
         return $messages ;
     }
