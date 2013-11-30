@@ -1,3 +1,16 @@
+{% block myJavascript %}
+<script type="text/javascript">
+    function updatePersuasionAmount() {
+      value =  persuader.value.substr(persuader.value.indexOf("|")+1) ;
+      while ( amount.options.length ) amount.options[0] = null ;
+      for ( i = 0; i <= value; i++ ) {
+          option = new Option( i , i );
+          amount.options[amount.length] = option;
+      }
+    }
+</script>
+{% endblock %}
+
 {# CURRENTLY BIDDING FOR INITIATIVE #}
 {% if content['game'].forum_whoseInitiative()==FALSE %}
 Currently bidding for initiative number {{content['game'].initiative}}<br>
@@ -58,20 +71,24 @@ Roll for Events :
         {% elseif content['game'].subPhase=='Persuasion' %}
 Persuasion attempt :
             {% if content['game'].persuasionTarget == NULL%}
-Choose your persuasion target :
+Choose your persuasion target :<br><br>
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_Persuasion'} ) }}">
-USE : <br>
-    <select name="persuader">
+USE :
+    <select id="persuader" name="persuader" onClick="updatePersuasionAmount()">
 {% for senator in content['game'].forum_listPersuaders(user_id) %}
-        <option value="{{senator['senatorID']}}">{{senator['name']}} - INF {{senator['INF']}} + ORA {{senator['ORA']}} = {{senator['INF']+senator['ORA']}}, Treasury = {{senator['treasury']}} </option>
+        <option value="{{senator['senatorID']}}|{{senator['treasury']}}">{{senator['name']}} - INF {{senator['INF']}} + ORA {{senator['ORA']}} = {{senator['INF']+senator['ORA']}}, Treasury = {{senator['treasury']}} </option>
 {% endfor %}
-    </select><br>
-TO PERSUADE : <br>
+    </select>
+TO PERSUADE :
     <select name="target">
 {% for senator in content['game'].forum_listPersuasionTargets(user_id) %}
         <option value="{{senator['senatorID']}}">{{senator['name']}} in {{senator['party'] == 'forum' ? 'forum' : content['game'].party[senator['party']].fullname()}} - LOY {{senator['LOY']}} , Treasury = {{senator['treasury']}} </option>
 {% endfor %}
-    </select><br><br>
+    </select>
+BY SPENDING :
+    <select id="amount" name="amount">
+    </select>
+    <br><br>
     <button type="submit" class="btn btn-info">PERSUADE</button>
 </form>
 
