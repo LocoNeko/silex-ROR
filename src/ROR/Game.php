@@ -1128,13 +1128,62 @@ class Game
         return $messages ;
     }
     
+    public function forum_listPersuasionTargets($user_id) {
+        $result = array();
+        if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
+            foreach ($this->party as $party) {
+                foreach ($party->senators->cards as $senator) {
+                    if ($senator->inRome && $senator->senatorID != $party->leader->senatorID && $party->user_id!=$user_id) {
+                        array_push($result, array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party' => $party->user_id , 'LOY' => $senator->LOY , 'treasury' => $senator->treasury)) ;
+                    }
+                }
+            }
+            foreach ($this->forum->cards as $card) {
+                if ($card->type=='Family') {
+                    array_push($result, array('senatorID' => $card->senatorID , 'name' => $card->name , 'party' => 'forum' , 'LOY' => $card->LOY , 'treasury' => $card->treasury)) ;
+                }
+            }
+        } else {
+            return FALSE ;
+        }
+        return $result;
+    }
+    
+    public function forum_listPersuaders($user_id) {
+        $result = array();
+        if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
+            foreach ($this->party[$user_id]->senators->cards as $senator) {
+                if ($senator->inRome) {
+                    array_push( $result , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'ORA' => $senator->ORA , 'INF' => $senator->INF , 'treasury' => $senator->treasury )) ;
+                }
+            }
+        } else {
+            return FALSE ;
+        }
+        return $result;
+    }
+    
+    public function forum_noPersuasion($user_id) {
+        $messages = array() ;
+        if ( ($this->phase=='Forum') && ($this->subPhase=='persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
+            $this->subPhase = 'Knights';
+            array_push($messages , array($this->party[$user_id]->fullName().' doesn\'t try to persuade any senator during this initiative.'));
+        } else {
+            array_push($messages , array('Wrong phase, subphase or player','error',$user_id));
+        }
+        return $messages ;
+    }
+    
     public function forum_persuasion($user_id) {
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='persuasion') ) {
+            // We don't know who is the target yet.
             if ($this->persuasionTarget===NULL) {
                 if ($this->forum_whoseInitiative()==$user_id) {
                     array_push($messages , array ('Pick a persuasion target','message',$user_id));
                 }
+            // We know the target, do we know the persuader ?
+            } else {
             }
         }
         return $messages ;

@@ -58,7 +58,26 @@ Roll for Events :
         {% elseif content['game'].subPhase=='Persuasion' %}
 Persuasion attempt :
             {% if content['game'].persuasionTarget == NULL%}
-Choose your persuasion target
+Choose your persuasion target :
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_Persuasion'} ) }}">
+USE : <br>
+    <select name="persuader">
+{% for senator in content['game'].forum_listPersuaders(user_id) %}
+        <option value="{{senator['senatorID']}}">{{senator['name']}} - INF {{senator['INF']}} + ORA {{senator['ORA']}} = {{senator['INF']+senator['ORA']}}, Treasury = {{senator['treasury']}} </option>
+{% endfor %}
+    </select><br>
+TO PERSUADE : <br>
+    <select name="target">
+{% for senator in content['game'].forum_listPersuasionTargets(user_id) %}
+        <option value="{{senator['senatorID']}}">{{senator['name']}} in {{senator['party'] == 'forum' ? 'forum' : content['game'].party[senator['party']].fullname()}} - LOY {{senator['LOY']}} , Treasury = {{senator['treasury']}} </option>
+{% endfor %}
+    </select><br><br>
+    <button type="submit" class="btn btn-info">PERSUADE</button>
+</form>
+
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_noPersuasion'} ) }}">
+    <button type="submit" class="btn btn-danger">NO PERSUASION THIS TURN</button>
+</form>
             {% endif %}
         {% elseif content['game'].subPhase=='Knights' %}
         {% elseif content['game'].subPhase=='ChangeLeader' %}
