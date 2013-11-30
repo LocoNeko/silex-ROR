@@ -12,6 +12,7 @@ CURRENT :
 
 BUG :
 - Prevent player from entering the same party name in ViewGame
+- Oh noes ! All the cards' numbers are wrong, they start from 0 but should start from 1 !
 
 TO DO : remove events that expire at the beginning of the forum phase
 TO DO : Change Early/Middle/Late Republic decks to drawDeck or ForumDeck (but the latter is too easy to mistake with Forum) Maybe simply mainDeck ??

@@ -1128,6 +1128,13 @@ class Game
         return $messages ;
     }
     
+    /**
+     * Lists the possible targets for persuasion by player user_id
+     * format : array ('senatorID','name','party','LOY','treasury')
+     * 'party' can be 'forum'
+     * @param type $user_id
+     * @return boolean|array
+     */
     public function forum_listPersuasionTargets($user_id) {
         $result = array();
         if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
@@ -1149,6 +1156,12 @@ class Game
         return $result;
     }
     
+    /**
+     * List the possible persuading senators for player user_id
+     * format : array ('senatorID','name','ORA','INF','treasury')
+     * @param type $user_id
+     * @return boolean|array
+     */
     public function forum_listPersuaders($user_id) {
         $result = array();
         if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
