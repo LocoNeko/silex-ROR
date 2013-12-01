@@ -75,7 +75,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     } elseif ($action=='forum_rollEvent') {
         log ($app , $game_id , $user_id , $game->forum_rollEvent ($user_id) );
     } elseif ($action=='forum_persuasion') {
-        log ($app , $game_id , $user_id , $game->forum_persuasion ($user_id) );
+        log ($app , $game_id , $user_id , $game->forum_persuasion ($user_id , $request->request->get('persuader') , $request->request->get('target') , $request->request->get('amount') , $request->request->get('card') ) );
     } elseif ($action=='forum_noPersuasion') {
         log ($app , $game_id , $user_id , $game->forum_noPersuasion ($user_id) );
     }

@@ -1,12 +1,49 @@
 {% block myJavascript %}
 <script type="text/javascript">
     function updatePersuasionAmount() {
-      value =  persuader.value.substr(persuader.value.indexOf("|")+1) ;
+      index1 = persuader.value.indexOf("|")+1;
+      index2 = persuader.value.indexOf("|",index1);
+      value =  persuader.value.substr(index1,index2-index1) ;
       while ( amount.options.length ) amount.options[0] = null ;
       for ( i = 0; i <= value; i++ ) {
           option = new Option( i , i );
           amount.options[amount.length] = option;
       }
+    }
+    function updateOdds() {
+        var rollOdds = new Array();
+        rollOdds[2] = 1/36; rollOdds[3] = 2/36; rollOdds[4] = 6/36; rollOdds[5] = 10/36; rollOdds[6] = 15/36; rollOdds[7] = 21/36; rollOdds[8] = 26/36; rollOdds[9] = 30/36;
+        index1 = persuader.value.indexOf("|")+1;
+        index2 = persuader.value.indexOf("|",index1)+1;
+        index3 = persuader.value.indexOf("|",index2)+1;
+        persuader_amount = parseInt(amount.value);
+        persuader_INF = parseInt(persuader.value.substr(index2,index3-index2-1) );
+        persuader_ORA = parseInt(persuader.value.substr(index3) );
+        index1 = target.value.indexOf("|")+1;
+        index2 = target.value.indexOf("|",index1)+1;
+        index3 = target.value.indexOf("|",index2)+1;
+        
+        target_treasury = parseInt(target.value.substr(index1,index2-index1-1) );
+        target_party = target.value.substr(index2,index3-index2-1) ;
+        target_LOY = parseInt(target.value.substr(index3) );
+        if (target_party=='forum') {
+            target_affiliation_loyalty = parseInt(0) ;
+        } else {
+            target_affiliation_loyalty = parseInt(7) ;
+        }
+        oddsFor = parseInt(persuader_amount + persuader_INF + persuader_ORA) ;
+        oddsAgainst = parseInt(target_LOY + target_treasury + target_affiliation_loyalty) ;
+        oddsTotal = oddsFor - oddsAgainst ;
+        if (oddsTotal<2) {
+            oddsPercentage = 0 ;
+        } else if (oddsTotal>9) {
+            oddsPercentage = rollOdds[9] ;
+        } else {
+            oddsPercentage = rollOdds[oddsTotal] ;
+        }
+        odds.readOnly= false;
+        odds.value= oddsFor + " - " + oddsAgainst + " = " + oddsTotal + " ( " + parseInt(10000*oddsPercentage)/100 + "%)" ;
+        odds.readOnly= true;
     }
 </script>
 {% endblock %}
@@ -70,31 +107,50 @@ Roll for Events :
 {# PERSUASION #}
         {% elseif content['game'].subPhase=='Persuasion' %}
 Persuasion attempt :
+
+            {# CHOOSE A TARGET, A PERSUADER, AMOUNT TO SPEND, CARDS TO PLAY OR NO PERSUASION#}
             {% if content['game'].persuasionTarget == NULL%}
 Choose your persuasion target :<br><br>
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_Persuasion'} ) }}">
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
 USE :
-    <select id="persuader" name="persuader" onClick="updatePersuasionAmount()">
+    <select id="persuader" name="persuader" onClick="updatePersuasionAmount() ; updateOdds();" style="width: 350px;">
 {% for senator in content['game'].forum_listPersuaders(user_id) %}
-        <option value="{{senator['senatorID']}}|{{senator['treasury']}}">{{senator['name']}} - INF {{senator['INF']}} + ORA {{senator['ORA']}} = {{senator['INF']+senator['ORA']}}, Treasury = {{senator['treasury']}} </option>
+        <option value="{{senator['senatorID']}}|{{senator['treasury']}}|{{senator['INF']}}|{{senator['ORA']}}">{{senator['name']}} - INF {{senator['INF']}} + ORA {{senator['ORA']}} = {{senator['INF']+senator['ORA']}}, Treasury = {{senator['treasury']}} </option>
 {% endfor %}
-    </select>
+    </select><br>
 TO PERSUADE :
-    <select name="target">
+    <select id="target" name="target" onClick="updateOdds();" style="width: 350px;">
 {% for senator in content['game'].forum_listPersuasionTargets(user_id) %}
-        <option value="{{senator['senatorID']}}">{{senator['name']}} in {{senator['party'] == 'forum' ? 'forum' : content['game'].party[senator['party']].fullname()}} - LOY {{senator['LOY']}} , Treasury = {{senator['treasury']}} </option>
+        <option value="{{senator['senatorID']}}|{{senator['treasury']}}|{{senator['party']}}|{{senator['LOY']}}">{{senator['name']}} in {{senator['party'] == 'forum' ? 'forum' : content['game'].party[senator['party']].fullname()}} - LOY {{senator['LOY']}} , Treasury = {{senator['treasury']}} </option>
 {% endfor %}
-    </select>
+    </select><br>
 BY SPENDING :
-    <select id="amount" name="amount">
-    </select>
+    <select id="amount" name="amount" onClick="updateOdds();" style="width: 50px;">
+    </select><br>
+{# Also show cards that can be used for persuasion #}
+{% set persuasionCards = content['game'].forum_listPersuasionCards(user_id) %}
+{% if persuasionCards|length > 0 %}
+USING CARD :
+    <select id="card" name="card" style="width: 200px;">
+        <option>NONE</option>
+{% for card in persuasionCards %}
+        <option value="{{card.id}}">{{card.name}} </option>
+{% endfor %}
+    </select><br>
+{% endif %}
     <br><br>
+TARGET NUMBER :
+<input id="odds" type="text" readonly style="width: 150px;">
+<br><br>
     <button type="submit" class="btn btn-info">PERSUADE</button>
 </form>
 
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_noPersuasion'} ) }}">
     <button type="submit" class="btn btn-danger">NO PERSUASION THIS TURN</button>
 </form>
+
+            {# CHOOSE TO INCREASE MONEY SPEND OR TO ROLL WITH CURRENT ODDS#}
+            {% else %}
             {% endif %}
         {% elseif content['game'].subPhase=='Knights' %}
         {% elseif content['game'].subPhase=='ChangeLeader' %}
@@ -109,6 +165,22 @@ ERROR - strange forum subphase.
     {# WARNING : Even though he doesn't have the initiative, he might have to play to spend money to resist the persuasion attempt of the player who has the initiative #}
 - Waiting for this player to finish his initiative<br>
         {% if content['game'].subPhase=='Persuasion' %}
+
+            {# This player does NOT have the initiative, is it his turn to counter bribe ? #}
+            {% if content['game'].forum_whoseInitiative()!=user_id %}
+
+                {# Yes, he is the current counter-briber#}
+                {% if content['game'].currentBidder==user_id %}
+
+                {# No, he is not the current counter-briber#}
+                {% else %}
+                    {% if content['game'].currentBidder == content['game'].forum_whoseInitiative() %}
+Waiting for {{content['game'].party[content['game'].currentBidder].fullName()}} to decide on persuasion
+                    {% else %}
+Waiting for {{content['game'].party[content['game'].currentBidder].fullName()}} to decide on counter-bribes
+                    {% endif %}
+                {% endif %}
+            {% endif %}
         {% else %}
         {% endif %}
     {% endif %}
