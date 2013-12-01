@@ -149,8 +149,9 @@ TARGET NUMBER :
     <button type="submit" class="btn btn-danger">NO PERSUASION THIS TURN</button>
 </form>
 
-            {# CHOOSE TO INCREASE MONEY SPEND OR TO ROLL WITH CURRENT ODDS#}
+            {# WAIT FOR COUNTER-BRIBE , INCREASE MONEY SPENT ,  OR ROLL WITH CURRENT ODDS#}
             {% else %}
+WAIT FOR THE OTHERS
             {% endif %}
         {% elseif content['game'].subPhase=='Knights' %}
         {% elseif content['game'].subPhase=='ChangeLeader' %}
@@ -171,7 +172,7 @@ ERROR - strange forum subphase.
 
                 {# Yes, he is the current counter-briber#}
                 {% if content['game'].currentBidder==user_id %}
-
+HELLO, COUNTER-BRIBER !                        
                 {# No, he is not the current counter-briber#}
                 {% else %}
                     {% if content['game'].currentBidder == content['game'].forum_whoseInitiative() %}

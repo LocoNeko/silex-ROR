@@ -50,3 +50,6 @@ Modify : Provinces roll revenues :
 ***********
 *  Forum  *
 ***********
+
+TO DO : finish events (HUGE)
+TO DO : persuasion cards

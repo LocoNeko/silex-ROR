@@ -430,6 +430,18 @@ class Game
     }
     
     /**
+     * Returns the user_id of the player playing after the player whose user_id has been passed as a parameter
+     */
+    public function whoIsAfter($user_id) {
+        $orderOfPlay = $this->orderOfPlay() ;
+        while ($orderOfPlay[0]!=$user_id) {
+            array_push($orderOfPlay , array_shift($orderOfPlay) );
+        }
+        array_push($orderOfPlay , array_shift($orderOfPlay) );
+        return $orderOfPlay[0];
+    }
+    
+    /**
      * Returns the $user_id of the first player (in order of play) who hasn't finished his phase, or FALSE if all players are done for this phase
      * @return string|boolean
      */
@@ -1241,14 +1253,51 @@ class Game
     public function forum_persuasion($user_id , $persuaderRaw , $targetRaw , $amount , $card) {
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') ) {
-            // We don't know who is the target yet.
+            /*
+             *  We don't know who is the target yet.
+             */
             if ($this->persuasionTarget===NULL) {
+                // TO DO : card
                 // target [0] = senatorID , [1] = treasury , [2] = party , [3] = actual loyalty
                 $target = explode('|' , $targetRaw);
                 $party = $this->getPartyOfSenatorWithID($target[0]) ;
-                var_dump($party);
-                die();
+                if ($party==$target[2]) {
+                    // Everything is fine so far, proceed to check persuader
+                    // persuader [0] = senatorID , [1] = treasury , [2] = INF , [3] = ORA
+                    $persuader = explode('|' , $persuaderRaw);
+                    $party = $this->getPartyOfSenatorWithID($persuader[0]) ;
+                    if ($party->user_id==$user_id) {
+                        // Still OK
+                        $targetSenator = $this->getSenatorWithID($target[0]);
+                        $persuadingSenator = $this->getSenatorWithID($persuader[0]);
+                        $amount = (int)$amount ;
+                        if ($amount<=$persuadingSenator->treasury) {
+                            // Amount looks good
+                            $this->party[$user_id]->bidWith = $persuadingSenator ;
+                            $this->party[$user_id]->bidWith->treasury-=$amount ;
+                            $this->party[$user_id]->bid = $amount ;
+                            $this->persuasionTarget = $targetSenator ;
+                            $this->currentBidder = $this->whoIsAfter($user_id);
+                        } else {
+                            return array(array('Amount error','error',$user_id));
+                        }
+                    } else {
+                        return array(array('Error - party mismatch','error',$user_id));
+                    }
+                } else {
+                    return array(array('Error - party mismatch','error',$user_id));
+                }
+            /* 
+             * We know the target, this is a bribe     
+             */
             } else {
+                // This user is indeed the current bidder
+                if ($user_id==$this->currentBidder) {
+                
+                // This is user is NOT the current bidder, something is wrong
+                } else {
+                    return array(array('Error - this is not your turn to play','error',$user_id));
+                }
             }
         }
         return $messages ;
