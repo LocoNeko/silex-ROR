@@ -41,6 +41,6 @@ Bidding has meaning in two different situations : Initiative & Persuasion
 - The persuading senator is known from $party->bidWith. Based on rules variant, it can be set to any senator at the persuader's choice, or is set to the senator who has the initiative.
 - The persuader picks a target recorded in $game->persuasionTarget
 - The persuader spends money IRREVOCABLY, moving it from the treasury of the persuader to $party->bid
-- currentBidder goes around the table, each party deciding to spend money IRREVOCABLY from $party->treasury to resist the persuasion, putting it in $party->bid
+- currentBidder goes around the table, each party deciding to spend money IRREVOCABLY from $party->treasury to resist the persuasion, putting it in $party->bid.
 - Once back to persuader, give opportunity to spend more money and start again.
 - This going around the table, and any further such cycle can be easily identified by the fact that $game->persuasionTarget is already set.

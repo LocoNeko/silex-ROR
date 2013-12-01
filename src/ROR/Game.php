@@ -15,7 +15,7 @@ namespace ROR;
  * $treasury (int) : current treasury
  * $nbPlayers (int) : number of human players from 1 to 6
  * --- FORUM PHASE ---
- * $currentBidder (party) : The party which turn it currently is to bid
+ * $currentBidder (user_id) : The user_id of the party which turn it currently is to bid
  * $persuasionTarget (Senator) : The senator being persuaded
  * --- THE PARTIES ---
  * $party array (Party) /!\ key : user_id ; value : party_name
@@ -92,8 +92,8 @@ class Game
         if ( ($this->nbPlayers < 3) || ($this->nbPlayers > 6) ) {
             return FALSE;
         }
-        $this->currentBidder = null;
-        $this->persuasionTarget = null;
+        $this->currentBidder = NULL;
+        $this->persuasionTarget = NULL;
         $this->earlyRepublic = new Deck ;
         $this->earlyRepublic->createFromFile ($scenario) ;
         $this->middleRepublic = new Deck ;
@@ -283,6 +283,13 @@ class Game
                 }
             }
         }
+        foreach ($this->forum->cards as $card) {
+            if ($card->type=='Family') {
+                if ($card->senatorID == $senatorID) {
+                    return 'forum';
+                }
+            }
+        }
         return FALSE ;
     }
     
@@ -299,7 +306,24 @@ class Game
                 }
             }
         }
+        foreach ($this->forum->cards as $card) {
+            if ($card->type=='Family') {
+                if ($card->senatorID == $senatorID) {
+                    return $card;
+                }
+            }
+        }
         return FALSE ;
+    }
+    
+    /**
+     * Return the senator's loyalty, checked against LOY special
+     * TO DO !
+     * @param type $senatorID
+     * @return type
+     */
+    public function getSenatorActualLoyalty ($senator) {
+        return $senator->LOY;
     }
     
     /**
@@ -1119,10 +1143,10 @@ class Game
             $this->subPhase = 'Persuasion';
             array_push($messages , array ('Persuasion Sub Phase') );
             foreach ($this->party as $party) {
-                $party->bid=0;
+                $party->bid=FALSE;
                 $party->bidWith=NULL;
             }
-            $this->currentBidder = $this->party[$user_id];
+            $this->currentBidder = $user_id;
             $this->persuasionTarget = NULL;
         }
         return $messages ;
@@ -1141,13 +1165,13 @@ class Game
             foreach ($this->party as $party) {
                 foreach ($party->senators->cards as $senator) {
                     if ($senator->inRome && $senator->senatorID != $party->leader->senatorID && $party->user_id!=$user_id) {
-                        array_push($result, array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party' => $party->user_id , 'LOY' => $senator->LOY , 'treasury' => $senator->treasury)) ;
+                        array_push($result, array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party' => $party->user_id , 'LOY' => $this->getSenatorActualLoyalty($senator) , 'treasury' => $senator->treasury)) ;
                     }
                 }
             }
             foreach ($this->forum->cards as $card) {
                 if ($card->type=='Family') {
-                    array_push($result, array('senatorID' => $card->senatorID , 'name' => $card->name , 'party' => 'forum' , 'LOY' => $card->LOY , 'treasury' => $card->treasury)) ;
+                    array_push($result, array('senatorID' => $card->senatorID , 'name' => $card->name , 'party' => 'forum' , 'LOY' => $this->getSenatorActualLoyalty($card) , 'treasury' => $card->treasury)) ;
                 }
             }
         } else {
@@ -1176,6 +1200,26 @@ class Game
         return $result;
     }
     
+    /**
+     * List the cards in the hand of user_id that can be used for persuasion
+     * @param type $user_id
+     * @return array
+     */
+    public function forum_listPersuasionCards($user_id) {
+        $result = array();
+        foreach ($this->party[$user_id]->hand->cards as $card) {
+            if (($card->name=='SEDUCTION') || ($card->name=='BLACKMAIL')) {
+                array_push($result , $card);
+            }
+        }
+        return $result ;
+    }
+    
+    /**
+     * When $user_id doesn't do any persuasion for this initiative, move on to the next subPhase (Knights)
+     * @param type $user_id
+     * @return array
+     */
     public function forum_noPersuasion($user_id) {
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
@@ -1187,15 +1231,23 @@ class Game
         return $messages ;
     }
     
-    public function forum_persuasion($user_id) {
+    /**
+     * The main persuasion function :
+     * - Pick up a target, a persuader, an amount to spend, cards to play
+     * - If target already picked, put more money (all players) OR roll with current odds (player with initiative)
+     * @param type $user_id
+     * @return array
+     */
+    public function forum_persuasion($user_id , $persuaderRaw , $targetRaw , $amount , $card) {
         $messages = array() ;
-        if ( ($this->phase=='Forum') && ($this->subPhase=='persuasion') ) {
+        if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') ) {
             // We don't know who is the target yet.
             if ($this->persuasionTarget===NULL) {
-                if ($this->forum_whoseInitiative()==$user_id) {
-                    array_push($messages , array ('Pick a persuasion target','message',$user_id));
-                }
-            // We know the target, do we know the persuader ?
+                // target [0] = senatorID , [1] = treasury , [2] = party , [3] = actual loyalty
+                $target = explode('|' , $targetRaw);
+                $party = $this->getPartyOfSenatorWithID($target[0]) ;
+                var_dump($party);
+                die();
             } else {
             }
         }
@@ -1295,7 +1347,7 @@ class Game
     public function playConcession( $user_id , $card_id , $senator_id) {
         $messages = array() ;
         $partyOfTargetSenator = $this->getPartyOfSenatorWithID($senator_id) ;
-        if (!$partyOfTargetSenator) {
+        if (!$partyOfTargetSenator || $partyOfTargetSenator=='forum') {
             array_push($messages , array('This senator is not in play','alert')) ;
             return $messages;
         }
