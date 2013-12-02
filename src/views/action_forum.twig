@@ -61,6 +61,14 @@
             document.getElementById("counterBribeButton").value = "COUNTER-BRIBE";
         }
     }
+    function updateKnightPersuasionAmount(evilOmens) {
+        value =  senator.value.substr(senator.value.indexOf("|")+1) ;
+        while ( amount.options.length ) amount.options[0] = null ;
+        for ( i = 0; ( (i <= value) & (i <= 5+evilOmens) ); i++ ) {
+            option = new Option( i , i );
+            amount.options[amount.length] = option;
+        }
+    }
 </script>
 {% endblock %}
 
@@ -211,7 +219,52 @@ KNIGHTS
 #}
 
         {% elseif content['game'].subPhase=='Knights' %}
-Knights :
+{% set list = content['game'].forum_listKnights(user_id) %}
+{% set canPressure = FALSE %}
+Knights :<br>
+Attract a knight for :<br>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_knights'} ) }}">
+    {#
+    Note : the updateKnightPersuasionAmount(x) function gets the current evilOmens level as a parameter
+    This way, should evil omens be in play and attract roll reduced, the player has the option to spend more than 5T
+    Otherwise, the function caps the amount spent at 5
+    #}
+    <select id="senator" name="senator" style="width: 420px;" onClick="updateKnightPersuasionAmount({{content['game'].getEventLevel('Evil Omens')}})">
+{% for senator in list %}
+        {% if senator['knights']>0 %}
+            {% set canPressure = TRUE %}
+        {% endif %}
+        {% if senator['inRome']%}
+            <option value="{{senator['senatorID']}}|{{senator['treasury']}}">{{senator['name']}} : {{senator['knights']}} knights, {{senator['treasury']}}T</option>
+        {% endif %}
+{% endfor %}
+    </select>
+    By spending :
+    <select id="amount" name="amount" style="width: 50px;">
+        <option>0</option>
+    </select>
+    
+    <input type="submit" class="btn btn-info" value="ROLL">
+</form>
+{% if canPressure %}
+OR Pressure Knights :<br>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_pressureKnights'} ) }}">
+    {% for senator in list %}
+        {% if senator['knights']>0 %}
+            {{senator['name']}}
+            <select id="{{senator['senatorID']}}" name="{{senator['senatorID']}}" style="width: 50px;">
+                {% for nb in 0..senator['knights']%}
+                    <option>{{nb}}</option>                        
+                {% endfor %}
+            </select><br>
+        {% endif %}
+    {% endfor %}
+    <input type="submit" class="btn btn-info" value="PRESSURE">
+</form>
+{% else %}
+This party has no knights to pressure
+{% endif %}
+
 {# 
 
 CHANGE LEADER
