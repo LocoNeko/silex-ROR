@@ -234,6 +234,10 @@ class Game
         fclose($filePointer);
     }
     
+    /**
+     * Number of legions (location is NOT nonexistent)
+     * @return int
+     */
     public function nbOfLegions() {
         $result = 0 ;
         foreach($this->legion as $legion) {
@@ -244,6 +248,10 @@ class Game
         return $result ;
     }
     
+    /**
+     * Number of fleets (location is NOT nonexistent)
+     * @return int
+     */
     public function nbOfFleets() {
         $result = 0 ;
         foreach($this->fleet as $fleet) {
@@ -495,6 +503,10 @@ class Game
         }        
     }
     
+    /**
+     * Whether or not the Land Commissioner concession is playable (a Land bill is in play)
+     * @return bool
+     */
     public function landCommissionerPlaybale () {
         return ( (array_sum($this->landBill) > 0) ? TRUE : FALSE ) ;
     }
@@ -539,6 +551,11 @@ class Game
         }
     }
     
+    /**
+     * Get a list of user_ids separated by ";" with all user_ids but one
+     * @param type $not_this_user_id
+     * @return string
+     */
     public function getAllButOneUserID ($not_this_user_id) {
         $result='';
         foreach ($this->party as $user_id=>$party) {
@@ -549,6 +566,11 @@ class Game
         return $result ;
     }
     
+    /**
+     * Returns the current level of the event if it's in play or 0
+     * @param type $eventName
+     * @return int
+     */
     public function getEventLevel ($eventName) {
         if (array_key_exists($eventName, $this->events)) {
             return $this->events[$eventName] ;
@@ -561,6 +583,14 @@ class Game
      * Functions for SETUP phase
      ************************************************************/
     
+    /**
+     * Set party leader of $user_id to senator with $senatorID
+     * phase_done is set to TRUE for user_id
+     * if all players have phase_done==true, move to next subPhase 'PlayCards'
+     * @param type $user_id
+     * @param type $senatorID
+     * @return type
+     */
     public function setup_setPartyLeader( $user_id , $senatorID ) {
         if ($this->subPhase!='PickLeaders') {
             return array(array('Wrong phase','error'));
@@ -584,6 +614,13 @@ class Game
         return array(array('Undocumented error - party leader not set.','error'));
     }
     
+    /**
+     * Returns a list of possible actions during the special setup machination phase :
+     * - Statemen
+     * - Concessions
+     * @param type $user_id
+     * @return array
+     */
     public function setup_possibleActions($user_id) {
         $result = array() ;
         foreach ($this->party[$user_id]->hand->cards as $card) {
@@ -601,6 +638,11 @@ class Game
         return $result;
     }
     
+    /**
+     * Setup is finished for this player, if all players are finished, move to subPhase mortality
+     * @param type $user_id
+     * @return type
+     */
     public function setup_Finished($user_id) {
         $this->party[$user_id]->phase_done = TRUE ;
         if ($this->whoseTurn()===FALSE) {
@@ -614,7 +656,11 @@ class Game
      ************************************************************/
 
     /**
-     * 
+     * Handles :
+     * - Imminent wars
+     * - Mortality.
+     * Mortality uses the killSenator function
+     * Once finished, moves to Revenue phase
      * @return array
      */
     public function mortality() {
@@ -623,10 +669,12 @@ class Game
             array_push($messages , array('Setup phase is finished. Starting Mortality phase.'));
             $this->phase = 'Mortality';
             array_push($messages , array('MORTALITY PHASE','alert'));
+            
             // Activate imminent wars
             if (count($this->imminentWars->cards)==0) {
                array_push($messages , array('There is no imminent conflict to activate.')); 
             } else {
+                // More 'usort' magic
                 // This orders the imminent wars deck by conflict id
                 usort ($this->imminentWars->cards , function ($a,$b)
                 {
@@ -650,6 +698,7 @@ class Game
                     $this->imminentWars->putOnTop($temp->drawTopCard());
                 }
             }
+            
             // Draw mortality chits
             $chits = $this->mortality_chits(1) ;
             foreach ($chits as $chit) {
@@ -669,6 +718,7 @@ class Game
     }
     
     /**
+     * Draw $qty mortality chits, returns an array
      * @param type $qty The number of chits to draw
      * @return array An array of chits number + "DRAW 2" and "NONE", for log's sakes
      */
@@ -701,6 +751,15 @@ class Game
         return $result;
     }
     
+    /**
+     * Kills the senator with $senatorID. This function handles :
+     * - Brothers
+     * - Statemen
+     * - Party leader
+     * - Where senator and controlled cards go (forum, curia, discard)
+     * @param type $senatorID
+     * @return type
+     */
     public function killSenator($senatorID) {
         $message = '' ;
         // $deadSenator needs to be an array, as 2 brothers could be in play
