@@ -78,6 +78,10 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         log ($app , $game_id , $user_id , $game->forum_persuasion ($user_id , $request->request->get('persuader') , $request->request->get('target') , $request->request->get('amount') , $request->request->get('card') ) );
     } elseif ($action=='forum_noPersuasion') {
         log ($app , $game_id , $user_id , $game->forum_noPersuasion ($user_id) );
+    } elseif ($action=='forum_knights') {
+        log ($app , $game_id , $user_id , $game->forum_knights ($user_id) );
+    } elseif ($action=='forum_pressureKnights') {
+        log ($app , $game_id , $user_id , $game->forum_pressureKnights ($user_id) );
     }
     /* 
      * Finally serialize the $game object representing the new game state and store it in the database 

@@ -1514,6 +1514,37 @@ class Game
         return $messages ;
     }
     
+    /**
+     * Returns a list of senatorID, name , knights, treasury and inRome by senator
+     * Useful for attracking and pressuring knights
+     * @param type $user_id
+     * @return array
+     */
+    public function forum_listKnights($user_id) {
+        $result = array () ;
+        foreach ($this->party[$user_id]->senators->cards as $senator) {
+            array_push($result , array ( 'senatorID' => $senator->senatorID , 'name' => $senator->name , 'knights' => $senator->knights , 'treasury' => $senator->treasury , 'inRome' => $senator->inRome) );
+        }
+        return $result ;
+    }
+    
+    /**
+     * 
+     * @param type $user_id
+     * @return array
+     */
+    public function forum_knights($user_id) {
+        // TO DO
+        $messages = array();
+        return $messages ;
+    }
+    
+    public function forum_pressureKnights($user_id) {
+        // TO DO
+        $messages = array();
+        return $messages ;
+    }
+    
     /************************************************************
      * Functions for REVOLUTION phase
      ************************************************************/
