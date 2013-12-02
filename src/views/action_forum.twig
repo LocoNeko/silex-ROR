@@ -53,6 +53,14 @@
             document.getElementById("bribeButton").value = "BRIBE";
         }
     }
+    function updateCounterBribeRollButton() {
+        value = amount.value;
+        if (value==0) {
+            document.getElementById("counterBribeButton").value = "NO COUNTER-BRIBE";
+        } else {
+            document.getElementById("counterBribeButton").value = "COUNTER-BRIBE";
+        }
+    }
 </script>
 {% endblock %}
 
@@ -150,7 +158,7 @@ BY SPENDING :
 {% if persuasionCards|length > 0 %}
 USING CARD :
     <select id="card" name="card" style="width: 200px;">
-        <option>NONE</option>
+        <option value="NONE">NONE</option>
 {% for card in persuasionCards %}
         <option value="{{card.id}}">{{card.name}} </option>
 {% endfor %}
@@ -186,7 +194,7 @@ Add to current bribe or roll with current odds :
             {% endif %}
         {% endfor %}
     </select>
-    <input type="submit" id="bribeButton" type="submit" class="btn btn-danger" value="ROLL">
+    <input type="submit" id="bribeButton" class="btn btn-danger" value="ROLL">
 </form>
                 {# He is not the current bidder, waiting for other to counter-bribe his attempt #}
                 {% else %}
@@ -203,7 +211,7 @@ KNIGHTS
 #}
 
         {% elseif content['game'].subPhase=='Knights' %}
-
+Knights :
 {# 
 
 CHANGE LEADER
@@ -251,12 +259,12 @@ It's your turn to counter-bribe :<br>
     {% endembed %}
 Counter-bribe (from party treasury) : 
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
-    <select id="amount" name="amount" onClick="updateOdds();" style="width: 50px;">
+    <select id="amount" name="amount" onClick="updateCounterBribeRollButton();" style="width: 50px;">
         {% for x in 0..content['game'].party[user_id].treasury%}
             <option>{{x}}</option>
         {% endfor %}
     </select>
-    <button type="submit" class="btn btn-danger">COUNTER-BRIBE</button>
+    <input type="submit" id="counterBribeButton" type="submit" class="btn btn-danger" value="NO COUNTER-BRIBE">
 </form>
                 {# No, he is not the current counter-briber#}
                 {% else %}
