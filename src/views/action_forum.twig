@@ -172,7 +172,23 @@ ERROR - strange forum subphase.
 
                 {# Yes, he is the current counter-briber#}
                 {% if content['game'].currentBidder==user_id %}
-HELLO, COUNTER-BRIBER !                        
+It's your turn to counter-bribe :<br>
+{% set persuasionListCurrent = content['game'].forum_persuasionListCurrent() %}
+Target : {{persuasionListCurrent['target']['name']}} ({{persuasionListCurrent['target']['party']}}) , LOY : {{persuasionListCurrent['target']['LOY']}} , Treasury {{persuasionListCurrent['target']['treasury']}} T<br>
+Persuader : {{persuasionListCurrent['persuader']['name']}} , ORA : {{persuasionListCurrent['persuader']['ORA']}} , INF : {{persuasionListCurrent['persuader']['INF']}} , treasury : {{persuasionListCurrent['persuader']['treasury']}} , bid so far : {{persuasionListCurrent['bid'][content['game'].forum_whoseInitiative()]}}<br>
+counter-bribes :{% for party,bid in persuasionListCurrent['bid'] %}
+                    {% if party!=content['game'].forum_whoseInitiative() %}
+                        {{content['game'].party[party].fullname()}} : {{bid}}{{not loop.last ? ','}}
+                    {% endif %}
+                {% endfor %}
+Current odds : {{persuasionListCurrent['odds']['for']}} - {{persuasionListCurrent['odds']['against']}} = {{persuasionListCurrent['odds']['total']}} ({{persuasionListCurrent['odds']['percentage']}}%)
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
+    <select id="amount" name="amount" onClick="updateOdds();" style="width: 50px;">
+        {% for x in 0..content['game'].party[user_id].treasury%}
+            <option>{{x}}</option>
+        {% endfor %}
+    </select>
+</form>
                 {# No, he is not the current counter-briber#}
                 {% else %}
                     {% if content['game'].currentBidder == content['game'].forum_whoseInitiative() %}

@@ -267,6 +267,13 @@ class Game
                 }
             }
         }
+        foreach ($this->forum->cards as $card) {
+            if ($card->type=='Family') {
+                if ($card->senatorID == $senator->senatorID) {
+                    return 'forum';
+                }
+            }
+        }
         return FALSE ;
     }
     
@@ -1241,6 +1248,45 @@ class Game
             array_push($messages , array('Wrong phase, subphase or player','error',$user_id));
         }
         return $messages ;
+    }
+    
+    /**
+     * Returns an array with a complete list of information about the current persuasion attempt
+     * @return type
+     */
+    public function forum_persuasionListCurrent() {
+        $rollOdds = array(2 => 1/36 , 3 => 2/36 , 4 => 6/36 , 5 => 10/36 , 6 => 15/36 , 7 => 21/36 , 8 => 26/36 , 9 => 30/36 );
+        $result = array();
+        $result['target']['senatorID'] = $this->persuasionTarget->senatorID ;
+        $result['target']['party'] = $this->getPartyOfSenator($this->persuasionTarget) ;
+        $result['target']['treasury'] = $this->persuasionTarget->treasury ;
+        $result['target']['LOY'] = $this->getSenatorActualLoyalty($this->persuasionTarget) ;
+        $result['target']['name'] = $this->persuasionTarget->name ;
+        $persuader = $this->party[$this->forum_whoseInitiative()]->bidWith ;
+        $result['persuader']['senatorID'] = $persuader->senatorID ;
+        $result['persuader']['treasury'] = $persuader->treasury ;
+        $result['persuader']['INF'] = $persuader->INF ;
+        $result['persuader']['ORA'] = $persuader->ORA ;
+        $result['persuader']['name'] = $persuader->name ;
+        $result['odds']['for'] = $result['persuader']['INF'] + $result['persuader']['ORA'] ;
+        $result['odds']['against'] = $result['target']['LOY'] + $result['target']['treasury'] + ($result['target']['party']=='forum' ? 0 : 7) ;
+        foreach($this->party as $party) {
+            $result['bid'][$party->user_id] = $party -> bid ;
+            if ($party->user_id == $this->forum_whoseInitiative()) {
+                $result['odds']['for'] += $result['bid'][$party->user_id] ;
+            } else {
+                $result['odds']['against'] -= $result['bid'][$party->user_id] ;
+            }
+        }
+        $result['odds']['total'] = $result['odds']['for'] - $result['odds']['against'] ;
+        if ($result['odds']['total'] < 2) {
+            $result['odds']['percentage'] = 0 ;
+        } else if ($result['odds']['total'] > 9) {
+            $result['odds']['percentage'] = number_format($rollOdds[9]*100 , 2)  ;
+        } else {
+            $result['odds']['percentage'] = number_format($rollOdds[$result['odds']['total']]*100 , 2) ;
+        }
+        return $result ;
     }
     
     /**
