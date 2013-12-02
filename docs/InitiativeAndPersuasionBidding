@@ -7,7 +7,7 @@ bidWith (Senator) : With which senator this party is bidding
 
 The game has the following bidding-related variables :
 initiative (int) : The current initiative number from 1 to 6
-currentBidder (party) : The party which turn's it is to bid
+currentBidder (user_id) : The user_id of the party which turn's it is to bid
 persuasionTarget (senator) : The senator being persuaded
 
 We ALWAYS know who has the initiative :
