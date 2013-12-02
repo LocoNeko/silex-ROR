@@ -34,7 +34,7 @@
 29;"AEMILIUS";"Family";19;4;2;8;1;;;;;;;;;;;;
 30;"L. AEMILIUS PAULLUS MACEDONICUS";"Stateman";"19A";5;4;8;4;;"Macedonian";;;;;;;;;;
 31;"TERENTIUS";"Family";20;2;1;6;1;;;;;;;;;;;;
-32;"M. PORCIUS CATO THE ELDER";"Stateman";"22A";1;6;10;1;"-1A";"-1B";"-18A";"Tribune";"Law6";;;;;;;
+32;"M. PORCIUS CATO THE ELDER";"Stateman";"22A";1;6;10;1;"-1A,-1B,-18A";"Tribune,Law6";;;;;;;
 ;;"Leader";"Matched to";"Subtext";"Strength";"D";"S";"Ability";"Causes";;;;;;;;;;
 33;"HAMILCAR";"Leader";"Punic";"275 - 229 BC";3;8;12;"May combine with Hannibal";;;;;;;;;;;
 34;"HANNIBAL";"Leader";"Punic";"247 - 183 BC";7;9;16;"May combine with Hamilcar";"2+1";;;;;;;;;;

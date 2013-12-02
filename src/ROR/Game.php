@@ -367,6 +367,7 @@ class Game
         }
         /* If we reach this part, the HRAO couldn't be determined because there is no Official present in Rome
          * So we check highest INF, break ties with Oratory then lowest ID
+         * I'm very proud of this function ! ;-)
          */
         usort ($allSenators, function($a, $b)
         {
@@ -438,6 +439,7 @@ class Game
     
     /**
      * Returns the user_id of the player playing after the player whose user_id has been passed as a parameter
+     * Say that three times.
      */
     public function whoIsAfter($user_id) {
         $orderOfPlay = $this->orderOfPlay() ;
@@ -492,7 +494,7 @@ class Game
         }
         $result = array() ;
         $result['total'] = 0 ;
-        for ($i=0 ; $i<=$nb ; $i++) {
+        for ($i=0 ; $i<$nb ; $i++) {
             $result[$i]=mt_rand(1,6);
             $result['total']+=$result[$i];
         }
@@ -1271,11 +1273,11 @@ class Game
         $result['odds']['for'] = $result['persuader']['INF'] + $result['persuader']['ORA'] ;
         $result['odds']['against'] = $result['target']['LOY'] + $result['target']['treasury'] + ($result['target']['party']=='forum' ? 0 : 7) ;
         foreach($this->party as $party) {
-            $result['bid'][$party->user_id] = $party -> bid ;
+            $result['bid'][$party->user_id] = (int)$party -> bid ;
             if ($party->user_id == $this->forum_whoseInitiative()) {
                 $result['odds']['for'] += $result['bid'][$party->user_id] ;
             } else {
-                $result['odds']['against'] -= $result['bid'][$party->user_id] ;
+                $result['odds']['against'] += $result['bid'][$party->user_id] ;
             }
         }
         $result['odds']['total'] = $result['odds']['for'] - $result['odds']['against'] ;
@@ -1298,6 +1300,7 @@ class Game
      */
     public function forum_persuasion($user_id , $persuaderRaw , $targetRaw , $amount , $card) {
         $messages = array() ;
+        $amount = (int)$amount ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') ) {
             /*
              *  We don't know who is the target yet.
@@ -1306,17 +1309,16 @@ class Game
                 // TO DO : card
                 // target [0] = senatorID , [1] = treasury , [2] = party , [3] = actual loyalty
                 $target = explode('|' , $targetRaw);
-                $party = $this->getPartyOfSenatorWithID($target[0]) ;
-                if ($party==$target[2]) {
+                $partyTarget = $this->getPartyOfSenatorWithID($target[0]) ;
+                if ($partyTarget==$target[2]) {
                     // Everything is fine so far, proceed to check persuader
                     // persuader [0] = senatorID , [1] = treasury , [2] = INF , [3] = ORA
                     $persuader = explode('|' , $persuaderRaw);
-                    $party = $this->getPartyOfSenatorWithID($persuader[0]) ;
-                    if ($party->user_id==$user_id) {
+                    $partyPersuader = $this->getPartyOfSenatorWithID($persuader[0]) ;
+                    if ($partyPersuader->user_id==$user_id) {
                         // Still OK
                         $targetSenator = $this->getSenatorWithID($target[0]);
                         $persuadingSenator = $this->getSenatorWithID($persuader[0]);
-                        $amount = (int)$amount ;
                         if ($amount<=$persuadingSenator->treasury) {
                             // Amount looks good
                             $this->party[$user_id]->bidWith = $persuadingSenator ;
@@ -1324,6 +1326,7 @@ class Game
                             $this->party[$user_id]->bid = $amount ;
                             $this->persuasionTarget = $targetSenator ;
                             $this->currentBidder = $this->whoIsAfter($user_id);
+                            array_push($messages , array ($persuadingSenator->name.' ('.$partyPersuader->fullName().') attempts to persuade '.$targetSenator->name.' ('.($partyTarget=='forum' ? 'forum' : $partyTarget->fullName()).')')) ;
                         } else {
                             return array(array('Amount error','error',$user_id));
                         }
@@ -1337,9 +1340,67 @@ class Game
              * We know the target, this is a bribe     
              */
             } else {
+                
                 // This user is indeed the current bidder
                 if ($user_id==$this->currentBidder) {
-                
+                    
+                    // This user has the initiative, this might be a bribe ($amount>0), or a roll
+                    if ($this->forum_whoseInitiative()==$user_id) {
+                        
+                        // This is the final roll
+                        if ($amount==0) {
+                            $currentPersuasion = $this->forum_persuasionListCurrent();
+                            $roll = $this->rollDice(2, 1);
+                            // Failure on 10+
+                            if ($roll['total']>=10) {
+                                array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls an unmodified '.$roll['total'].', which is greater than 9 and an automatic failure.'));
+                            // Failure if roll > target number    
+                            } elseif ($roll['total']>$currentPersuasion['odds']['total']) {
+                                array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
+                            // Success
+                            } else {
+                                array_push ($messages , array('SUCCESS - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is lower than the target number of '.$currentPersuasion['odds']['total'].'.'));
+                                if ($currentPersuasion['target']['party'] == 'forum') {
+                                    $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
+                                    $this->party[$user_id]->senators->putOnTop($senator) ;
+                                    array_push ($messages , array('He leaves the forum and joins '.$this->party[$user_id]->fullName()));
+                                } else {
+                                    $senator = $this->party[$currentPersuasion['target']['party']]->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
+                                    $this->party[$user_id]->senators->putOnTop($senator) ;
+                                    array_push ($messages , array('He leaves '.$this->party[$currentPersuasion['target']['party']].fullName().' and joins '.$this->party[$user_id]->fullName()));
+                                }
+                            }
+                            $totalBids = 0 ;
+                            foreach ($this->party as $party) {
+                                $totalBids += $party->bid ;
+                            }
+                            if ($totalBids>0) {
+                                array_push ($messages , array($currentPersuasion['target']['name'].' takes a total of '.$totalBids.' T from bribes and counter-bribes.'));
+                            }
+                            
+                        // More bribe : go for another round of counter bribes
+                        } else {
+                            if ($this->party[$user_id]->bidWith->treasury>=$amount) {
+                                $this->party[$user_id]->bidWith->treasury-=$amount;
+                                $this->party[$user_id]->bid+=$amount;
+                                $this->currentBidder = $this->whoIsAfter($user_id) ;
+                                array_push ($messages , array($this->party[$user_id]->fullName().' bribes more.'));
+                            } else {
+                                array_push ($messages , array('The senator is too poor' , 'error' , $user_id));
+                            }
+                        }
+                        
+                    // This user doesn't have the initiative, this is a counter-bribe
+                    } else {
+                        if ($this->party[$user_id]->treasury >= $amount) {
+                            $this->party[$user_id]->treasury -= $amount ;
+                            $this->party[$user_id]->bid += $amount ;
+                            $this->currentBidder = $this->whoIsAfter($user_id) ;
+                            array_push ($messages , array($this->party[$user_id]->fullName().' spends '.$amount.' T from the party treasury to counter-bribe.'));
+                        } else {
+                            return array(array('Error - not enough money in the party\'s treasury','error',$user_id));
+                        }
+                    }
                 // This is user is NOT the current bidder, something is wrong
                 } else {
                     return array(array('Error - this is not your turn to play','error',$user_id));
