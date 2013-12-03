@@ -1151,6 +1151,7 @@ class Game
                 // TO DO : remove events that expire at the beginning of the forum phase
                 $this->subPhase='RollEvent';
                 $this->initiative=1;
+                array_push($messages , array('Initiative #1','alert'));
             }
         }
         return $messages ;
@@ -1189,7 +1190,7 @@ class Game
             $currentOrder = $this->orderOfPlay() ;
             return $currentOrder[$this->initiative-1] ;
         } else {
-        // This initiative was up for bidding, the winner has the initiative. The winner is the only one left with initiativeBidDone==FALSE
+        // This initiative was up for bidding, the winner has the initiative. The winner is the only one left with bidDone==FALSE
             $candidates=array() ;
             foreach ($this->party as $user_id=>$party) {
                 if ($party->bidDone===FALSE) {
@@ -1203,6 +1204,17 @@ class Game
             }
         }
         
+    }
+    
+    /**
+     * Re-initialises all parties bids for initiative.
+     */
+    public function forum_initInitiativeBids() {
+        foreach ($this->party as $party) {
+            $party->bidDone=FALSE;
+            $party->bid=0;
+            $party->bidWith=NULL;
+        }
     }
     
     public function forum_rollEvent($user_id) {
@@ -1335,7 +1347,7 @@ class Game
      */
     public function forum_noPersuasion($user_id) {
         $messages = array() ;
-        if ( ($this->phase=='Forum') && ($this->subPhase=='persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
+        if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
             $this->subPhase = 'Knights';
             array_push($messages , array($this->party[$user_id]->fullName().' doesn\'t try to persuade any senator during this initiative.'));
         } else {
@@ -1461,11 +1473,11 @@ class Game
                                 if ($currentPersuasion['target']['party'] == 'forum') {
                                     $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
-                                    array_push ($messages , array('He leaves the forum and joins '.$this->party[$user_id]->fullName()));
+                                    array_push ($messages , array($senator->name.' leaves the forum and joins '.$this->party[$user_id]->fullName()));
                                 } else {
                                     $senator = $this->party[$currentPersuasion['target']['party']]->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
-                                    array_push ($messages , array('He leaves '.$this->party[$currentPersuasion['target']['party']].fullName().' and joins '.$this->party[$user_id]->fullName()));
+                                    array_push ($messages , array($senator->name.' leaves '.$this->party[$currentPersuasion['target']['party']].fullName().' and joins '.$this->party[$user_id]->fullName()));
                                 }
                             }
                             $totalBids = 0 ;
@@ -1673,6 +1685,47 @@ class Game
         }
         return $messages ;
     }
+    
+    /**
+     * Change leader and/or move to next initiative. If this is the last initiative, move to curia subPhase (a.k.a. "Putting Rome in order")
+     * @param type $user_id
+     * @param type $senator
+     * @return array
+     */
+    public function forum_changeLeader($user_id , $senatorID) {
+        $messages = array();
+        $error = FALSE ;
+        if ( ($this->phase=='Forum') && ($this->subPhase=='ChangeLeader') && ($this->forum_whoseInitiative()==$user_id) ) {
+            if ($senatorID!='NO') {
+                $senator = $this->getSenatorWithID($senatorID);
+                if ($this->getPartyOfSenator($senator)->user_id==$user_id) {
+                    if ($this->party[$user_id]->leader->senatorID != $senatorID) {
+                        $this->party[$user_id]->leader = $senator ;
+                        array_push($messages , array($senator->name.' is now the leader of '.$this->party[$user_id]->fullName()));
+                    } else {
+                        $error = TRUE ;
+                        array_push($messages , array('Error - This senator is already the leader' , 'error' , $user_id));
+                    }
+                } else {
+                    $error = TRUE ;
+                    array_push($messages , array('Error - Wrong party' , 'error' , $user_id));
+                }
+            }
+            if (!$error) {
+                $this->initiative++ ;
+                if ($this->initiative<=6) {
+                    $this->subPhase = 'RollEvent';
+                    $this->forum_initInitiativeBids();
+                    array_push($messages , array('Initiative #'.$this->initiative , 'alert'));
+                } else {
+                    $this->subPhase = 'curia';
+                    array_push($messages , array('All initiatives have been played, putting Rome in order.'));
+                }
+            }
+        }
+        return $messages ;
+    }
+    
     
     /************************************************************
      * Functions for REVOLUTION phase
