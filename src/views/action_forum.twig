@@ -87,21 +87,25 @@
 </script>
 {% endblock %}
 
-{# CURRENTLY BIDDING FOR INITIATIVE #}
-{% if content['game'].forum_whoseInitiative()==FALSE %}
+{#-----------------------------------------------------------------------------------------------------
+                                 WE DON'T KNOW WHO HAS THE INITIATIVE :
+                                           WE ARE BIDDING
+-----------------------------------------------------------------------------------------------------#}
+
+{% if content['game'].forum_whoseInitiative()==false %}
 Currently bidding for initiative number {{content['game'].initiative}}<br>
 
     {# THIS USER IS THE CURRENT BIDDER #}
-    {% if content['game'].currentBidder.user_id == user_id %}
+    {% if content['game'].currentBidder == user_id %}
 You are the current bidder<br>
     
         {# PICK BIDDING SENATOR (THIS USER HASN'T PICKED A BIDDING SENATOR YET) #}
-        {% if content['game'].party['user_id'].bidWith == NULL %}
+        {% if content['game'].party[user_id].bidWith == NULL %}
 Pick a Senator to bid for initiative :<br>
 
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bidSenator'} ) }}">
             {# USER CAN ONLY PICK FROM SENATORs IN ROME WHO HAVE MONEY #}
-            {%for senator in content['game'].party['user_id'].senators.cards %}
+            {%for senator in content['game'].party[user_id].senators.cards %}
                 {% if senator.inRome==FALSE %}
 {{senator.name}} cannot bid as he is not in Rome.<br>
                 {% elseif senator.treasury==0 %}
@@ -115,20 +119,23 @@ Pick a Senator to bid for initiative :<br>
 
         {# BIDDING SENATOR IS NULL - CHOOSE BIDDING AMOUNT #}
         {% else %}
-You are currently bidding {{content['game'].party['user_id'].bid}}T with {{content['game'].party['user_id'].bidWith.name}} to get this initiative.<br>
+You are currently bidding {{content['game'].party[user_id].bid}}T with {{content['game'].party[user_id].bidWith.name}} to get this initiative.<br>
 {% set highestBidder = content['game'].forum_highestBidder() %}
 The highest bidder is : {{highestBidder['message']}}
-Choose the amount to add to your bid. You need to bid at least {{highestBidder['bid']+1-content['game'].party['user_id'].bid}} more :<br>
+Choose the amount to add to your bid. You need to bid at least {{highestBidder['bid']+1-content['game'].party[user_id].bid}} more :<br>
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bidAmount'} ) }}">
 </form>
         {% endif %}
 
     {# WAITING FOR CURRENT BIDDER #}
     {% else %}
-Waiting for {{content['game'].currentBidder.fullName()}} to bid<br>
+Waiting for {{content['game'].party[content['game'].currentBidder].fullName()}} to bid<br>
     {% endif %}
 
-{# WE KNOW WHO HAS THE INITIATIVE #}
+{#-----------------------------------------------------------------------------------------------------
+                                    WE KNOW WHO HAS THE INITIATIVE
+-----------------------------------------------------------------------------------------------------#}
+
 {% else %}
 Initiative #{{content['game'].initiative}} ({{content['game'].party[content['game'].forum_whoseInitiative()].fullName()}})
     
@@ -182,6 +189,8 @@ USING CARD :
         <option value="{{card.id}}">{{card.name}} </option>
 {% endfor %}
     </select><br>
+{% else %}
+    <input type="hidden" id="card" name="card" VALUE="NONE">
 {% endif %}
     <br><br>
 TARGET NUMBER :
@@ -304,6 +313,18 @@ Error - no senator can sponsor game.
 ---------------------------------------------------#}
 
         {% elseif content['game'].subPhase=='ChangeLeader' %}
+Change party Leader :
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_changeLeader'} ) }}">
+    <select id="senatorID" name="senatorID" style="width: 350px;">
+        <option value="NO">Keep {{content['game'].party[user_id].leader.name}}</option>
+        {% for senator in content['game'].party[user_id].senators.cards%}
+            {% if senator.senatorID!=content['game'].party[user_id].leader.senatorID %}
+            <option value="{{senator.senatorID}}">Appoint {{senator.name}}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+    <input type="submit" class="btn btn-info" value="OK">
+</form>
 
 {#--------------------------------------------------- 
                CURIA (FORUM END)

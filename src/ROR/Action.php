@@ -66,11 +66,9 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         log ($app , $game_id , $user_id , $game->revenue_Contributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) ) ;
     } elseif ($action=='revenue_Finished') {
         log ($app , $game_id , $user_id , $game->revenue_Finished ($user_id) );
-    } elseif ($action=='forum_bidSenator') {
-        // TO DO
+    } elseif ($action=='forum_bidSenator') {// TO DO
         log ($app , $game_id , $user_id , $game->forum_bidSenator ($user_id) );
-    } elseif ($action=='forum_bidAmount') {
-        // TO DO
+    } elseif ($action=='forum_bidAmount') {// TO DO
         log ($app , $game_id , $user_id , $game->forum_bidAmount ($user_id) );
     } elseif ($action=='forum_rollEvent') {
         log ($app , $game_id , $user_id , $game->forum_rollEvent ($user_id) );
@@ -84,7 +82,10 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         log ($app , $game_id , $user_id , $game->forum_pressureKnights ($user_id , $request->request->all()) );
     } elseif ($action=='forum_sponsorGames') {
         log ($app , $game_id , $user_id , $game->forum_sponsorGames ($user_id , $request->request->get('senator') , $request->request->get('type') ) );
+    } elseif ($action=='forum_changeLeader') {
+        log ($app , $game_id , $user_id , $game->forum_changeLeader ($user_id , $request->request->get('senatorID') ) );
     }
+    
     /* 
      * Finally serialize the $game object representing the new game state and store it in the database 
      */
@@ -92,7 +93,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     $app['db']->update('games' , Array ('game_data' => $game_data ) , Array('game_id' => $game_id) );
     // Save game only if we've just moved to a new subPhase
     if ($game->subPhase != $currentSubPhase) {
-        $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => $game->phase , 'subPhase' => $game->subPhase , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
+        $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => ($game->phase == 'Forum' ? 'Forum - Initiative #'.$game->initiative : $game->phase ) , 'subPhase' => $game->subPhase , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
     }
     // Get the log
     $content['log'] = getLog($app , $game_id , $user_id);
