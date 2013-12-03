@@ -79,9 +79,11 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     } elseif ($action=='forum_noPersuasion') {
         log ($app , $game_id , $user_id , $game->forum_noPersuasion ($user_id) );
     } elseif ($action=='forum_knights') {
-        log ($app , $game_id , $user_id , $game->forum_knights ($user_id) );
+        log ($app , $game_id , $user_id , $game->forum_knights ($user_id , $request->request->get('senator') , $request->request->get('amount') ) );
     } elseif ($action=='forum_pressureKnights') {
-        log ($app , $game_id , $user_id , $game->forum_pressureKnights ($user_id) );
+        log ($app , $game_id , $user_id , $game->forum_pressureKnights ($user_id , $request->request->all()) );
+    } elseif ($action=='forum_sponsorGames') {
+        log ($app , $game_id , $user_id , $game->forum_sponsorGames ($user_id , $request->request->get('senator') , $request->request->get('type') ) );
     }
     /* 
      * Finally serialize the $game object representing the new game state and store it in the database 
