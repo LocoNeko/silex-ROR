@@ -98,4 +98,10 @@ class Senator extends Card
             return str_replace ( Array('A' , 'B' , 'C') , Array('' , '' , '') , $this->senatorID);
         }
     }
+    
+    public function changePop ($value) {
+        $this->POP+=$value ;
+        if ( $this->POP < -9 ) { $this->POP = -9 ; }
+        if ( $this->POP > 9  ) { $this->POP = 9  ; }
+    }
 }

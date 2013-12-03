@@ -69,6 +69,21 @@
             amount.options[amount.length] = option;
         }
     }
+    function updateGames() {
+        index1 = senator.value.indexOf("|")+1;
+        index2 = senator.value.indexOf("|",index1)+1;
+        treasury = parseInt(target.value.substr(index2)) ;
+        while ( type.options.length ) type.options[0] = null ;
+        if (treasury>=7) {
+            type.options[type.length] = new Option ("Slice & Dice" , 7);
+        }
+        if (treasury>=13) {
+            type.options[type.length] = new Option ("Blood Fest" , 13);
+        }
+        if (treasury>=18) {
+            type.options[type.length] = new Option ("Gladiator Gala" , 18);
+        }
+    }
 </script>
 {% endblock %}
 
@@ -121,11 +136,9 @@ Initiative #{{content['game'].initiative}} ({{content['game'].party[content['gam
     {# THIS USER HAS THE INITIATIVE - GO THROUGH ALL SUBPHASES #}
 - YOU HAVE THE INITIATIVE<br>
 
-{#
-
-ROLL FOR EVENTS
-
-#}
+{#--------------------------------------------------- 
+               ROLL FOR EVENTS
+---------------------------------------------------#}
 
         {% if content['game'].subPhase=='RollEvent' %}
 Roll for Events :
@@ -133,11 +146,9 @@ Roll for Events :
     <button type="submit" class="btn btn-danger">ROLL</button>
 </form>
 
-{# 
-
-PERSUASION
-
-#}
+{#--------------------------------------------------- 
+                 PERSUASION
+---------------------------------------------------#}
 
         {% elseif content['game'].subPhase=='Persuasion' %}
 Persuasion attempt :<br>
@@ -212,11 +223,9 @@ Waiting for {{content['game'].party[content['game'].currentBidder].fullName()}} 
                 {% endif %}
             {% endif %}
 
-{# 
-
-KNIGHTS
-
-#}
+{#--------------------------------------------------- 
+                       KNIGHTS
+---------------------------------------------------#}
 
         {% elseif content['game'].subPhase=='Knights' %}
 {% set list = content['game'].forum_listKnights(user_id) %}
@@ -246,12 +255,12 @@ Attract a knight for :<br>
     
     <input type="submit" class="btn btn-info" value="ROLL">
 </form>
-{% if canPressure %}
+{% if canPressure%}
 OR Pressure Knights :<br>
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_pressureKnights'} ) }}">
     {% for senator in list %}
         {% if senator['knights']>0 %}
-            {{senator['name']}}
+            {{senator['name']}} :
             <select id="{{senator['senatorID']}}" name="{{senator['senatorID']}}" style="width: 50px;">
                 {% for nb in 0..senator['knights']%}
                     <option>{{nb}}</option>                        
@@ -265,27 +274,40 @@ OR Pressure Knights :<br>
 This party has no knights to pressure
 {% endif %}
 
-{# 
+{#--------------------------------------------------- 
+                 SPONSOR GAMES
+---------------------------------------------------#}
 
-CHANGE LEADER
+        {% elseif content['game'].subPhase=='SponsorGames' %}
+{% set list = content['game'].forum_listSponsorGames(user_id) %}
+{% if list|length > 0 %}
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_sponsorGames'} ) }}">
+    <select id="senator" name="senator" style="width: 300px;" onClick="updateGames();">
+        {% for senator in list %}
+            {% if senator['treasury']>=7 %}
+                <option value="{{list['senatorID']}}|{{list['name']}}|{{list['treasury']}}">{{list['name']}}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+    Sponsors :
+    <select id="type" name="type" style="width: 200px;">
+        <option>Slice & Dice</option>
+    </select>
+    <input type="submit" class="btn btn-info" value="SPONSOR GAMES">
+</form>
+{% else %}
+Error - no senator can sponsor game. 
+{% endif %}
 
-#}
+{#--------------------------------------------------- 
+                 CHANGE LEADER
+---------------------------------------------------#}
 
         {% elseif content['game'].subPhase=='ChangeLeader' %}
 
-{# 
-
-SPONSOR GAMES
-
-#}
-
-        {% elseif content['game'].subPhase=='SponsorGames' %}
-
-{# 
-
-CURIA (FORUM END)
-
-#}
+{#--------------------------------------------------- 
+               CURIA (FORUM END)
+---------------------------------------------------#}
 
         {% elseif content['game'].subPhase=='curia' %}
         {% else %}
@@ -294,12 +316,14 @@ ERROR - strange forum subphase.
 
     {% else %}
 
-{#
-    THIS USER DOES NOT HAVE THE INITIATIVE -
-    WARNING : Even though he doesn't have the initiative, he might have to play to spend money to resist the persuasion attempt of the player who has the initiative
-#}
+{#---------------------------------------------------
+    THIS USER DOES NOT HAVE THE INITIATIVE - but he might have to play to spend money to resist the persuasion attempt of the player who has the initiative
+---------------------------------------------------#}
 
 - Waiting for this player to finish his initiative<br>
+{#--------------------------------------------------- 
+       PERSUASION FOR COUNTER-BRIBING PLAYERS
+---------------------------------------------------#}
         {% if content['game'].subPhase=='Persuasion' %}
 
             {# This player does NOT have the initiative, is it his turn to counter bribe ? #}
