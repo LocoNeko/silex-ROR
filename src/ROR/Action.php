@@ -48,42 +48,58 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
      * Second, we handle any action sent through $action and $request
      */
     $currentSubPhase = $game->subPhase ;
-    if ($action=='setup_PickLeader') {
-        log ($app , $game_id , $user_id , $game->setup_setPartyLeader( $user_id , $request->request->get('senatorID') ));
-    } elseif ($action=='playStateman') {
-        log ($app , $game_id , $user_id , $game->playStateman ( $user_id , $request->request->get('card_id') ) ) ;
-    } elseif ($action=='playConcession') {
-        log ($app , $game_id , $user_id , $game->playConcession ( $user_id , $request->request->get('card_id') , $request->request->get('senator_id') ) ) ;
-    } elseif ($action=='setup_Finished') {
-        log ($app , $game_id , $user_id , $game->setup_Finished($user_id));
-    } elseif ($action=='revenue_ProvincialSPoils') {
-        log ($app , $game_id , $user_id , $game->revenue_ProvincialSpoils( $user_id , $request->request->all() ));
-    } elseif ($action=='revenue_Redistribution') {
-        log ($app , $game_id , $user_id , $game->revenue_Redistribution ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
-    } elseif ($action=='revenue_RedistributionFinished') {
-        log ($app , $game_id , $user_id , $game->revenue_RedistributionFinished ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
-    } elseif ($action=='revenue_Contributions') {
-        log ($app , $game_id , $user_id , $game->revenue_Contributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) ) ;
-    } elseif ($action=='revenue_Finished') {
-        log ($app , $game_id , $user_id , $game->revenue_Finished ($user_id) );
-    } elseif ($action=='forum_bidSenator') {// TO DO
-        log ($app , $game_id , $user_id , $game->forum_bidSenator ($user_id) );
-    } elseif ($action=='forum_bidAmount') {// TO DO
-        log ($app , $game_id , $user_id , $game->forum_bidAmount ($user_id) );
-    } elseif ($action=='forum_rollEvent') {
-        log ($app , $game_id , $user_id , $game->forum_rollEvent ($user_id) );
-    } elseif ($action=='forum_persuasion') {
-        log ($app , $game_id , $user_id , $game->forum_persuasion ($user_id , $request->request->get('persuader') , $request->request->get('target') , $request->request->get('amount') , $request->request->get('card') ) );
-    } elseif ($action=='forum_noPersuasion') {
-        log ($app , $game_id , $user_id , $game->forum_noPersuasion ($user_id) );
-    } elseif ($action=='forum_knights') {
-        log ($app , $game_id , $user_id , $game->forum_knights ($user_id , $request->request->get('senator') , $request->request->get('amount') ) );
-    } elseif ($action=='forum_pressureKnights') {
-        log ($app , $game_id , $user_id , $game->forum_pressureKnights ($user_id , $request->request->all()) );
-    } elseif ($action=='forum_sponsorGames') {
-        log ($app , $game_id , $user_id , $game->forum_sponsorGames ($user_id , $request->request->get('senator') , $request->request->get('type') ) );
-    } elseif ($action=='forum_changeLeader') {
-        log ($app , $game_id , $user_id , $game->forum_changeLeader ($user_id , $request->request->get('senatorID') ) );
+    switch ($action) {
+        case 'setup_PickLeader' :
+            log ($app , $game_id , $user_id , $game->setup_setPartyLeader( $user_id , $request->request->get('senatorID') ));
+            break ;
+        case 'playStateman' :
+            log ($app , $game_id , $user_id , $game->playStateman ( $user_id , $request->request->get('card_id') ) ) ;
+            break ;
+        case 'playConcession' :
+            log ($app , $game_id , $user_id , $game->playConcession ( $user_id , $request->request->get('card_id') , $request->request->get('senator_id') ) ) ;
+            break ;
+        case 'setup_Finished' :
+            log ($app , $game_id , $user_id , $game->setup_Finished($user_id));
+            break ;
+        case 'revenue_ProvincialSPoils' :
+            log ($app , $game_id , $user_id , $game->revenue_ProvincialSpoils( $user_id , $request->request->all() ));
+            break ;
+        case 'revenue_Redistribution' :
+            log ($app , $game_id , $user_id , $game->revenue_Redistribution ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
+            break ;
+        case 'revenue_RedistributionFinished' :
+            log ($app , $game_id , $user_id , $game->revenue_RedistributionFinished ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
+            break ;
+        case 'revenue_Contributions' :
+            log ($app , $game_id , $user_id , $game->revenue_Contributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) ) ;
+            break ;
+        case 'revenue_Finished' :
+            log ($app , $game_id , $user_id , $game->revenue_Finished ($user_id) );
+            break ;
+        case 'forum_bid' :
+            log ($app , $game_id , $user_id , $game->forum_bid ($user_id , $request->request->get('senator') , $request->request->get('amount') ) );
+            break ;
+        case 'forum_rollEvent' :
+            log ($app , $game_id , $user_id , $game->forum_rollEvent ($user_id) );
+            break ;
+        case 'forum_persuasion' :
+            log ($app , $game_id , $user_id , $game->forum_persuasion ($user_id , $request->request->get('persuader') , $request->request->get('target') , $request->request->get('amount') , $request->request->get('card') ) );
+            break ;
+        case 'forum_noPersuasion' :
+            log ($app , $game_id , $user_id , $game->forum_noPersuasion ($user_id) );
+            break ;
+        case 'forum_knights' :
+            log ($app , $game_id , $user_id , $game->forum_knights ($user_id , $request->request->get('senator') , $request->request->get('amount') ) );
+            break ;
+        case 'forum_pressureKnights' :
+            log ($app , $game_id , $user_id , $game->forum_pressureKnights ($user_id , $request->request->all()) );
+            break ;
+        case 'forum_sponsorGames' :
+            log ($app , $game_id , $user_id , $game->forum_sponsorGames ($user_id , $request->request->get('senator') , $request->request->get('type') ) );
+            break ;
+        case 'forum_changeLeader' :
+            log ($app , $game_id , $user_id , $game->forum_changeLeader ($user_id , $request->request->get('senatorID') ) );
+            break ;
     }
     
     /* 
