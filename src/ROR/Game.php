@@ -353,9 +353,11 @@ class Game
                     $friendOrFoeParty = $this->getPartyOfSenatorWithID($friendOrFoeID) ;
                     if ($effect=='-' && $friendOrFoeParty==$party) {
                         $result-=$senator->LOY;
+                        break;
                     }
                     if ($effect=='+' && $friendOrFoeParty!=$party) {
                         $result-=$senator->LOY;
+                        break;
                     }
                 }
             }
@@ -1170,12 +1172,14 @@ class Game
         foreach ($this->party as $party) {
             if ($party->bid>$result['bid']) {
                 $result['bid']=$party->bid ;
+                $result['user_id']=$party->user_id;
                 $result['message']=$party->fullName().' with a bid of '.$result['bid'].'T.' ;
             }
         }
         if ($result['bid']==0) {
             $HRAO = $this->HRAO() ;
             $result['message']='The HRAO '.$HRAO['party']->fullName().' as all bets are 0.';
+            $result['user_id']=$HRAO['user_id'];
         }
         return $result ;
     }
@@ -1191,6 +1195,7 @@ class Game
             return $currentOrder[$this->initiative-1] ;
         } else {
         // This initiative was up for bidding, the winner has the initiative. The winner is the only one left with bidDone==FALSE
+        // This is to allow multiple rounds of initiative bidding as an option
             $candidates=array() ;
             foreach ($this->party as $user_id=>$party) {
                 if ($party->bidDone===FALSE) {
@@ -1215,6 +1220,50 @@ class Game
             $party->bid=0;
             $party->bidWith=NULL;
         }
+        $HRAO = $this->HRAO();
+        $this->currentBidder = $HRAO['user_id'];
+    }
+    
+    public function forum_bid ($user_id , $senatorRaw , $amount) {
+        $messages = array() ;
+        if ($this->forum_whoseInitiative()===FALSE) {
+            // There was no bid
+            if ($senatorRaw=='NONE') {
+                array_push($messages , array($this->party[$user_id]->fullName().' cannot or will not bid for this initiative.'));
+            // There was a bid    
+            } else {
+                $senatorData = explode('|' , $senatorRaw) ;
+                $senatorID = $senatorData[0] ;
+                $senator = $this->getSenatorWithID($senatorID) ;
+                if ($this->getPartyOfSenator($senator)->user_id == $user_id) {
+                    if ($senator->treasury>=$amount) {
+                        $senator->treasury-=$amount ;
+                        $this->party[$user_id]->bid = $amount ;
+                        array_push($messages , array($this->party[$user_id]->fullName().' bids '.$amount.'T for this initiative.'));
+                    } else {
+                        array_push($messages , array('Not enough money' , 'error' , $user_id));
+                    }
+                } else {
+                    array_push($messages , array('Wrong party' , 'error' , $user_id));
+                }
+            }
+            // There was a bid or pass, we need to move on to the next bidder and check if the bids are over
+            $this->currentBidder = $this->whoIsAfter($user_id);
+            $HRAO = $this->HRAO();
+            // We went around the table once : bids are finished
+            if ($this->currentBidder == $HRAO['user_id']) {
+                $highestBidder = $this->forum_highestBidder() ;
+                foreach($this->party as $party) {
+                    if ($party->user_id!=$highestBidder['user_id']) {
+                        $party->bidDone=TRUE;
+                    }
+                }
+                array_push($messages , array($this->party[$highestBidder['user_id']]->fullName().' wins this initiative.'));
+            }
+        } else {
+            array_push($messages , array('Cannot bid as this initiative already belongs to another player' , 'error' , $user_id));
+        }
+        return $messages ;
     }
     
     public function forum_rollEvent($user_id) {
@@ -1281,6 +1330,7 @@ class Game
      * Lists the possible targets for persuasion by player user_id
      * format : array ('senatorID','name','party','LOY','treasury')
      * 'party' can be 'forum'
+     * Warning : 'LOY' is modified by party affiliation and enemy/friends
      * @param type $user_id
      * @return boolean|array
      */

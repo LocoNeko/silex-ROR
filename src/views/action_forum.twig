@@ -1,5 +1,15 @@
 {% block myJavascript %}
 <script type="text/javascript">
+    function updateBidAmount(minimum) {
+      value =  senator.value.substr(senator.value.indexOf("|")+1) ;
+      while ( amount.options.length ) amount.options[0] = null ;
+      option = new Option( "Don't bid" , "NONE" );
+      amount.options[amount.length] = option ;
+      for ( i = minimum; i <= value; i++ ) {
+          option = new Option( i , i );
+          amount.options[amount.length] = option;
+      }
+    }
     function updatePersuasionAmount() {
       index1 = persuader.value.indexOf("|")+1;
       index2 = persuader.value.indexOf("|",index1);
@@ -26,13 +36,8 @@
         target_treasury = parseInt(target.value.substr(index1,index2-index1-1) );
         target_party = target.value.substr(index2,index3-index2-1) ;
         target_LOY = parseInt(target.value.substr(index3) );
-        if (target_party=='forum') {
-            target_affiliation_loyalty = parseInt(0) ;
-        } else {
-            target_affiliation_loyalty = parseInt(7) ;
-        }
         oddsFor = parseInt(persuader_amount + persuader_INF + persuader_ORA) ;
-        oddsAgainst = parseInt(target_LOY + target_treasury + target_affiliation_loyalty) ;
+        oddsAgainst = parseInt(target_LOY + target_treasury) ;
         oddsTotal = oddsFor - oddsAgainst ;
         if (oddsTotal<2) {
             oddsPercentage = 0 ;
@@ -98,35 +103,28 @@ Currently bidding for initiative number {{content['game'].initiative}}<br>
     {# THIS USER IS THE CURRENT BIDDER #}
     {% if content['game'].currentBidder == user_id %}
 You are the current bidder<br>
-    
-        {# PICK BIDDING SENATOR (THIS USER HASN'T PICKED A BIDDING SENATOR YET) #}
-        {% if content['game'].party[user_id].bidWith == NULL %}
-Pick a Senator to bid for initiative :<br>
-
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bidSenator'} ) }}">
-            {# USER CAN ONLY PICK FROM SENATORs IN ROME WHO HAVE MONEY #}
-            {%for senator in content['game'].party[user_id].senators.cards %}
-                {% if senator.inRome==FALSE %}
-{{senator.name}} cannot bid as he is not in Rome.<br>
-                {% elseif senator.treasury==0 %}
-{{senator.name}} is too poor to bid.<br>
-                {% else %}
-    <input type="radio" name="senator" value="{{senator.id}}">{{senator.name}}<br>
-                {% endif %}
-            {% endfor %}
-    <button type="submit" class="btn btn-info">DONE</button>
-</form>
-
-        {# BIDDING SENATOR IS NULL - CHOOSE BIDDING AMOUNT #}
-        {% else %}
-You are currently bidding {{content['game'].party[user_id].bid}}T with {{content['game'].party[user_id].bidWith.name}} to get this initiative.<br>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bid'} ) }}">
 {% set highestBidder = content['game'].forum_highestBidder() %}
-The highest bidder is : {{highestBidder['message']}}
-Choose the amount to add to your bid. You need to bid at least {{highestBidder['bid']+1-content['game'].party[user_id].bid}} more :<br>
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bidAmount'} ) }}">
-</form>
+{% set showAmount=FALSE %}
+The highest bidder is : {{highestBidder['message']}}<br>
+You need to bid at least {{highestBidder['bid']+1}}<br>
+Pick a Senator to bid for initiative :<br>
+    {# USER CAN ONLY PICK FROM SENATORS IN ROME WHO HAVE MORE MONEY THAN CURRENT HIGHEST BID #}
+    <select id='senator' name='senator' onClick="updateBidAmount({{highestBidder['bid']+1}})" ;>
+    {%for senator in content['game'].party[user_id].senators.cards %}
+        {% if senator.inRome and senator.treasury>highestBidder['bid'] %}
+            {% set showAmount=TRUE %}
+            <option value="{{senator.senatorID}}||{{senator.treasury}}">{{senator.name}} ({{senator.treasury}} T)</option>
         {% endif %}
-
+    {% endfor %}
+            <option value="NONE" selected>Don't bid</option>
+    </select><br>
+    {% if showAmount %}
+        <select id="amount" name="amount" style="width: 50px;">
+        </select>
+    {% endif %}
+    <button type="submit" class="btn btn-info">OK</button>
+</form>
     {# WAITING FOR CURRENT BIDDER #}
     {% else %}
 Waiting for {{content['game'].party[content['game'].currentBidder].fullName()}} to bid<br>
@@ -331,6 +329,7 @@ Change party Leader :
 ---------------------------------------------------#}
 
         {% elseif content['game'].subPhase=='curia' %}
+Putting Rome in order :
         {% else %}
 ERROR - strange forum subphase.
         {% endif %}
