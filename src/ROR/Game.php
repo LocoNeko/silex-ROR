@@ -1418,6 +1418,13 @@ class Game
         $result['target']['treasury'] = $this->persuasionTarget->treasury ;
         $result['target']['LOY'] = $this->getSenatorActualLoyalty($this->persuasionTarget) ;
         $result['target']['name'] = $this->persuasionTarget->name ;
+        $result['target']['card'] = FALSE ;
+        foreach ($this->persuasionTarget->controls->cards as $card) {
+            // TO DO : There may be more Persuasion cards
+            if ($card->name=="SEDUCTION" || $card->name=="BLACKMAIL") {
+                $result['target']['card'] = $card->id ;
+            }
+        }
         $persuader = $this->party[$this->forum_whoseInitiative()]->bidWith ;
         $result['persuader']['senatorID'] = $persuader->senatorID ;
         $result['persuader']['treasury'] = $persuader->treasury ;
@@ -1452,7 +1459,7 @@ class Game
      * @param type $user_id
      * @return array
      */
-    public function forum_persuasion($user_id , $persuaderRaw , $targetRaw , $amount , $card) {
+    public function forum_persuasion($user_id , $persuaderRaw , $targetRaw , $amount , $cardID) {
         $messages = array() ;
         $amount = (int)$amount ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') ) {
@@ -1475,17 +1482,31 @@ class Game
                         if ($amount<=$persuadingSenator->treasury) {
                             // Amount looks good
                             // No persuasion-specific card was played
-                            if ($card=='NONE') {
+                            if ($cardID=='NONE') {
                                 $this->party[$user_id]->bidWith = $persuadingSenator ;
                                 $this->party[$user_id]->bidWith->treasury-=$amount ;
                                 $this->party[$user_id]->bid = $amount ;
                                 $this->persuasionTarget = $targetSenator ;
-                                $this->currentBidder = $this->whoIsAfter($user_id);
                                 array_push($messages , array ($persuadingSenator->name.' ('.$partyPersuader->fullName().') attempts to persuade '.$targetSenator->name.' ('.($partyTarget=='forum' ? 'forum' : $partyTarget->fullName()).')')) ;
-                            
+                                $this->currentBidder = $this->whoIsAfter($user_id);
                             // A persuasion-specific card was played
                             } else {
-                                // TO DO
+                                $card = $this->party[$user_id]->hand->drawCardWithValue('id',$cardID) ;
+                                if ($card!==FALSE) {
+                                    if ($card->name=='SEDUCTION' || $card->name=='BLACKMAIL') {
+                                        $this->party[$user_id]->bidWith = $persuadingSenator ;
+                                        $this->party[$user_id]->bidWith->treasury-=$amount ;
+                                        $this->party[$user_id]->bid = $amount ;
+                                        $this->persuasionTarget = $targetSenator ;
+                                        // Important : The persuasion card is played ON the target Senator, to make it very easy to check later
+                                        $targetSenator->controls->putOnTop($card);
+                                        // The player stays the current bidder, as other players cannot counter-bribe on a seduction card
+                                        $this->currentBidder = $user_id;
+                                        array_push($messages , array ($persuadingSenator->name.' ('.$partyPersuader->fullName().') attempts to persuade '.$targetSenator->name.' ('.($partyTarget=='forum' ? 'forum' : $partyTarget->fullName()).') using a '.$card->name.' card.')) ;
+                                    }
+                                } else {
+                                    return array(array('You do not have that card in hand.','error',$user_id));
+                                }
                             }
                         } else {
                             return array(array('Amount error','error',$user_id));
@@ -1507,18 +1528,21 @@ class Game
                     // This user has the initiative, this might be a bribe ($amount>0), or a roll
                     if ($this->forum_whoseInitiative()==$user_id) {
                         
-                        // This is the final roll
-                        if ($amount==0) {
-                            $currentPersuasion = $this->forum_persuasionListCurrent();
+                        // This is the final roll, either because there was no more bribe, or because a persuasion card was played
+                        $currentPersuasion = $this->forum_persuasionListCurrent();
+                        if ( ($amount==0) || ($currentPersuasion['target']['card']!==FALSE) ) {
                             $roll = $this->rollDice(2, 1);
                             // Failure on 10+
                             if ($roll['total']>=10) {
+                                array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
                                 array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls an unmodified '.$roll['total'].', which is greater than 9 and an automatic failure.'));
                             // Failure if roll > target number    
                             } elseif ($roll['total']>$currentPersuasion['odds']['total']) {
+                                array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
                                 array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
                             // Success
                             } else {
+                                array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'SUCCESS') );
                                 array_push ($messages , array('SUCCESS - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is lower than the target number of '.$currentPersuasion['odds']['total'].'.'));
                                 if ($currentPersuasion['target']['party'] == 'forum') {
                                     $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
@@ -1575,6 +1599,40 @@ class Game
         }
         return $messages ;
     }
+    
+    /**
+     * Applies the effects and removes the persuasion card with $id from senator with $senatorID after an $outcome of 'FAILURE' or 'SUCCESS'
+     * @param type $senatorID
+     * @param type $id
+     * @param type $outcome
+     * @return type
+     */
+    public function forum_removePersuasionCard($user_id , $senatorID , $id , $outcome) {
+        $senator = $this->getSenatorWithID($senatorID);
+        if ($senator!==FALSE) {
+            $card = $senator->controls->drawCardWithValue($id) ;
+            if ($card!==FALSE) {
+                $completeMessage='The '.$card->name.' card is discarded.';
+                if ($card->name=="BLACKMAIL") {
+                    if ($outcome=='FAILURE') {
+                        // TO DO : CONFIRM BLACKMAIL CARD EFFECTS
+                        $rollINF = $this->rollDice(2, -1) ;
+                        $rollPOP = $this->rollDice(2, -1) ;
+                        $senator->changeINF(-$rollINF);
+                        $senator->changePOP(-$rollPOP);
+                        $completeMessage.=' The failure of the persuasion causes a loss of '.$rollINF.' INF and '.$rollPOP.' POP to '.$senator->name;
+                    }
+                }
+                $message = array($completeMessage);
+            } else {
+                $message = array('Cannot find this Card' , 'error' , $user_id );
+            }
+        } else {
+            $message = array('Cannot find this Senator' , 'error' , $user_id );
+        }
+        return $message ;
+    }
+    
     
     /**
      * Returns a list of senatorID, name , knights, treasury and inRome by senator

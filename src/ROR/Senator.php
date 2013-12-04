@@ -99,9 +99,15 @@ class Senator extends Card
         }
     }
     
-    public function changePop ($value) {
+    public function changePOP ($value) {
         $this->POP+=$value ;
         if ( $this->POP < -9 ) { $this->POP = -9 ; }
         if ( $this->POP > 9  ) { $this->POP = 9  ; }
     }
+
+    public function changeINF ($value) {
+        $this->INF+=$value ;
+        if ( $this->INF < 0 ) { $this->INF = 0 ; }
+    }
+    
 }
