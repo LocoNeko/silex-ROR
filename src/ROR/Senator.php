@@ -5,7 +5,8 @@ class Senator extends Card
 {
     /**
      *
-     * @var corrupt : This is only used for Provincial spoils corruption
+     * @var bool corrupt : This is only used for Provincial spoils corruption
+     * @var bool major : Whether or not this Senator held an office before the current Senate phase
      */
     public static $VALID_OFFICES = array('Dictator', 'Rome Consul' , 'Field Consul' , 'Censor' , 'Master of Horse' , 'Pontifex Maximus');
 
@@ -72,7 +73,7 @@ class Senator extends Card
             $this->corrupt = FALSE ;
             $this->controls = new Deck ; // cards the senator controls.
             $this->controls->name = $this->name.'\'s cards';
-            $this->major = 0 ;
+            $this->major = FALSE ;
             $this->freeTribune = 0 ;
             $this->rebel = FALSE ;
             $this->captive = FALSE ;
@@ -87,7 +88,7 @@ class Senator extends Card
             $this->knights = 0 ;
             $this->treasury = 0 ;
             $this->POP = 0 ;
-            $this->office = 0 ;
+            $this->office = NULL ;
             $this->priorConsul = false ;		
     }
     

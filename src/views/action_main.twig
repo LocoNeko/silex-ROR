@@ -32,6 +32,10 @@ Phase : Revenue<br>
 Phase : Forum<br>
     {% embed 'action_forum.twig' %}
     {% endembed %}
+{% elseif content['game'].phase == 'Population' %}
+Phase : Population<br>
+    {% embed 'action_population.twig' %}
+    {% endembed %}
 {% endif %}
 <hr>
 {# DISPLAY PLAYER'S PARTY #}

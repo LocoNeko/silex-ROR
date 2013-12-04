@@ -1296,6 +1296,7 @@ class Game
                         array_push($messages , array('You draw '.$card->name.' and put it in your hand.','message',$user_id));
                     } else {
                         // Card goes to forum
+                        // TO DO : Wars and Leaders don't go to forum
                         $this->forum->putOnTop($card) ;
                         array_push($messages , array($this->party[$user_id]->fullName().' draws '.$card->name.' that goes to the forum.'));
                     }
@@ -1616,8 +1617,8 @@ class Game
                 if ($card->name=="BLACKMAIL") {
                     if ($outcome=='FAILURE') {
                         // TO DO : CONFIRM BLACKMAIL CARD EFFECTS
-                        $rollINF = $this->rollDice(2, -1) ;
-                        $rollPOP = $this->rollDice(2, -1) ;
+                        $rollINF = min(0,$this->rollDice(2, -1)) ;
+                        $rollPOP = min(0,$this->rollDice(2, -1)) ;
                         $senator->changeINF(-$rollINF);
                         $senator->changePOP(-$rollPOP);
                         $completeMessage.=' The failure of the persuasion causes a loss of '.$rollINF.' INF and '.$rollPOP.' POP to '.$senator->name;
@@ -1826,14 +1827,131 @@ class Game
                     $this->forum_initInitiativeBids();
                     array_push($messages , array('Initiative #'.$this->initiative , 'alert'));
                 } else {
+                    $this->initiative=6;
                     $this->subPhase = 'curia';
                     array_push($messages , array('All initiatives have been played, putting Rome in order.'));
+                    $curia_messages = $this->forum_curia();
+                    foreach ($curia_messages as $message) {
+                        array_push($messages , $message) ;
+                    }
+                    array_push($messages , array('POPULATION PHASE','alert'));
+                    $this->phase = 'Population';
+                    $this->resetPhaseDone();
                 }
             }
         }
         return $messages ;
     }
     
+    /**
+     * This function is called from within forum_changeLeader on the last initiative
+     * It handles :
+     * - Major corruption markers
+     * - Ruining Concessions because of some conflicts
+     * - Reviving Concessions and Senators
+     * - Discarding Enemy leaders
+     * @return array
+     */
+    public function forum_curia() {
+        $messages = array();
+        // Major corruption markers
+        foreach($this->party as $party) {
+            foreach ($party->senators->cards as $senator) {
+                if ($senator->office !=NULL) {
+                    array_push($messages , array($senator->name.' ('.$party->fullName().') held a major office and gets a major corruption marker.'));
+                    $senator->major = TRUE ;
+                } else {
+                    $senator->major = FALSE ;
+                }
+            }
+        }
+        // TO DO : Ruin concessions based on Punic War or slave revolt
+        // Curia death/revival
+        if (count($this->curia->cards)>0) {
+            array_push($messages , array('Rolling for cards in the curia'));
+            $cardsToMoveToForum = array() ;
+            $cardsToDiscard = array() ;
+            foreach ($this->curia->cards as $card) {
+                if ($card->type=='Concession' || $card->type=='Family') {
+                    $roll = $this->rollOneDie(-1) ;
+                    if ($roll>=5) {
+                        array_push($cardsToMoveToForum , $card->id);
+                        array_push($messages , array('A '.$roll.' is rolled and '.$card->name.' comes back to the forum.'));
+                    } else {
+                        array_push($messages , array('A '.$roll.' is rolled and '.$card->name.' stays in the curia.'));
+                    }
+                } elseif ($card->type=='Leader') {
+                    $roll = $this->rollOneDie(-1) ;
+                    if ($roll>=5) {
+                        array_push($cardsToDiscard , $card->id);
+                        array_push($messages , array('A '.$roll.' is rolled and '.$card->name.' is discarded.'));
+                    } else {
+                        array_push($messages , array('A '.$roll.' is rolled and '.$card->name.' stays in the curia.'));
+                    }
+                }
+            }
+            // Doing this later in order not to disturb the main loop above (unsure how foreach would behave with an potentially shrinking array...)
+            foreach ($cardsToMoveToForum as $cardID) {
+                $card = $this->curia->drawCardWithValue('id' , $cardID) ;
+                if ($card!==FALSE) {
+                    $this->forum->putOnTop($card);
+                } else {
+                    array_push($messages , array('Error retrieving card from the curia','error')) ;
+                }
+            }
+            foreach ($cardsToDiscard as $cardID) {
+                $card = $this->curia->drawCardWithValue('id' , $cardID) ;
+                if ($card!==FALSE) {
+                    $this->discard->putOnTop($card);
+                } else {
+                    array_push($messages , array('Error retrieving card from the curia','error')) ;
+                }
+            }
+        }
+        return $messages ;
+    }
+    
+    
+    /************************************************************
+     * Functions for POPULATION phase
+     ************************************************************/
+
+    /**
+     * This function returns an array 'total' => unrest change this turn , 'message' => description of the reason for the change
+     * @return array
+     */
+    public function population_unrest() {
+        $result = array() ;
+        $result['total']=0;
+        $result['message']='None.';
+        foreach ($this->unprosecutedWars->cards as $conflict) {
+            $result['total']++;
+            if ($result['total']==1) {
+                $result['message']='Unrest increases because of unprosecuted wars : ';
+            }
+            $result['message'].=$conflict.name.', ';
+        }
+        if ($result['total']>0) {
+            $result['message']=substr($result['message'],0,-2);
+            $result['message'].=' : + '.$result['total'].' unrest.';
+        }
+        $droughtLevel = $this->getEventLevel('Drought') ;
+        if ($droughtLevel > 0 ) {
+            if ($result['total']>0) {
+                $result['message'].= ' And';
+            }
+            $result['message'].=' '.$droughtLevel.' droughts cause + '.$droughtLevel.' unrest.';
+        }
+        return $result;
+    }
+
+    public function population_speech($user_id) {
+        $messages = array() ;
+        if ( ($this->phase=='Population') && ($this->whoseTurn()==$user_id) ) {
+            
+        }
+        return $messages ;
+    }
     
     /************************************************************
      * Functions for REVOLUTION phase
