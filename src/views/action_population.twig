@@ -1,0 +1,8 @@
+Change to the unrest this turn :
+{% set unrest = content['game'].population_unrest %}
+{{unrest['message']}}<br>
+{% if content['game'].whoseTurn()==user_id %}
+You are the HRAO and must make a speech
+{% else %}
+Waiting for the HRAO to make a speech
+{% endif %}

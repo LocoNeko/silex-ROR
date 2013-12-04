@@ -1,21 +1,22 @@
-* DELETE GAME
-* i18n
-* Chat
-
-IDEA :
-Maybe drawCardWithValue could be getCardWithValue, and only draw it when necessary (with a boolean flag ?)
-* iFrame page : add "overflow-x:hidden;"
-
-CURRENT :
-- Forum phase. See /docs for details on bidding
-- Files : action_forum.twig
-
-BUG :
+TO DO :
+- DELETE GAME
+- i18n
+- Chat
 - Prevent player from entering the same party name in ViewGame
 - Oh noes ! All the cards' numbers are wrong, they start from 0 but should start from 1 !
 
-TO DO : remove events that expire at the beginning of the forum phase
-TO DO : Change Early/Middle/Late Republic decks to drawDeck or ForumDeck (but the latter is too easy to mistake with Forum) Maybe simply mainDeck ??
+IDEA :
+* iFrame page : add "overflow-x:hidden;"
+
+TO DO :
+- Change Early Republic decks to drawDeck or ForumDeck (isn't the latter too easy to mistake with Forum ?) Maybe simply mainDeck ??
+
+***********
+*  Setup  *
+***********
+
+TO DO :
+- Check what happens of statemanPlayable['message'], it seems unused
 
 ***********
 * Revenue *
@@ -33,14 +34,13 @@ PROPER Revenue Sequence :
 - State revenue (includes Rome''s Provincial revenues) SUBPHASE : Done after redistribution, no need to create a new one
 ----------------------
 - Contributions SUBPHASE : Contributions ("S" at the end !)
-TO DO : Modify template for Contributions
-TO DO : Check where to branch revenu finished
 ----------------------
 - Debits (Maintenance, active conflicts, land bills)
 - Returning governors
 /---------------------------/
 
-TO ADD :
+TO DO :
+- Remove events that expire at the beginning of the forum phase
 - Rebel legions maintenance.
 - Possibility to earn more from some concessions in case of a drought (Sicilian and Egyptian grain)
 
@@ -51,5 +51,10 @@ Modify : Provinces roll revenues :
 *  Forum  *
 ***********
 
-TO DO : finish events (HUGE)
-TO DO : persuasion cards
+- Forum phase. See /docs for details on bidding
+TO DO :
+- Finish events
+- Wars and Leaders don't go to forum
+- Persuasion : There may be more Persuasion cards than Seduction and Blackmail
+- Confirm blackmail card effects
+- Ruin concessions based on Punic War or slave revolt
