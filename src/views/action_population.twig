@@ -2,7 +2,10 @@ Change to the unrest this turn :
 {% set unrest = content['game'].population_unrest %}
 {{unrest['message']}}<br>
 {% if content['game'].whoseTurn()==user_id %}
-You are the HRAO and must make a speech
+You are the HRAO and must make a speech<br>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'population_speech'} ) }}">
+    <button type="submit" class="btn btn-danger">CARTAGO DELENDA EST</button>
+</form>
 {% else %}
-Waiting for the HRAO to make a speech
+Waiting for the HRAO to make a speech.
 {% endif %}
