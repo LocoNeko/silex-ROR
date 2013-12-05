@@ -2,10 +2,8 @@
 namespace ROR;
 
 /** 
- * Game Variables :
- * --- GLOBAL ---
- * $id (int) : game id
- * $name (string) : game name
+ * int $id : game id
+ * string $name : game name
  * $turn (int)
  * $phase (string) : the current turn phase, can have any value defined in $VALID_PHASES
  * $subPhase (string) : the current sub phase of the current phase
@@ -38,7 +36,6 @@ namespace ROR;
  * $fleet array of fleet objects
  * --- SENATE ---
  */
-
 class Game 
 {
     /*
@@ -56,7 +53,9 @@ class Game
     public $currentBidder , $persuasionTarget ;
     public $party ;
     public $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
-    public $landBill ,$events , $eventPool , $eventTable , $populationTable , $legion , $fleet ;
+    public $landBill ;
+    public $events , $eventPool , $eventTable ;
+    public $populationTable , $legion , $fleet ;
     
     public function get_id() {
             return $this->id;
@@ -67,12 +66,12 @@ class Game
      ************************************************************/
 
     /**
-     * create
+     * Creates the game
      * 
-     * @param ($name) Game name
-     * @param ($scenario) Scenario name
-     * @param ($partyNames) array of 'user_id'=>'party name' the order is the standard order of play
-     * @param ($userNames) array of 'user_id'=>'user name'
+     * @param string $name Game name
+     * @param string $scenario Scenario name
+     * @param array $partyNames array of 'user_id'=>'party name' the order is the standard order of play
+     * @param array $userNames array of 'user_id'=>'user name'
      * @return mixed FALSE (failure) OR $messages array (success)
      */
     public function create($name , $scenario , $partyNames , $userNames) {
@@ -225,26 +224,26 @@ class Game
      * event number for Early Republic ; Middle Republic ; Late Republic 
      */
     public function createEventPool() {
-        $filePointer = fopen(dirname(__FILE__).'/../../data/events.csv', 'r');
-        if (!$filePointer) {
+        $eventsFilePointer = fopen(dirname(__FILE__).'/../../data/events.csv', 'r');
+        if (!$eventsFilePointer) {
             throw new Exception("Could not open the events file");
         }
-        while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
+        while (($data = fgetcsv($eventsFilePointer, 0, ";")) !== FALSE) {
             $this->eventPool[$data[0]] = array($data[1] , $data[2] , $data[3]);
         }
-        fclose($filePointer);
-        $filePointer = fopen(dirname(__FILE__).'/../../data/eventTable.csv', 'r');
-        if (!$filePointer) {
+        fclose($eventsFilePointer);
+        $eventTableFilePointer = fopen(dirname(__FILE__).'/../../data/eventTable.csv', 'r');
+        if (!$eventTableFilePointer) {
             throw new Exception("Could not open the event table file");
         }
         $i=3;
-        while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
+        while (($data = fgetcsv($eventTableFilePointer, 0, ";")) !== FALSE) {
             $this->eventTable[$i]['EarlyRepublic'] = $data[0] ;
             $this->eventTable[$i]['MiddleRepublic'] = $data[1] ;
             $this->eventTable[$i]['LateRepublic'] = $data[2] ;
             $i++;
         }
-        fclose($filePointer);
+        fclose($eventTableFilePointer);
     }
     
     /**
@@ -568,7 +567,7 @@ class Game
             $result['total']+=$result[$i];
         }
         // Add evil omens effects to the roll
-        $result['total'] += $evilOmensEffect * $this->getEventLevel('Evil Omens');
+        $result['total'] += $evilOmensEffect * $this->getEventLevel('name' , 'Evil Omens');
         return $result ;
     }
     
@@ -603,15 +602,22 @@ class Game
     
     /**
      * Returns the current level of the event if it's in play or 0
-     * @param type $eventName
-     * @return int
+     * @param string $type
+     * can be 'name' or 'number'
+     * @param mixed $search
+     * The name of the event <b>OR</b> its number, based on the value of $type
+     * @return mixed The event's level or <b>0</b> if not in play, or FALSE if $type was wrong
      */
-    public function getEventLevel ($eventName) {
-        if (array_key_exists($eventName, $this->events)) {
-            return $this->events[$eventName] ;
-        } else {
+    public function getEventLevel ($type , $search) {
+        if ($type=='name' || $type=='number') {
+            foreach ($this->events as $event) {
+                if ($event[$type] == $search) {
+                    return $event['level'];
+                }
+            }
             return 0 ;
         }
+        return FALSE ;
     }
        
     /************************************************************
@@ -937,7 +943,7 @@ class Game
                 if (is_null($request[$province->id])) {
                     return array('Undefined province.','error');
                 }
-                $revenue = $province->rollRevenues(-$this->getEventLevel('Evil Omens'));
+                $revenue = $province->rollRevenues(-$this->getEventLevel('name' , 'Evil Omens'));
                 $message = $province->name.' : ';
                 // Spoils
                 if ($request[$province->id] == 'YES') {
@@ -1073,7 +1079,7 @@ class Game
                     foreach ($party->senators->cards as $senator) {
                         foreach ($senator->controls->cards as $province) {
                             if ($province->type=='Province') {
-                                $revenue = $province->rollRevenues(-$this->getEventLevel('Evil Omens'));
+                                $revenue = $province->rollRevenues(-$this->getEventLevel('name' , 'Evil Omens'));
                                 array_push($messages , array($province->name.' : Rome\'s revenue is '.$revenue['rome'].'T . ') );
                                 $this->treasury+=$revenue['rome'];
                             }
@@ -1299,6 +1305,13 @@ class Game
         return $messages ;
     }
     
+    /**
+     * Roll for events, and either :
+     * - If the total was 7 : Draw the event card and handle immediate event effects, amd/or event level increase if applicable
+     * - Otherwise, draw a card and put Faction cards in the user's hand, or other cards where they belong (forum / wars)
+     * @param type $user_id
+     * @return array
+     */
     public function forum_rollEvent($user_id) {
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
@@ -1308,15 +1321,9 @@ class Game
                 // Event
                 $eventRoll = $this->rollDice(3,0) ;
                 array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, then rolls a '.$eventRoll['total'].' on the events table.'));
-                // $newEvent is an array (0 => name , 1 => increased name , 2=> max level)
-                $newEvent = $this->eventPool[$this->eventTable[$eventRoll['total']][$this->scenario]];
-                if (in_array($newEvent[0] , $this->events)) {
-                    // The event is already in play, check its level and check if level can be increased
-                } else {
-                    // The event was not in play
-                    $this->events[$newEvent[0]]=1;
-                    array_push($messages, array($newEvent[0].' is now in play.'));
-                }
+                $eventNumber = $this->eventTable[$eventRoll['total']][$this->scenario] ;
+                $message = $this->forum_putEventInPlay($eventNumber) ;
+                array_push($messages, array($message));
             } else {
                 // Card
                 array_push($messages , array($this->party[$user_id]->fullName().' rolls a '.$roll['total'].' and draws a card.'));
@@ -1344,6 +1351,21 @@ class Game
             $this->currentBidder = $user_id;
         }
         return $messages ;
+    }
+    
+    /**
+     * Puts an event in play
+     * @param type $number The number of the event to play
+     * @return string A message describing if the event was new, or a level increase, or already at max level
+     */
+    public function forum_putEventInPlay($number) {
+        //TO DO : change this function to accept both name or number
+        // events is an array => (array => ('number' , 'name' , 'increased_name' , 'level'))
+        $message = '' ;
+        $newEvent = $this->eventPool[$number];
+        array_push($this->events , array('number' => $number , 'name' => $newEvent[1] , 'increased_name' => $newEvent[2] , 'level' => 1));
+        $message = $newEvent[1].' is now in play.';
+        return $message ;
     }
     
     /**
@@ -1393,6 +1415,7 @@ class Game
      * List the possible persuading senators for player user_id
      * format : array ('senatorID','name','ORA','INF','treasury')
      * @param type $user_id
+     * Current player user_id
      * @return boolean|array
      */
     public function forum_listPersuaders($user_id) {
@@ -1968,7 +1991,7 @@ class Game
             $result['message']=substr($result['message'],0,-2);
             $result['message'].=' : + '.$result['total'].' unrest.';
         }
-        $droughtLevel = $this->getEventLevel('Drought') ;
+        $droughtLevel = $this->getEventLevel('name' , 'Drought') ;
         if ($droughtLevel > 0 ) {
             if ($result['total']>0) {
                 $result['message'].= ' And ';
@@ -1999,10 +2022,22 @@ class Game
             if ($total!=-1) {
                 $effects = $this->populationTable[$total];
                 foreach ($effects as $effect) {
-                    // TO DO
+                    switch($effect) {
+                        case 'MS' :
+                            // TO DO : Modify the function to accept event's name
+                            $this->forum_putEventInPlay(170);
+                            break ;
+                        case 'NR' :
+                            break ;
+                        case 'Mob' :
+                            break ;
+                        case '0' :
+                            break ;
+                        default :
+                    }
                 }
             } else {
-                array_push($messages , array('People revolt' , 'error'));
+                array_push($messages , array('People revolt - Game over.' , 'error'));
             }
         }
         return $messages ;
