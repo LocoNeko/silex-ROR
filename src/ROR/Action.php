@@ -100,6 +100,9 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         case 'forum_changeLeader' :
             log ($app , $game_id , $user_id , $game->forum_changeLeader ($user_id , $request->request->get('senatorID') ) );
             break ;
+        case 'population_speech' :
+            log ($app , $game_id , $user_id , $game->population_speech ($user_id) );
+            break ;
     }
     
     /* 

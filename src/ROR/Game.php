@@ -31,7 +31,7 @@ namespace ROR;
  * $unprosecutedWars
  * $forum
  * $curia
- * --- LAND BILLS, EVENTS, LEGIONS & FLEETS ---
+ * --- LAND BILLS, EVENTS, POPULATION TABLE , LEGIONS & FLEETS ---
  * $landBill array (int)=>(int) : landBill[X]=Y means there is Y land bills of type X
  * $events array (string => int) : array of events in the form 'Name of event' => level, 0 means event is not in play
  * $legion array of legion objects
@@ -56,7 +56,7 @@ class Game
     public $currentBidder , $persuasionTarget ;
     public $party ;
     public $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
-    public $landBill ,$events , $eventPool , $eventTable , $legion , $fleet ;
+    public $landBill ,$events , $eventPool , $eventTable , $populationTable , $legion , $fleet ;
     
     public function get_id() {
             return $this->id;
@@ -111,14 +111,37 @@ class Game
         $this->landBill[1] = 0 ;
         $this->landBill[2] = 0 ;
         $this->landBill[3] = 0 ;
-        // Create eventPool
+        /*
+         *  Create eventPool
+         */
         $this->events = array() ;
         $this->eventPool = array() ;
         $this->eventTable = array() ;
         $this->createEventPool();
+        /*
+         *  Create Tables : Population
+         * TO DO : popular appeal, etc
+         */
+        $this->populationTable = array();
+        $this->createPopulationTable();
+        /*
+         *  Legions and Fleets
+         */
         $this->legion = array () ;
         $this->fleet = array () ;
-        // Creating parties
+        for ($i=1 ; $i<=25 ; $i++) {
+            $this->legion[$i] = new Legion () ;
+            $this->legion[$i]->create($i);
+            $this->fleet[$i] = new Fleet () ;
+            $this->fleet[$i]->create($i) ;
+	}
+        for ($i=1 ; $i<=4 ; $i++) {
+            $this->legion[$i]->location = 'Rome';
+        }
+        array_push($messages , array('Rome starts with 4 Legions') ) ;
+        /*
+         *  Creating parties
+         */
         $this->firstParty = null ;
         $this->party = array () ;
         foreach ($partyNames as $key=>$value) {
@@ -133,16 +156,6 @@ class Game
         array_push($messages , array('SETUP PHASE' , 'alert') ) ;
         array_push($messages , array('The First Punic war is now an inactive war') ) ;
         $this->discard->putOnTop($this->earlyRepublic->drawCardWithValue('name', 'ERA ENDS')) ;
-        for ($i=1 ; $i<=25 ; $i++) {
-            $this->legion[$i] = new Legion () ;
-            $this->legion[$i]->create($i);
-            $this->fleet[$i] = new Fleet () ;
-            $this->fleet[$i]->create($i) ;
-	}
-        for ($i=1 ; $i<=4 ; $i++) {
-            $this->legion[$i]->location = 'Rome';
-        }
-        array_push($messages , array('Rome starts with 4 Legions') ) ;
         /* 
          * Give initial senators to parties
          * - Create a temporary deck with all 20 families (not statemen)
@@ -230,6 +243,26 @@ class Game
             $this->eventTable[$i]['MiddleRepublic'] = $data[1] ;
             $this->eventTable[$i]['LateRepublic'] = $data[2] ;
             $i++;
+        }
+        fclose($filePointer);
+    }
+    
+    /**
+     * Reads the populationTable csv file and creates an array Unrest level => array of effects
+     * Effects are : +# increase unrest by # , -# decrease unrest by # , MS manpower shortage , NR no recruitment , Mob
+     * @throws Exception
+     */
+    public function createPopulationTable() {
+        $filePointer = fopen(dirname(__FILE__).'/../../data/populationTable.csv', 'r');
+        if (!$filePointer) {
+            throw new Exception("Could not open the Population table file");
+        }
+        while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
+            $this->populationTable[$data[0]] = array();
+            $effects = explode(',', $data[1]);
+            foreach($effects as $effect) {
+                array_push($this->populationTable[$data[0]] , $effect);
+            }
         }
         fclose($filePointer);
     }
@@ -1938,17 +1971,39 @@ class Game
         $droughtLevel = $this->getEventLevel('Drought') ;
         if ($droughtLevel > 0 ) {
             if ($result['total']>0) {
-                $result['message'].= ' And';
+                $result['message'].= ' And ';
             }
-            $result['message'].=' '.$droughtLevel.' droughts cause + '.$droughtLevel.' unrest.';
+            $result['message'].=$droughtLevel.' droughts cause + '.$droughtLevel.' unrest.';
         }
         return $result;
     }
 
+    /**
+     * - The unrest is increased by the value calculated in population_unrest
+     * - The HRAO makes the speech and effects are applied (including possible game over)
+     * @param type $user_id
+     * @return array
+     */
     public function population_speech($user_id) {
         $messages = array() ;
         if ( ($this->phase=='Population') && ($this->whoseTurn()==$user_id) ) {
-            
+            $thisTurnUnrest = $this->population_unrest() ;
+            array_push($messages , array($thisTurnUnrest['message']));
+            $this->unrest+=$thisTurnUnrest['total'];
+            //TO DO : confirm evil omen effects on speech
+            $roll=$this->rollDice(3, 1) ;
+            $HRAO = $this->HRAO();
+            // $total is minimum -1 and maximum 18
+            $total = min (-1 , max (18 , $roll + $this->unrest - $HRAO->POP )) ;
+            array_push($messages , $HRAO->name.' rolls '.$roll.' + Y ('.$this->unrest.') - '.$HRAO->POP.' (HRAO\'s Popularity) for a total of '.$total.'.');
+            if ($total!=-1) {
+                $effects = $this->populationTable[$total];
+                foreach ($effects as $effect) {
+                    // TO DO
+                }
+            } else {
+                array_push($messages , array('People revolt' , 'error'));
+            }
         }
         return $messages ;
     }

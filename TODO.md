@@ -11,16 +11,16 @@ IDEA :
 TO DO :
 - Change Early Republic decks to drawDeck or ForumDeck (isn't the latter too easy to mistake with Forum ?) Maybe simply mainDeck ??
 
-***********
-*  Setup  *
-***********
+*************
+*   Setup   *
+*************
 
 TO DO :
 - Check what happens of statemanPlayable['message'], it seems unused
 
-***********
-* Revenue *
-***********
+*************
+*  Revenue  *
+*************
 
 PROPER Revenue Sequence :
 ---------------------- revenue_Base
@@ -47,9 +47,9 @@ TO DO :
 Modify : Provinces roll revenues :
 - Maybe separate senator and Rome revenue function as they are separated.
 
-***********
-*  Forum  *
-***********
+*************
+*   Forum   *
+*************
 
 - Forum phase. See /docs for details on bidding
 TO DO :
@@ -58,3 +58,11 @@ TO DO :
 - Persuasion : There may be more Persuasion cards than Seduction and Blackmail
 - Confirm blackmail card effects
 - Ruin concessions based on Punic War or slave revolt
+
+*************
+*Population *
+*************
+
+TO DO :
+- Confirm evil omen effects on speech
+- Effects of the speech roll
