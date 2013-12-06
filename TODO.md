@@ -18,9 +18,9 @@ SocketIO :
 Send the refresh to all clients BUT the originating one. Always limit scope to this game id.
 This is done with :
 
+
 // sending to all clients except sender
 socket.broadcast.emit('message', "this is a test");
-
 // sending to all clients in 'game' room(channel) except sender
 socket.broadcast.to('game').emit('message', 'nice game');
 
