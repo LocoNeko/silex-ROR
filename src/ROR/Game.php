@@ -18,6 +18,7 @@ namespace ROR;
  * --- THE PARTIES ---
  * $party array (Party) /!\ key : user_id ; value : party_name
  * --- THE DECKS ---
+ * $drawDeck
  * $earlyRepublic
  * $middleRepublic
  * $lateRepublic
@@ -52,7 +53,7 @@ class Game
     public $scenario , $unrest , $treasury , $nbPlayers ;
     public $currentBidder , $persuasionTarget ;
     public $party ;
-    public $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
+    public $drawDeck , $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
     public $landBill ;
     public $events , $eventPool , $eventTable ;
     public $populationTable , $legion , $fleet ;
@@ -93,6 +94,7 @@ class Game
         }
         $this->currentBidder = NULL;
         $this->persuasionTarget = NULL;
+        $this->drawDeck = new Deck ;
         $this->earlyRepublic = new Deck ;
         $this->earlyRepublic->createFromFile ($scenario) ;
         $this->middleRepublic = new Deck ;
@@ -197,6 +199,12 @@ class Game
                 }
             }
             array_push($messages , array($party->fullName().' receives 3 cards.')) ;
+        }
+        /*
+         * Put all remaining cards of the Early Republic in the draw deck
+         */
+        while (array_count_values($this->earlyRepublic->cards)>0) {
+            $this->drawDeck->putOnTop($this->earlyRepublic->drawTopCard()) ;
         }
         /*
          * Give temporary Rome Consul office to random Senator in Rome
@@ -541,7 +549,7 @@ class Game
      * Whether or not the Land Commissioner concession is playable (a Land bill is in play)
      * @return bool
      */
-    public function landCommissionerPlaybale () {
+    public function landCommissionerPlayable () {
         return ( (array_sum($this->landBill) > 0) ? TRUE : FALSE ) ;
     }
     
@@ -670,7 +678,7 @@ class Game
                 array_push($result, array('action' => 'Stateman' , 'card_id' => $card->id , 'message' => $card->name)) ;
             } elseif ($card->type == 'Concession') {
                 // The Land Commissioner is not playable without Land bills in play
-                if ($card->name!='LAND COMMISSIONER' || $this->landCommissionerPlaybale()) {
+                if ($card->name!='LAND COMMISSIONER' || $this->landCommissionerPlayable()) {
                     array_push($result, array('action' => 'Concession' , 'card_id' => $card->id , 'message' => $card->name)) ;                
                 }
             }
@@ -899,7 +907,7 @@ class Game
      * @param type $user_id
      * @return array ['total'] , ['senators'] , ['leader'] , ['knights'] , array ['concessions'] , array ['province_name'] , array ['province_senatorID']
      */
-    public function revenue_base($user_id) {
+    public function revenue_Base($user_id) {
         $result = array() ;
         $result['total'] = 0 ;
         $result['senators'] = 0 ;
@@ -921,7 +929,7 @@ class Game
                 if ( $card->type == 'Concession' ) {
                     $card->corrupt = TRUE ;
                     $result['total']+=$card->income ;
-                    array_push($result['concessions'] , array( 'name' => $card->name , 'income' => $card->income , 'senator_name' => $senator->name ) );
+                    array_push($result['concessions'] , array( 'id' => $card->id , 'name' => $card->name , 'income' => $card->income , 'special' => $card->special , 'senator_name' => $senator->name , 'senatorID' => $senator->senatorID ) );
                 } elseif ( $card->type == 'Province' ) {
                     array_push($result['provinces'] , array('province' => $card , 'senator' => $senator ) );
                 }
@@ -934,9 +942,36 @@ class Game
     public function revenue_ProvincialSpoils ($user_id , $request ) {
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Base') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $messages = array() ;
-            $base = $this->revenue_base($user_id);
-            $this->party[$user_id]->treasury+=$base['total'] ;
+            $base = $this->revenue_Base($user_id);
+            /*
+             * Handle increased revenue & POP loss from 'drought' concessions (the two 'grains' concessions)
+             * This comes in the request with a YES or NO flag on $request[id] where id is the concession card's id
+             */
+            $droughtLevel = $this->getEventLevel('name', 'drought') ;
+            $earnedFromDrought = 0 ;
+            $droughtSpecificMessage = array() ;
+            if ( $droughtLevel > 0 ) {
+                foreach ($base['concessions'] as $concession) {
+                    if ($concession['special']=='drought') {
+                        if ($request[$concession['id']] == 'YES') {
+                            $earnedFromDrought+=$droughtLevel*$concession['income'] ;
+                            $senator = $this->getSenatorWithID($concession['senatorID']) ;
+                            $senator->changePOP(-1-$droughtLevel) ;
+                            array_push ( $droughtSpecificMessage , 'This includes an extra '.$droughtLevel*$concession['income'].'T from '.$concession['name'].', earned by '.$senator->name.', causing him a loss a '.(-1-$droughtLevel).' POP.' ) ;
+                        } else {
+                            array_push ( $droughtSpecificMessage , $senator->name.' decided not to earn more from '.$concession['name'].' during the drought.' ) ;
+                        }
+                    }
+                }
+            }
+            $this->party[$user_id]->treasury+=$base['total'] + $earnedFromDrought ;
             array_push ($messages , array($this->party[$user_id]->fullName().' gains '.$base['total'].' T : '.($base['leader']!=NULL ? 3 : 0).'T from leader, '.$base['senators'].'T from senators, '.$base['knights'].'T from knights and '.($base['total']-($base['leader']!=NULL ? 3 : 0)-$base['senators']-$base['knights']).'T from Concessions.')) ;
+            foreach ($droughtSpecificMessage as $droughtMessage) {
+                array_push ($messages , $droughtMessage);
+            }
+            /*
+             *  Provincial spoils
+             */
             foreach ($base['provinces'] as $data) {
                 $province = $data['province'];
                 $senator = $data['senator'];
@@ -981,7 +1016,7 @@ class Game
                 }
                 array_push ($messages , array($message)) ;
             }
-            // Phase done for this player. If all players are done, 
+            // Phase done for this player. If all players are done, move to redistribution subPhase
             $this->party[$user_id]->phase_done = TRUE ;
             if ($this->whoseTurn() === FALSE ) {
                 $this->resetPhaseDone() ;
@@ -1327,7 +1362,7 @@ class Game
             } else {
                 // Card
                 array_push($messages , array($this->party[$user_id]->fullName().' rolls a '.$roll['total'].' and draws a card.'));
-                $card = $this->earlyRepublic->drawTopCard() ;
+                $card = $this->drawDeck->drawTopCard() ;
                 if ($card !== NULL) {
                     if ($card->type == 'Stateman' || $card->type == 'Faction' || $card->type == 'Concession') {
                         // Keep the card
@@ -2156,7 +2191,7 @@ class Game
                $this->party[$user_id]->hand->putOnTop($concession);
                array_push($messages , array($concession->name.'" is not a concession' , 'error'));
                return $messages ;
-            } elseif($concession->name=='LAND COMMISSIONER' && !$this->landCommissionerPlaybale()) {
+            } elseif($concession->special=='land bill' && !$this->landCommissionerPlaybale()) {
                $this->party[$user_id]->senators->putOnTop($senator);
                $this->party[$user_id]->hand->putOnTop($concession);
                array_push($messages , array('The Land commissioner can only be played while Land bills are enacted.','error'));
