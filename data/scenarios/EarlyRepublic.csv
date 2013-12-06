@@ -55,13 +55,13 @@
 48;"ASSASSIN";"Faction";;;;;;;;;;;;;;;;;
 49;"SEDUCTION";"Faction";;;;;;;;;;;;;;;;;
 50;"BLACKMAIL";"Faction";;;;;;;;;;;;;;;;;
-51;"ARMAMENTS";"Faction";2;0;;;;;;;;;;;;;;;
-52;"SHIP BUILDING";"Faction";2;0;;;;;;;;;;;;;;;
-53;"AEGYPTIAN GRAIN";"Faction";2;5;;;;;;;;;;;;;;;
-54;"SICILIAN GRAIN";"Faction";2;4;;;;;;;;;;;;;;;
+51;"ARMAMENTS";"Faction";2;0;"legions";;;;;;;;;;;;;;
+52;"SHIP BUILDING";"Faction";2;0;"fleets";;;;;;;;;;;;;;
+53;"AEGYPTIAN GRAIN";"Faction";2;5;"drought";;;;;;;;;;;;;;
+54;"SICILIAN GRAIN";"Faction";2;4;"drought";;;;;;;;;;;;;;
 55;"HARBOR FEES";"Faction";2;3;;;;;;;;;;;;;;;
 56;"MINING";"Faction";2;3;;;;;;;;;;;;;;;
-57;"LAND COMMISSIONER";"Faction";2;3;;;;;;;;;;;;;;;
+57;"LAND COMMISSIONER";"Faction";2;3;"land bill";;;;;;;;;;;;;;
 58;"TAX FARMER 1";"Faction";2;2;;;;;;;;;;;;;;;
 59;"TAX FARMER 2";"Faction";2;2;;;;;;;;;;;;;;;
 60;"TAX FARMER 3";"Faction";2;2;;;;;;;;;;;;;;;

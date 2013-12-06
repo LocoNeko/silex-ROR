@@ -35,9 +35,9 @@ Waiting for
             {% endif %}
         {% endfor %}
             
-    {# HASN'T PLAYED YET - PLAY #}
+{# HASN'T PLAYED YET - PLAY #}
     {% else %}
-        {% set revenueBase = content['game'].revenue_base(user_id) %}
+        {% set revenueBase = content['game'].revenue_Base(user_id) %}
 Revenue collected from {{revenueBase['senators']}} senators : {{revenueBase['senators']}}<br>
 Revenue collected from Leader {{revenueBase['leader']}} : 3<br>
 Revenue collected from {{revenueBase['knights']}} knights : {{revenueBase['knights']}}<br>
@@ -48,6 +48,22 @@ Revenue collected from concessions :<br>
 <br>
 Total base revenue : {{ revenueBase['total'] }}<br>
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_ProvincialSPoils'} ) }}">
+    
+{# DECIDE TO EARN MORE OR NOT ON CONCESSIONS WITH THE special=='drought' FLAG IF DROUGHT IS IN PLAY #}
+    {% set droughtLevel = content['game'].getEventLevel ('name' , 'drought') %}
+    {% if droughtLevel > 0 %}
+        {% for concession in revenueBase['concessions'] %}
+            {% if concession['special']=='drought' %}
+                Do you want {{concession['senator_name']}} to be a sick bastard and earn more money from {{concession['name']}} because of the drought :
+                <select name="{{concession['id']}}">
+                        <option>YES</option>
+                        <option selected>NO</option>
+                </select>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    
+{# DECIDE ON PROVINCIAL SPOILS AND WHETHER OR NOT ROME SHOULD PAY FOR NEGATIVE AMOUNTS #}
         {%if revenueBase['provinces']|length == 0 %}
 No revenue from Provinces<br>
         {%else%}

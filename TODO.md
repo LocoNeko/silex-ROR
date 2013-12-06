@@ -8,15 +8,12 @@ TO DO :
 IDEA :
 * iFrame page : add "overflow-x:hidden;"
 
-TO DO :
-- Change Early Republic decks to drawDeck or ForumDeck (isn't the latter too easy to mistake with Forum ?) Maybe simply mainDeck ??
-
 *************
 *   Setup   *
 *************
 
 TO DO :
-- Check what happens of statemanPlayable['message'], it seems unused
+- Other scenarios
 
 *************
 *  Revenue  *
@@ -42,7 +39,6 @@ PROPER Revenue Sequence :
 TO DO :
 - Remove events that expire at the beginning of the forum phase
 - Rebel legions maintenance.
-- Possibility to earn more from some concessions in case of a drought (Sicilian and Egyptian grain)
 
 Modify : Provinces roll revenues :
 - Maybe separate senator and Rome revenue function as they are separated.
