@@ -49,14 +49,11 @@ Modify : Provinces roll revenues :
 
 - Forum phase. See /docs for details on bidding
 TO DO :
-- RE-DO events structure. The key should be event #, for the sake of simplicity, then 'name', 'increased name', 'max level'
-- Give the ability to get/play an event either by name or by #
 - Finish events (forum_rollEvent)
 - Wars and Leaders don't go to forum
 - Persuasion : There may be more Persuasion cards than Seduction and Blackmail
 - Confirm blackmail card effects
 - Ruin concessions based on Punic War or slave revolt
-- function forum_putEventInPlay($number) : change this function to accept both name or number
 
 *************
 *Population *

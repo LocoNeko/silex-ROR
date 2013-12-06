@@ -32,7 +32,7 @@ namespace ROR;
  * $curia
  * --- LAND BILLS, EVENTS, POPULATION TABLE , LEGIONS & FLEETS ---
  * $landBill array (int)=>(int) : landBill[X]=Y means there is Y land bills of type X
- * $events array (string => int) : array of events in the form 'Name of event' => level, 0 means event is not in play
+ * $events array (int => array(name , increased_name , max_level , level)) : array of events
  * $legion array of legion objects
  * $fleet array of fleet objects
  * --- SENATE ---
@@ -55,8 +55,9 @@ class Game
     public $party ;
     public $drawDeck , $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
     public $landBill ;
-    public $events , $eventPool , $eventTable ;
+    public $events , $eventTable ;
     public $populationTable , $legion , $fleet ;
+    public $appealTable ;
     
     public function get_id() {
             return $this->id;
@@ -113,18 +114,19 @@ class Game
         $this->landBill[2] = 0 ;
         $this->landBill[3] = 0 ;
         /*
-         *  Create eventPool
+         *  Create events
          */
         $this->events = array() ;
-        $this->eventPool = array() ;
         $this->eventTable = array() ;
-        $this->createEventPool();
+        $this->createEvents();
         /*
          *  Create Tables : Population
          * TO DO : popular appeal, etc
          */
         $this->populationTable = array();
         $this->createPopulationTable();
+        $this->appealTable = array();
+        $this->createAppealTable();
         /*
          *  Legions and Fleets
          */
@@ -231,13 +233,13 @@ class Game
      * The event table file should have 3 columns :
      * event number for Early Republic ; Middle Republic ; Late Republic 
      */
-    public function createEventPool() {
+    public function createEvents() {
         $eventsFilePointer = fopen(dirname(__FILE__).'/../../data/events.csv', 'r');
         if (!$eventsFilePointer) {
             throw new Exception("Could not open the events file");
         }
         while (($data = fgetcsv($eventsFilePointer, 0, ";")) !== FALSE) {
-            $this->eventPool[$data[0]] = array($data[1] , $data[2] , $data[3]);
+            $this->events[$data[0]] = array( 'name' => $data[1] , 'increased_name' => $data[2] , 'max_level' => $data[3] , 'level' => 0);
         }
         fclose($eventsFilePointer);
         $eventTableFilePointer = fopen(dirname(__FILE__).'/../../data/eventTable.csv', 'r');
@@ -273,12 +275,28 @@ class Game
         }
         fclose($filePointer);
     }
-    
+
+    /**
+     * Reads the appealTable csv file and creates an array appealTable : keys = roll , values = array ('votes' => +/- votes , 'special' => NULL|'killed'|'freed' )
+     * @throws Exception
+     */
+    public function createAppealTable() {
+        $filePointer = fopen(dirname(__FILE__).'/../../data/appealTable.csv', 'r');
+        if (!$filePointer) {
+            throw new Exception("Could not open the Appeal table file");
+        }
+        while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
+            $this->appealTable[$data[0]] = array();
+            array_push($this->appealTable[$data[0]] , array('votes' => $data[1] , 'special' => (isset($data[2]) ? $data[2] : NULL)));
+        }
+        fclose($filePointer);
+    }
+
     /**
      * Number of legions (location is NOT nonexistent)
      * @return int
      */
-    public function nbOfLegions() {
+    public function getNbOfLegions() {
         $result = 0 ;
         foreach($this->legion as $legion) {
             if ($legion->location <> 'nonexistent' ) {
@@ -292,7 +310,7 @@ class Game
      * Number of fleets (location is NOT nonexistent)
      * @return int
      */
-    public function nbOfFleets() {
+    public function getNbOfFleets() {
         $result = 0 ;
         foreach($this->fleet as $fleet) {
             if ($fleet->location <> 'nonexistent' ) {
@@ -695,7 +713,7 @@ class Game
     public function setup_Finished($user_id) {
         $this->party[$user_id]->phase_done = TRUE ;
         if ($this->whoseTurn()===FALSE) {
-            return $this->mortality();
+            return $this->mortality_base();
         }
         return array();
     }
@@ -708,11 +726,11 @@ class Game
      * Handles :
      * - Imminent wars
      * - Mortality.
-     * Mortality uses the killSenator function
+     * Mortality uses the mortality_killSenator function
      * Once finished, moves to Revenue phase
      * @return array
      */
-    public function mortality() {
+    public function mortality_base() {
         if ( ($this->whoseTurn() === FALSE) && ($this->phase=='Setup') )  {
             $messages = array() ;
             array_push($messages , array('Setup phase is finished. Starting Mortality phase.'));
@@ -752,7 +770,7 @@ class Game
             $chits = $this->mortality_chits(1) ;
             foreach ($chits as $chit) {
                 if ($chit!='NONE' && $chit!='DRAW 2') {
-                    $returnedMessage= $this->killSenator((string)$chit) ;
+                    $returnedMessage= $this->mortality_killSenator((string)$chit) ;
                     array_push($messages , array('Chit drawn : '.$chit.'. '.$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
                 } else {
                     array_push($messages , array('Chit drawn : '.$chit));
@@ -809,7 +827,7 @@ class Game
      * @param type $senatorID
      * @return type
      */
-    public function killSenator($senatorID) {
+    public function mortality_killSenator($senatorID) {
         $message = '' ;
         // $deadSenator needs to be an array, as 2 brothers could be in play
         $deadSenators = array() ;
@@ -1194,8 +1212,8 @@ class Game
                     array_push($messages , array('Rome pays '.$totalLandBills.' talents for land bills (I , II & III): '.($this->landBill[1]*10).'T for '.$this->landBill[1].' (I) which are then discarded, '.($this->landBill[2]*5).'T for (II) and '.($this->landBill[3]*10).'T for (III).'));
                 }
                 // Forces maintenance
-                $nbLegions = $this->nbOfLegions();
-                $nbFleets = $this->nbOfFleets();
+                $nbLegions = $this->getNbOfLegions();
+                $nbFleets = $this->getNbOfFleets();
                 $totalCostForces=2*($nbLegions + $nbFleets) ;
                 if ($totalCostForces>0) {
                     $this->treasury-=$totalCostForces ;
@@ -1357,7 +1375,7 @@ class Game
                 $eventRoll = $this->rollDice(3,0) ;
                 array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, then rolls a '.$eventRoll['total'].' on the events table.'));
                 $eventNumber = $this->eventTable[$eventRoll['total']][$this->scenario] ;
-                $message = $this->forum_putEventInPlay($eventNumber) ;
+                $message = $this->forum_putEventInPlay('number' , $eventNumber) ;
                 array_push($messages, array($message));
             } else {
                 // Card
@@ -1390,16 +1408,40 @@ class Game
     
     /**
      * Puts an event in play
-     * @param type $number The number of the event to play
+     * @param string $type The type of parameter : 'name'|'number'
+     * @param type $parameter The name or number of the event to play
      * @return string A message describing if the event was new, or a level increase, or already at max level
      */
-    public function forum_putEventInPlay($number) {
-        //TO DO : change this function to accept both name or number
-        // events is an array => (array => ('number' , 'name' , 'increased_name' , 'level'))
+    public function forum_putEventInPlay($type , $parameter) {
+        // events is an array => (array => ('name' , 'increased_name' , 'max_level' , 'level'))
         $message = '' ;
-        $newEvent = $this->eventPool[$number];
-        array_push($this->events , array('number' => $number , 'name' => $newEvent[1] , 'increased_name' => $newEvent[2] , 'level' => 1));
-        $message = $newEvent[1].' is now in play.';
+        $eventNumber = NULL ;
+        if ($type == 'number') {
+            $eventNumber = $parameter ;
+        } elseif ($type == 'name') {
+            foreach ($this->events as $key=>$eventArray) {
+                if ($eventArray['name'] == $parameter) {
+                    $eventNumber = $key ;
+                }
+            }
+        }
+        if ($eventNumber!==NULL) {
+            // The event is not currently in play
+            if ($this->events[$eventNumber]['level'] == 0) {
+                $this->events[$eventNumber]['level']++ ;
+                $message='Event '.$this->events[$eventNumber]['name'].' in now in play.';
+            // The event is currently in play at maximum level & CANNOT increase
+            } elseif ($this->events[$eventNumber]['level'] == $this->events[$eventNumber]['max_level']) {
+                $nameToUse = ($this->events[$eventNumber]['level']> 1 ? $this->events[$eventNumber]['increased_name'] : $this->events[$eventNumber]['name'] ) ;
+                $message='Event '.$nameToUse.' is already in play at its maximum level ('.$this->events[$eventNumber]['max_level'].').';
+            // The event is currently in play and not yet at maximum level : it can increase
+            } else {
+                $this->events[$eventNumber]['level']++ ;
+                $message='Event '.$this->events[$eventNumber]['name'].' has its level increased to '.$this->events[$eventNumber]['increased_name'].' (level '.$this->events[$eventNumber]['level'].').';
+            }
+        } else {
+            $message = 'Error retrieving event.' ;
+        }
         return $message ;
     }
     
@@ -2059,8 +2101,7 @@ class Game
                 foreach ($effects as $effect) {
                     switch($effect) {
                         case 'MS' :
-                            // TO DO : Modify the function to accept event's name
-                            $this->forum_putEventInPlay(170);
+                            $this->forum_putEventInPlay('name' , 'Manpower Shortage');
                             break ;
                         case 'NR' :
                             break ;
