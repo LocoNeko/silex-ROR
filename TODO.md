@@ -14,7 +14,15 @@ IDEA :
 
 SocketIO :
 - Client side : refresh a page if a refresh event is received for the same game id as the one we are now watching
-- When should I send refresh events to other clients : when data has been submitted (POST is not empty). Send the refresh to all clients BUT the originating one. Always limit scope to this game id.
+- When should I send refresh events to other clients : when data has been submitted (POST is not empty).
+Send the refresh to all clients BUT the originating one. Always limit scope to this game id.
+This is done with :
+
+// sending to all clients except sender
+socket.broadcast.emit('message', "this is a test");
+
+// sending to all clients in 'game' room(channel) except sender
+socket.broadcast.to('game').emit('message', 'nice game');
 
 *************
 *   Setup   *
