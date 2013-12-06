@@ -1,4 +1,4 @@
-{% block myJavascript %}
+{% block myScripts %}
 <script type="text/javascript">
     function updateBidAmount(minimum) {
       value =  senator.value.substr(senator.value.indexOf("|")+1) ;
@@ -245,7 +245,7 @@ Attract a knight for :<br>
     This way, should evil omens be in play and attract roll reduced, the player has the option to spend more than 5T
     Otherwise, the function caps the amount spent at 5
     #}
-    <select id="senator" name="senator" style="width: 420px;" onClick="updateKnightPersuasionAmount({{content['game'].getEventLevel('Evil Omens')}})">
+    <select id="senator" name="senator" style="width: 420px;" onClick="updateKnightPersuasionAmount({{content['game'].getEventLevel('name','Evil Omens')}})">
 {% for senator in list %}
         {% if senator['knights']>0 %}
             {% set canPressure = TRUE %}

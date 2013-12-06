@@ -9,6 +9,14 @@ IDEA :
 * iFrame page : add "overflow-x:hidden;"
 
 *************
+*  Global   *
+*************
+
+SocketIO :
+- Client side : refresh a page if a refresh event is received for the same game id as the one we are now watching
+- When should I send refresh events to other clients : when data has been submitted (POST is not empty). Send the refresh to all clients BUT the originating one. Always limit scope to this game id.
+
+*************
 *   Setup   *
 *************
 
@@ -47,7 +55,6 @@ Modify : Provinces roll revenues :
 *   Forum   *
 *************
 
-- Forum phase. See /docs for details on bidding
 TO DO :
 - Finish events (forum_rollEvent)
 - Wars and Leaders don't go to forum
@@ -60,5 +67,5 @@ TO DO :
 *************
 
 TO DO :
-- Confirm evil omen effects on speech
+- Confirm evil omens effects on speech
 - Effects of the speech roll
