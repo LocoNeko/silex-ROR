@@ -205,7 +205,7 @@ class Game
         /*
          * Put all remaining cards of the Early Republic in the draw deck
          */
-        while (array_count_values($this->earlyRepublic->cards)>0) {
+        while (count($this->earlyRepublic->cards)>0) {
             $this->drawDeck->putOnTop($this->earlyRepublic->drawTopCard()) ;
         }
         /*
@@ -239,7 +239,7 @@ class Game
             throw new Exception("Could not open the events file");
         }
         while (($data = fgetcsv($eventsFilePointer, 0, ";")) !== FALSE) {
-            $this->events[$data[0]] = array( 'name' => $data[1] , 'increased_name' => $data[2] , 'max_level' => $data[3] , 'level' => 0);
+            $this->events[(int)$data[0]] = array( 'name' => $data[1] , 'increased_name' => $data[2] , 'max_level' => $data[3] , 'level' => 0);
         }
         fclose($eventsFilePointer);
         $eventTableFilePointer = fopen(dirname(__FILE__).'/../../data/eventTable.csv', 'r');
