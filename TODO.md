@@ -36,6 +36,7 @@ TO DO :
 TO DO :
 - Remove events that expire at the beginning of the forum phase
 - Rebel legions maintenance.
+- Check if a senator is forced to let Rome pay for negative Provincial spoils because of his treasury
 
 Modify : Provinces roll revenues :
 - Maybe separate senator and Rome revenue function as they are separated.
@@ -50,6 +51,7 @@ TO DO :
 - Persuasion : There may be more Persuasion cards than Seduction and Blackmail
 - Confirm blackmail card effects
 - Ruin concessions based on Punic War or slave revolt
+- Handle family appearing on Forum while Stateman is in play
 
 *************
 *Population *
@@ -57,4 +59,4 @@ TO DO :
 
 TO DO :
 - Confirm evil omens effects on speech
-- Effects of the speech roll
+- Effects of the speech roll (MS,NR,Mob,etc)

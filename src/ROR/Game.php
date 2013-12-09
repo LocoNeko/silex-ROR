@@ -229,7 +229,7 @@ class Game
     /*
      * Convenience function (could be inside CreateGame)
      * The event file should have 4 columns :
-     * Event number (should be VG card number) ; event name ; increased event name ; maximum level of the event of 0 if none
+     * Event number (should be VG card number) ; event name ; increased event name ; description ; increased event description ; maximum level of the event (0 if none)
      * The event table file should have 3 columns :
      * event number for Early Republic ; Middle Republic ; Late Republic 
      */
@@ -239,7 +239,7 @@ class Game
             throw new Exception("Could not open the events file");
         }
         while (($data = fgetcsv($eventsFilePointer, 0, ";")) !== FALSE) {
-            $this->events[(int)$data[0]] = array( 'name' => $data[1] , 'increased_name' => $data[2] , 'max_level' => $data[3] , 'level' => 0);
+            $this->events[(int)$data[0]] = array( 'name' => $data[1] , 'increased_name' => $data[2] , 'description' => $data[3] , 'increased_description' => $data[4] , 'max_level' => $data[5] , 'level' => 0);
         }
         fclose($eventsFilePointer);
         $eventTableFilePointer = fopen(dirname(__FILE__).'/../../data/eventTable.csv', 'r');
@@ -564,7 +564,7 @@ class Game
     }
     
     /**
-     * Whether or not the Land Commissioner concession is playable (a Land bill is in play)
+     * Whether or not the Land Commissioner concession is playable ( which means a Land bill is in play)
      * @return bool
      */
     public function landCommissionerPlayable () {
@@ -575,7 +575,7 @@ class Game
      * 
      * @param integer $nb = Number of dice to roll (1 to 3)
      * @param type $evilOmensEffect = Whether evil omens affect the roll by -1 , +1 or 0
-     * @return 
+     * @return array 'total' => the total roll , 'x' => value of die X so we can obtain 1 white die & 2 black dice
      */
     public function rollDice($nb , $evilOmensEffect) {
         $nb = (int)$nb;
@@ -600,7 +600,7 @@ class Game
     /**
      * Convenience function to get a straight 1 die roll
      * @param type $evilOmensEffect
-     * @return type
+     * @return int The result
      */
     public function rollOneDie($evilOmensEffect) {
         $result = $this->rollDice(1 , $evilOmensEffect) ;
@@ -613,6 +613,7 @@ class Game
     
     /**
      * Get a list of user_ids separated by ";" with all user_ids but one
+     * Useful to send a different message to non-phasing players
      * @param type $not_this_user_id
      * @return string
      */
@@ -628,11 +629,9 @@ class Game
     
     /**
      * Returns the current level of the event if it's in play or 0
-     * @param string $type
-     * can be 'name' or 'number'
-     * @param mixed $search
-     * The name of the event <b>OR</b> its number, based on the value of $type
-     * @return mixed The event's level or <b>0</b> if not in play, or FALSE if $type was wrong
+     * @param string $type can be 'name' or 'number'
+     * @param mixed $search The name of the event <b>OR</b> its number, based on the value of $type
+     * @return mixed The event's level (<b>0</b> if not in play) or FALSE if $type was wrong
      */
     public function getEventLevel ($type , $search) {
         if ($type=='name' || $type=='number') {
@@ -651,12 +650,12 @@ class Game
      ************************************************************/
     
     /**
-     * Set party leader of $user_id to senator with $senatorID
-     * phase_done is set to TRUE for user_id
+     * Set party leader of $user_id to senator with $senatorID<br>
+     * phase_done is set to TRUE for user_id<br>
      * if all players have phase_done==true, move to next subPhase 'PlayCards'
-     * @param type $user_id
-     * @param type $senatorID
-     * @return type
+     * @param type $user_id The user_id fo the player setting his party leader
+     * @param type $senatorID The senatorID of the senator to be appointed party leader
+     * @return type array messages in the form of arrays ('message','type of message','recipients')
      */
     public function setup_setPartyLeader( $user_id , $senatorID ) {
         if ($this->subPhase!='PickLeaders') {
@@ -682,11 +681,12 @@ class Game
     }
     
     /**
-     * Returns a list of possible actions during the special setup machination phase :
-     * - Statemen
+     * Returns a list of possible actions during the special setup machination phase :<br>
+     * - Statemen<br>
      * - Concessions
-     * @param type $user_id
-     * @return array
+     * @param string $user_id the player's user_id
+     * @return array ('action' , 'card_id' , 'message')<br>
+     * 'action' can be Stateman|Concession|Done
      */
     public function setup_possibleActions($user_id) {
         $result = array() ;
@@ -706,9 +706,9 @@ class Game
     }
     
     /**
-     * Setup is finished for this player, if all players are finished, move to subPhase mortality
+     * Setup is finished for this player, if all players are finished, executes mortality subPhase
      * @param type $user_id
-     * @return type
+     * @return type array messages
      */
     public function setup_Finished($user_id) {
         $this->party[$user_id]->phase_done = TRUE ;
@@ -723,12 +723,12 @@ class Game
      ************************************************************/
 
     /**
-     * Handles :
-     * - Imminent wars
+     * Handles :<br>
+     * - Imminent wars<br>
      * - Mortality.
-     * Mortality uses the mortality_killSenator function
-     * Once finished, moves to Revenue phase
-     * @return array
+     * Mortality uses the mortality_killSenator function<br>
+     * Once finished, moves to Revenue phase<br>
+     * @return array messages
      */
     public function mortality_base() {
         if ( ($this->whoseTurn() === FALSE) && ($this->phase=='Setup') )  {
@@ -786,7 +786,7 @@ class Game
     
     /**
      * Draw $qty mortality chits, returns an array
-     * @param type $qty The number of chits to draw
+     * @param int $qty The number of chits to draw
      * @return array An array of chits number + "DRAW 2" and "NONE", for log's sakes
      */
     public function mortality_chits( $qty ) {
@@ -819,13 +819,13 @@ class Game
     }
     
     /**
-     * Kills the senator with $senatorID. This function handles :
-     * - Brothers
-     * - Statemen
-     * - Party leader
+     * Kills the senator with $senatorID. This function handles :<br>
+     * - Brothers<br>
+     * - Statemen<br>
+     * - Party leader<br>
      * - Where senator and controlled cards go (forum, curia, discard)
-     * @param type $senatorID
-     * @return type
+     * @param string $senatorID The SenatorID of the dead senator
+     * @return array messages
      */
     public function mortality_killSenator($senatorID) {
         $message = '' ;
@@ -901,7 +901,7 @@ class Game
      ************************************************************/
 
     /**
-     * Initialises revenue phase :
+     * Initialises revenue phase (called at the end of mortality phase) :
      * - subPhase is 'Base'
      * - For every Senator with a Province, set Province->doneThisTurn to FALSE
      */
@@ -921,8 +921,8 @@ class Game
     }
     
     /**
-     * 
-     * @param type $user_id
+     * Returns a list of the various components of base revenue : senators, leader, knights, concessions, provinces
+     * @param string $user_id
      * @return array ['total'] , ['senators'] , ['leader'] , ['knights'] , array ['concessions'] , array ['province_name'] , array ['province_senatorID']
      */
     public function revenue_Base($user_id) {
@@ -957,6 +957,18 @@ class Game
     }
     
     
+    /**
+     * Takes the POST vars from $request, and generates revenue for player with $user_id<br>
+     * This includes :
+     * - Taking extra income and lose POP for drought-affected concessions
+     * - Take provincial spoils or not
+     * - Handle Rome's treasury loss if the Senator lets Rome pay
+     * - Develop provinces
+     * - Move to Redistribution subphase if the player was the last in order of play
+     * @param string $user_id the player's user_id
+     * @param request $request the POST variables
+     * @return array
+     */
     public function revenue_ProvincialSpoils ($user_id , $request ) {
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Base') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $messages = array() ;
@@ -1010,6 +1022,7 @@ class Game
                             $message .= ' He decides to let the negative amount be paid by Rome. ' ;
                             $this->treasury+=$revenue['senator'];
                         } else {
+                            // TO DO : Check if the senator is forced to let Rome pay because of his treasury
                             // The Senator decided to pay for it
                             $message .= ' He decides to pay the negative amount. ' ;
                             $senator->treasury+=$revenue['senator'];
@@ -1046,8 +1059,8 @@ class Game
     }
 
     /**
-    * Lists all the possible "From" and "To" for redistribution of wealth
-    * @param type $user_id
+    * Lists all the possible "From" and "To" (Senators and Parties) for redistribution of wealth
+    * @param string $user_id the player's user_id
     * @return array
     */
     public function revenue_ListRedistribute ($user_id) {
@@ -1068,12 +1081,12 @@ class Game
     }
 
     /**
-     * 
-     * $fromTI and $toTI are arrays in the form [0] =>'senator'|'party' , [1] => 'id'
-     * @param type $user_id
-     * @param type $from
-     * @param type $to
-     * @return string
+     * Executes one transfer of talents from Senator or Party to Senator or Party<br>
+     * $fromRaw and $toRaw are arrays in the form [0] =>'senator'|'party' , [1] => 'id'
+     * @param type $user_id The player's user_id
+     * @param type $fromRaw A raw POST string for the origin of the redistribution
+     * @param type $toRaw A raw POST string for the destination of the redistribution
+     * @return array messages
      */
     public function revenue_Redistribution ($user_id , $fromRaw , $toRaw , $amount) {
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
@@ -1109,12 +1122,12 @@ class Game
     }
 
     /**
-     * Finish the redistribution of wealth for $user_id
-     * If everyone is done, do State revenue :
-     * > 100 T
-     * > Provinces
-     * Then move to Contributions subphase
-     * @param type $user_id
+     * Finish the redistribution of wealth for $user_id<br>
+     * If everyone is done, do State revenue :<br>
+     * - 100 T<br>
+     * - Provinces<br>
+     * Then move to Contributions subphase<br>
+     * @param string $user_id The player's user_id
      * @return array
      */
     public function revenue_RedistributionFinished ($user_id) {
@@ -1132,6 +1145,7 @@ class Game
                     foreach ($party->senators->cards as $senator) {
                         foreach ($senator->controls->cards as $province) {
                             if ($province->type=='Province') {
+                                // Evil Omens do not affect the revenue roll, but the total
                                 $revenue = $province->rollRevenues(-$this->getEventLevel('name' , 'Evil Omens'));
                                 array_push($messages , array($province->name.' : Rome\'s revenue is '.$revenue['rome'].'T . ') );
                                 $this->treasury+=$revenue['rome'];
@@ -1148,6 +1162,11 @@ class Game
         return $messages ;       
     }
    
+    /**
+     * Provides an array of Senators ('senatorID' , 'name' , 'treasury') who can give to Rome
+     * @param type $user_id The player's user_id
+     * @return array
+     */
     public function revenue_listContributions($user_id) {
         $result = array() ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Contributions') && ($this->party[$user_id]->phase_done==FALSE) ) {
@@ -1160,10 +1179,18 @@ class Game
         return $result ;
     }
     
+    /**
+     * Handles the contribution of a Senator, including INF gains.
+     * @param string $user_id The player's user_id
+     * @param string $rawSenator The POST vars related to the Senator's contribution
+     * @param int $amount
+     * @return array
+     */
     public function revenue_Contributions($user_id , $rawSenator , $amount) {
         $amount=(int)$amount;
-        $lessRaw = explode('|' , $rawSenator);
-        $senatorID = $lessRaw[0];
+        $medium = explode('|' , $rawSenator);
+        $senatorID = $medium[0];
+        //TO DO : I should change this to : $this->getSenatorWithID($senatorID)
         foreach ($this->party[$user_id]->senators->cards as $senator) {
             if ($senator->senatorID==$senatorID) {
                 if ($senator->treasury < $amount) {
@@ -1182,6 +1209,17 @@ class Game
         return array('Error retrieving Senator','error',$user_id);
     }
     
+    /**
+     * Sets the phase_done to TRUE for this player<br>
+     * If he was the last player, handles Rome expenses :<br>
+     * - Active & Unprosecuted Wars
+     * - Land bills
+     * - Forces maintenance
+     * - Returning governors
+     * - Moving to Forum phase
+     * @param string $user_id The player's user_id
+     * @return array
+     */
     public function revenue_Finished ($user_id) {
         $messages = array () ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Contributions') && ($this->party[$user_id]->phase_done==FALSE) ) {
@@ -1256,7 +1294,9 @@ class Game
      ************************************************************/
 
     /**
-     * A message saying who is currently the highest bidder
+     * A message saying who is currently the highest bidder<br>
+     * The message can also indicate that the HRAO currently would have the initiative if nobody is betting
+     * @return array 'bid','message','user_id'
      */
     public function forum_highestBidder () {
         $result['bid']=0 ;
@@ -1316,6 +1356,13 @@ class Game
         $this->currentBidder = $HRAO['user_id'];
     }
     
+    /**
+     * Handles the bid from a Senator, as passed in the POST vars
+     * @param string $user_id
+     * @param string $senatorRaw
+     * @param int $amount
+     * @return array
+     */
     public function forum_bid ($user_id , $senatorRaw , $amount) {
         $messages = array() ;
         if ($this->forum_whoseInitiative()===FALSE) {
@@ -1668,15 +1715,21 @@ class Game
                             $roll = $this->rollDice(2, 1);
                             // Failure on 10+
                             if ($roll['total']>=10) {
-                                array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
+                                if (($currentPersuasion['target']['card']!==FALSE)) {
+                                    array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
+                                }
                                 array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls an unmodified '.$roll['total'].', which is greater than 9 and an automatic failure.'));
                             // Failure if roll > target number    
                             } elseif ($roll['total']>$currentPersuasion['odds']['total']) {
-                                array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
+                                if (($currentPersuasion['target']['card']!==FALSE)) {
+                                    array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
+                                }
                                 array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
                             // Success
                             } else {
-                                array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'SUCCESS') );
+                                if (($currentPersuasion['target']['card']!==FALSE)) {
+                                    array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'SUCCESS') );
+                                }
                                 array_push ($messages , array('SUCCESS - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is lower than the target number of '.$currentPersuasion['odds']['total'].'.'));
                                 if ($currentPersuasion['target']['party'] == 'forum') {
                                     $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
@@ -1693,6 +1746,9 @@ class Game
                                 $totalBids += $party->bid ;
                             }
                             if ($totalBids>0) {
+                                // Whatever the outcome, put total bribe and counter-bribe money on the target.
+                                $senator = $this->getSenatorWithID($currentPersuasion['target']['senatorID']) ;
+                                $senator->treasury+=$totalBids;
                                 array_push ($messages , array($currentPersuasion['target']['name'].' takes a total of '.$totalBids.' T from bribes and counter-bribes.'));
                             }
                             $this->forum_resetPersuasion() ;
