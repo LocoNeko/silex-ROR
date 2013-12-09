@@ -29,11 +29,11 @@ $app->register(new Provider\DoctrineServiceProvider(), array('db.options' => arr
 $app->register(new Provider\SecurityServiceProvider(), array(
     'security.firewalls' => array(
         'register' => array (
-            'pattern' => '^/register$',
+            'pattern' => '^/ROR/user/register$',
             'anonymous' => true,
         ),
         'login' => array (
-            'pattern' => '^/login$',
+            'pattern' => '^/ROR/user/login$',
             'anonymous' => true,
         ),
         'secured' => array(
@@ -41,11 +41,12 @@ $app->register(new Provider\SecurityServiceProvider(), array(
             'remember_me' => array(),
             
             'form' => array(
-                'login_path' => '/login',
-                'check_path' => '/login_check',
+                'login_path' => '/ROR/user/login',
+                'check_path' => '/ROR/user/login_check',
             ),
             'logout' => array(
-                'logout_path' => '/logout',
+                'logout_path' => '/ROR/user/logout',
+                'target_url' => '/ROR'
             ),
             'users' => $app->share(function($app) { return $app['user.manager']; }),
         ),
@@ -66,7 +67,7 @@ $app->register(new Silex\Provider\TwigServiceProvider(), array(
 $app->register($u = new SimpleUser\UserServiceProvider());
 $app['twig.loader.filesystem']->addPath(__DIR__.'/../src/views/user','user');
 $app['user.controller']->setLayoutTemplate('layout.twig');
-$app->mount('/', $u);
+$app->mount('/ROR/user', $u);
 
 // ROR Controller Provider
 $app->mount('/ROR', new ROR\RORControllerProvider());
