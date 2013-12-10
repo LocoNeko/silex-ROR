@@ -1435,10 +1435,41 @@ class Game
                         array_push($messages , array($this->party[$user_id]->fullName().' draws a faction card and keeps it.','message',$this->getAllButOneUserID($user_id)));
                         array_push($messages , array('You draw '.$card->name.' and put it in your hand.','message',$user_id));
                     } else {
-                        // Card goes to forum
-                        // TO DO : Wars and Leaders don't go to forum
-                        $this->forum->putOnTop($card) ;
-                        array_push($messages , array($this->party[$user_id]->fullName().' draws '.$card->name.' that goes to the forum.'));
+                        // If a Family has been drawn check if a corresponding Stateman is in play
+                        if ($card->type=='Family') {
+                            $possibleStatemen = array() ;
+                            foreach ($this->party as $party) {
+                                foreach ($party->senators->card as $senator) {
+                                    if ($senator->type=='Stateman' && $senator->statemanFamily == $card->senatorID) {
+                                        array_push($possibleStatemen , array('senator' => $senator , 'party' => $party)) ;
+                                    }
+                                }
+                            }
+                            // No corresponding stateman : Family goes to the Forum
+                            if (count($possibleStatemen)==0) {
+                                $this->forum->putOnTop($card) ;
+                                array_push($messages , array($this->party[$user_id]->fullName().' draws '.$card->name.' that goes to the forum.'));
+                            // Found one or more (in case of brothers) corresponding Statesmen : put the Family under them
+                            // Case 1 : only one Stateman
+                            } elseif (count($possibleStatemen)==1) {
+                                $possibleStatemen[0]['party']->senators->putOnTop($card) ;
+                                array_push($messages , array($possibleStatemen[0]['party']->fullName().' has '.$possibleStatemen[0]['senator']->name.' so the family joins him.'));
+                            // Case 2 : brothers are in play
+                            } else {
+                                // Sorts the possibleStatemen in SenatorID order, so 'xxA' is before 'xxB'
+                                // This is only relevant to brothers
+                                usort ($possibleStatemen, function($a, $b) {
+                                    return strcmp($a['senator']->senatorID , $b['senator']->senatorID);
+                                });
+                                $possibleStatemen[0]['party']->senators->putOnTop($card) ;
+                                array_push($messages , array($possibleStatemen[0]['party']->fullName().' has '.$possibleStatemen[0]['senator']->name.'  (who has the letter "A" and takes precedence over his brother) so the family joins him.'));
+                            }
+                        } else {
+                            // Card goes to forum
+                            // TO DO : Wars and Leaders don't go to forum
+                            $this->forum->putOnTop($card) ;
+                            array_push($messages , array($this->party[$user_id]->fullName().' draws '.$card->name.' that goes to the forum.'));
+                        }
                     }
                 } else {
                     array_push($messages , array('There is no more cards in the deck.','alert'));
