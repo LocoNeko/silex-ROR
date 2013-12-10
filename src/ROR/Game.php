@@ -1881,39 +1881,41 @@ class Game
      */
     public function forum_knights($user_id , $senatorRaw , $amount) {
         $messages = array();
-        $senatorData = explode('|' , $senatorRaw);
-        $senatorID = $senatorData[0] ;
-        $senator = $this->getSenatorWithID($senatorID) ;
-        // Check that we have a senator, that he belongs to the right party, and that his treasury is equal or greater to/than the amount
-        if ($senator!==FALSE) {
-            if ($this->getPartyOfSenator($senator)->user_id==$user_id) {
-                if ($amount<=$senator->treasury) {
-                    //1d6+bribe >=6
-                    $senator->treasury-=$amount ;
-                    $roll = $this->rollOneDie(-1);
-                    if (($roll+$amount) >= 6) {
-                        $senator->knights++;
-                        array_push($messages , array('SUCCESS - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is >= 6.')) ;
+        if (($this->phase=='Forum') && ($this->subPhase=='Knights') && ($this->forum_whoseInitiative()==$user_id) ) {
+            $senatorData = explode('|' , $senatorRaw);
+            $senatorID = $senatorData[0] ;
+            $senator = $this->getSenatorWithID($senatorID) ;
+            // Check that we have a senator, that he belongs to the right party, and that his treasury is equal or greater to/than the amount
+            if ($senator!==FALSE) {
+                if ($this->getPartyOfSenator($senator)->user_id==$user_id) {
+                    if ($amount<=$senator->treasury) {
+                        //1d6+bribe >=6
+                        $senator->treasury-=$amount ;
+                        $roll = $this->rollOneDie(-1);
+                        if (($roll+$amount) >= 6) {
+                            $senator->knights++;
+                            array_push($messages , array('SUCCESS - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is >= 6.')) ;
+                        } else {
+                            array_push($messages , array('FAILURE - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is < 6.')) ;
+                        }
+                        $this->subPhase = 'SponsorGames';
+                        array_push ($messages , array('Sponsor Games Sub Phase'));
+                        // Be nice : skip sponsor games sub phase if no senator can do them.
+                        $listSponsorGames = $this->forum_listSponsorGames($user_id) ;
+                        if (count($listSponsorGames)==0) {
+                            array_push ($messages , array($this->party[$user_id]->fullName().' has no senator who can sponsor games.'));
+                            $this->subPhase = 'ChangeLeader';
+                            array_push ($messages , array('Change Leader Sub Phase'));
+                        }
                     } else {
-                        array_push($messages , array('FAILURE - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is < 6.')) ;
-                    }
-                    $this->subPhase = 'SponsorGames';
-                    array_push ($messages , array('Sponsor Games Sub Phase'));
-                    // Be nice : skip sponsor games sub phase if no senator can do them.
-                    $listSponsorGames = $this->forum_listSponsorGames($user_id) ;
-                    if (count($listSponsorGames)==0) {
-                        array_push ($messages , array($this->party[$user_id]->fullName().' has no senator who can sponsor games.'));
-                        $this->subPhase = 'ChangeLeader';
-                        array_push ($messages , array('Change Leader Sub Phase'));
+                        array_push($messages , array('Amount error' , 'error' , $user_id)) ;
                     }
                 } else {
-                    array_push($messages , array('Amount error' , 'error' , $user_id)) ;
+                    array_push($messages , array('Wrong party' , 'error' , $user_id)) ;
                 }
             } else {
-                array_push($messages , array('Wrong party' , 'error' , $user_id)) ;
+                array_push($messages , array('Error retrieving senator data' , 'error' , $user_id)) ;
             }
-        } else {
-            array_push($messages , array('Error retrieving senator data' , 'error' , $user_id)) ;
         }
         return $messages ;
     }
@@ -2205,7 +2207,7 @@ class Game
                                 array_push($messages , $message);
                             }
                             break ;
-                        case '0' :
+                        case 0 :
                             array_push($messages , array('No effect.')) ;
                             break ;
                         default :
