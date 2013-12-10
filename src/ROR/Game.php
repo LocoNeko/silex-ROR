@@ -36,6 +36,7 @@ namespace ROR;
  * $legion array of legion objects
  * $fleet array of fleet objects
  * --- SENATE ---
+ * $steppedDown : array of SenatorIDs of Senators who have stepped down during this Senate phase
  */
 class Game 
 {
@@ -142,6 +143,7 @@ class Game
             $this->legion[$i]->location = 'Rome';
         }
         array_push($messages , array('Rome starts with 4 Legions') ) ;
+        $this->steppedDown = array();
         /*
          *  Creating parties
          */
@@ -2022,7 +2024,7 @@ class Game
      * Change leader and/or move to next initiative. If this is the last initiative, move to curia subPhase (a.k.a. "Putting Rome in order")
      * @param type $user_id
      * @param type $senator
-     * @return array
+     * @return array messages
      */
     public function forum_changeLeader($user_id , $senatorID) {
         $messages = array();
@@ -2074,7 +2076,7 @@ class Game
      * - Ruining Concessions because of some conflicts
      * - Reviving Concessions and Senators
      * - Discarding Enemy leaders
-     * @return array
+     * @return array messages
      */
     public function forum_curia() {
         $messages = array();
@@ -2215,12 +2217,18 @@ class Game
             } else {
                 array_push($messages , array('People revolt - Game over.' , 'error'));
             }
+            array_push($messages , array('SENATE PHASE','alert'));
             $this->phase = 'Senate';
+            $this->senate_init();
             $this->subPhase = 'Consuls';
         }
         return $messages ;
     }
     
+    /**
+     * Sub function of population_speech, handling angry mob
+     * @return array message
+     */
     public function population_mob() {
         $messages = array() ;
         array_push($messages , array('The Senate is attacked by an angry mob !','alert')) ;
@@ -2236,6 +2244,33 @@ class Game
         return $messages ;
     }
     
+    /************************************************************
+     * Functions for SENATE phase
+     ************************************************************/
+    
+    /**
+     * Initialises various Senate-related variables
+     */
+    public function senate_init() {
+        unset($this->steppedDown);
+        $this->steppedDown = array() ;
+    }
+    
+    /**
+     * Return an array with the Senator & party holding the office $office or FALSE if not found
+     * @param string $office
+     * @return array|bool array('senator' , 'user_id') or FALSE
+     */
+    public function senate_findOfficial($office) {
+        foreach ($this->party as $party) {
+            foreach ($party->senators->cards as $senator) {
+                if ($senator->office==$office) {
+                    return array('senator'=>$senator , 'user_id'=>$party->user_id);
+                }
+            }
+        }
+        return FALSE ;
+    }
     
     /************************************************************
      * Functions for REVOLUTION phase

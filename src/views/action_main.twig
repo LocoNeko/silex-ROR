@@ -36,6 +36,10 @@ Phase : Forum<br>
 Phase : Population<br>
     {% embed 'action_population.twig' %}
     {% endembed %}
+{% elseif content['game'].phase == 'Senate' %}
+Phase : Senate<br>
+    {% embed 'action_senate.twig' %}
+    {% endembed %}
 {% endif %}
 <hr>
 {# DISPLAY PLAYER'S PARTY #}
