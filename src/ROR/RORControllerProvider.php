@@ -62,7 +62,7 @@ class RORControllerProvider implements ControllerProviderInterface
                     if ($this->setPartyName($app , $request , $game_id) ) {
                         $app['session']->getFlashBag()->add('alert','You have set your party\'s name');
                     } else {
-                        $app['session']->getFlashBag()->add('alert','Party name cannot be blank');
+                        $app['session']->getFlashBag()->add('alert','Party name cannot be blank or the same as an existing party.');
                     }
                 } else {
                     if ($this->startGame($app , $game_id)) {
@@ -124,11 +124,11 @@ class RORControllerProvider implements ControllerProviderInterface
          * For debug purposes : Load a saved game
          */
         $controllers->match('/Load/{game_id}', function(Request $request , $game_id) use ($app) {
-            // TO DO : grab game data from saved_games, erase all posterior data from games, insert game_data in games
+            // grab game data from saved_games, erase all posterior data from games, insert game_data in games
             if ($request->isMethod('POST')) {
                 $time = $request->request->get('SavedGame') ;
                 $game_data = $app['db']->fetchColumn("SELECT game_data FROM saved_games WHERE game_id = ? AND time_saved = ?" , Array($game_id , $time) , 0) ;
-                // TO DO : Erase log & saved_games after that timestamp
+                // Erase log & saved_games after that timestamp
                 $app['db']->query("DELETE FROM logs WHERE game_id = '".$game_id."' AND time_created > ".$time);
                 $app['db']->query("DELETE FROM saved_games WHERE game_id = '".$game_id."' AND time_saved > ".$time);
                 $app['db']->update("games" , Array("game_data" => $game_data) , Array ("game_id" => $game_id) );
@@ -213,7 +213,9 @@ class RORControllerProvider implements ControllerProviderInterface
     }
     
     public function setPartyName(Application $app , Request $request , $game_id) {
-        if (strlen($request->request->get('party_name'))>0) {
+        // TO DO : Check if a party name already exists that is equal to $request->request->get('party_name')
+        $samePartyName = $app['db']->fetchColumn("SELECT COUNT(user_id) FROM players WHERE game_id='' AND party_name=''");
+        if (strlen($request->request->get('party_name'))>0 && $samePartyName==0 ) {
             $app['db']->update('players', Array('party_name' => $request->request->get('party_name')) , Array('game_id' => $game_id , 'user_id' => $app['user']->getId()));
             return TRUE;
         } else {
