@@ -110,11 +110,11 @@ The highest bidder is : {{highestBidder['message']}}<br>
 You need to bid at least {{highestBidder['bid']+1}}<br>
 Pick a Senator to bid for initiative :<br>
     {# USER CAN ONLY PICK FROM SENATORS IN ROME WHO HAVE MORE MONEY THAN CURRENT HIGHEST BID #}
-    <select id='senator' name='senator' onClick="updateBidAmount({{highestBidder['bid']+1}})" ;>
+    <select id='senator' name='senator' onClick="updateBidAmount({{highestBidder['bid']+1}});">
     {%for senator in content['game'].party[user_id].senators.cards %}
         {% if senator.inRome and senator.treasury>highestBidder['bid'] %}
             {% set showAmount=TRUE %}
-            <option value="{{senator.senatorID}}||{{senator.treasury}}">{{senator.name}} ({{senator.treasury}} T)</option>
+            <option value="{{senator.senatorID}}|{{senator.treasury}}">{{senator.name}} ({{senator.treasury}} T)</option>
         {% endif %}
     {% endfor %}
             <option value="NONE" selected>Don't bid</option>

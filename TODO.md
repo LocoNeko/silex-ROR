@@ -36,7 +36,6 @@ TO DO :
 TO DO :
 - Remove events that expire at the beginning of the forum phase
 - Rebel legions maintenance.
-- Check if a senator is forced to let Rome pay for negative Provincial spoils because of his treasury
 
 *************
 *   Forum   *
@@ -50,7 +49,3 @@ TO DO :
 *************
 *Population *
 *************
-
-TO DO :
-- Confirm evil omens effects on speech
-- Effects of the speech roll (MS,NR,Mob,etc)

@@ -1022,10 +1022,15 @@ class Game
                             $message .= ' He decides to let the negative amount be paid by Rome. ' ;
                             $this->treasury+=$revenue;
                         } else {
-                            // TO DO : Check if the senator is forced to let Rome pay because of his treasury
-                            // The Senator decided to pay for it
-                            $message .= ' He decides to pay the negative amount. ' ;
-                            $senator->treasury+=$revenue;
+                            if ($senator->treasury<$revenue) {
+                                // The senator is forced to let Rome pay because of his treasury
+                                $message .= ' He has to let the negative amount be paid by Rome. ' ;
+                                $this->treasury+=$revenue;
+                            } else {
+                                // The Senator decided to pay for it
+                                $message .= ' He decides to pay the negative amount. ' ;
+                                $senator->treasury+=$revenue;
+                            }
                         }
                     }
                     $message .= ' He is now corrupt.';
@@ -1189,20 +1194,18 @@ class Game
         $amount=(int)$amount;
         $medium = explode('|' , $rawSenator);
         $senatorID = $medium[0];
-        //TO DO : I should change this to : $this->getSenatorWithID($senatorID)
-        foreach ($this->party[$user_id]->senators->cards as $senator) {
-            if ($senator->senatorID==$senatorID) {
-                if ($senator->treasury < $amount) {
-                    return array(array('This senator doesn\'t have enough money','error',$user_id));
-                } elseif ($amount<1) {
-                    return array(array('Wrong amount','error',$user_id));
-                } else {
-                    if ($amount>=50) { $INFgain = 7 ; } elseif ($amount>=25) { $INFgain = 3 ; } elseif ($amount>=10) { $INFgain = 1 ; } else { $INFgain = 0 ; }
-                    $senator->INF+=$INFgain ;
-                    $senator->treasury-=$amount ;
-                    $this->treasury+=$amount ;
-                    return array(array($senator->name.' gives '.$amount.'T to Rome.'.( ($INFgain!=0) ? ' He gains '.$INFgain.' Influence.' : '') ));
-                }
+        $senator = $this->getSenatorWithID($senatorID) ;
+        if ($senator!==FALSE) {
+            if ($senator->treasury < $amount) {
+                return array(array('This senator doesn\'t have enough money','error',$user_id));
+            } elseif ($amount<1) {
+                return array(array('Wrong amount','error',$user_id));
+            } else {
+                if ($amount>=50) { $INFgain = 7 ; } elseif ($amount>=25) { $INFgain = 3 ; } elseif ($amount>=10) { $INFgain = 1 ; } else { $INFgain = 0 ; }
+                $senator->INF+=$INFgain ;
+                $senator->treasury-=$amount ;
+                $this->treasury+=$amount ;
+                return array(array($senator->name.' gives '.$amount.'T to Rome.'.( ($INFgain!=0) ? ' He gains '.$INFgain.' Influence.' : '') ));
             }
         }
         return array('Error retrieving Senator','error',$user_id);
@@ -1377,7 +1380,7 @@ class Game
                     if ($senator->treasury>=$amount) {
                         $senator->treasury-=$amount ;
                         $this->party[$user_id]->bid = $amount ;
-                        array_push($messages , array($this->party[$user_id]->fullName().' bids '.$amount.'T for this initiative.'));
+                        array_push($messages , array($this->party[$user_id]->fullName().' bids '.$amount.'T with '.$senator->name.' for this initiative.'));
                     } else {
                         array_push($messages , array('Not enough money' , 'error' , $user_id));
                     }
@@ -1506,7 +1509,7 @@ class Game
             // The event is not currently in play
             if ($this->events[$eventNumber]['level'] == 0) {
                 $this->events[$eventNumber]['level']++ ;
-                $message='Event '.$this->events[$eventNumber]['name'].' in now in play.';
+                $message='Event '.$this->events[$eventNumber]['name'].' is now in play.';
             // The event is currently in play at maximum level & CANNOT increase
             } elseif ($this->events[$eventNumber]['level'] == $this->events[$eventNumber]['max_level']) {
                 $nameToUse = ($this->events[$eventNumber]['level']> 1 ? $this->events[$eventNumber]['increased_name'] : $this->events[$eventNumber]['name'] ) ;
@@ -1631,7 +1634,6 @@ class Game
         $result['target']['name'] = $this->persuasionTarget->name ;
         $result['target']['card'] = FALSE ;
         foreach ($this->persuasionTarget->controls->cards as $card) {
-            // TO DO : There may be more Persuasion cards
             if ($card->name=="SEDUCTION" || $card->name=="BLACKMAIL") {
                 $result['target']['card'] = $card->id ;
             }
@@ -1835,7 +1837,6 @@ class Game
                 $completeMessage='The '.$card->name.' card is discarded.';
                 if ($card->name=="BLACKMAIL") {
                     if ($outcome=='FAILURE') {
-                        // TO DO : CONFIRM BLACKMAIL CARD EFFECTS
                         $rollINF = min(0,$this->rollDice(2, -1)) ;
                         $rollPOP = min(0,$this->rollDice(2, -1)) ;
                         $senator->changeINF(-$rollINF);
@@ -2055,6 +2056,7 @@ class Game
                     }
                     array_push($messages , array('POPULATION PHASE','alert'));
                     $this->phase = 'Population';
+                    $this->subPhase = 'Speech';
                     $this->resetPhaseDone();
                 }
             }
@@ -2142,7 +2144,7 @@ class Game
     public function population_unrest() {
         $result = array() ;
         $result['total']=0;
-        $result['message']='None.';
+        $result['message']='No change in unrest from wars and droughts this turn.';
         foreach ($this->unprosecutedWars->cards as $conflict) {
             $result['total']++;
             if ($result['total']==1) {
@@ -2160,6 +2162,7 @@ class Game
                 $result['message'].= ' And ';
             }
             $result['message'].=$droughtLevel.' droughts cause + '.$droughtLevel.' unrest.';
+            $result['total']+=$droughtLevel;
         }
         return $result;
     }
@@ -2176,26 +2179,34 @@ class Game
             $thisTurnUnrest = $this->population_unrest() ;
             array_push($messages , array($thisTurnUnrest['message']));
             $this->unrest+=$thisTurnUnrest['total'];
-            //TO DO : confirm evil omen effects on speech
-            $roll=$this->rollDice(3, 1) ;
+            $roll=$this->rollDice(3, -1) ;
             $HRAO = $this->HRAO();
             // $total is minimum -1 and maximum 18
-            $total = min (-1 , max (18 , $roll + $this->unrest - $HRAO->POP )) ;
-            array_push($messages , $HRAO->name.' rolls '.$roll.' + Y ('.$this->unrest.') - '.$HRAO->POP.' (HRAO\'s Popularity) for a total of '.$total.'.');
+            $total = max (-1 , min (18 , $roll['total'] + $this->unrest - $HRAO['senator']->POP )) ;
+            array_push($messages , array($HRAO['senator']->name.' rolls '.$roll['total'].' + current unrest ('.$this->unrest.') - '.$HRAO['senator']->POP.' (HRAO\'s Popularity) for a total of '.$total.'.'));
             if ($total!=-1) {
                 $effects = $this->populationTable[$total];
                 foreach ($effects as $effect) {
                     switch($effect) {
                         case 'MS' :
-                            $this->forum_putEventInPlay('name' , 'Manpower Shortage');
+                            array_push($messages , array($this->forum_putEventInPlay('name' , 'Manpower Shortage'),'alert'));
                             break ;
                         case 'NR' :
+                            array_push($messages , array($this->forum_putEventInPlay('name' , 'No Recruitment'),'alert'));
                             break ;
                         case 'Mob' :
+                            $mobMessages = $this->population_mob() ;
+                            foreach ($mobMessages as $message) {
+                                array_push($messages , $message);
+                            }
                             break ;
                         case '0' :
+                            array_push($messages , array('No effect.')) ;
                             break ;
                         default :
+                            $effect=(int)$effect;
+                            $this->unrest+=$effect;
+                            array_push($messages , array('The unrest is changed by '.($effect>0 ? '+' :'').$effect.', now at '.$this->unrest,'alert')) ;
                     }
                 }
             } else {
@@ -2204,6 +2215,22 @@ class Game
         }
         return $messages ;
     }
+    
+    public function population_mob() {
+        $messages = array() ;
+        array_push($messages , array('The Senate is attacked by an angry mob !','alert')) ;
+        $chits = $this->mortality_chits(6);
+        foreach ($chits as $chit) {
+            if ($chit!='NONE' && $chit!='DRAW 2') {
+                $returnedMessage= $this->mortality_killSenator((string)$chit) ;
+                array_push($messages , array('Chit drawn : '.$chit.'. '.$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
+            } else {
+                array_push($messages , array('Chit drawn : '.$chit));
+            }
+        }
+        return $messages ;
+    }
+    
     
     /************************************************************
      * Functions for REVOLUTION phase

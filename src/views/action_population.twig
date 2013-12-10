@@ -7,5 +7,5 @@ You are the HRAO and must make a speech<br>
     <button type="submit" class="btn btn-danger">CARTAGO DELENDA EST</button>
 </form>
 {% else %}
-Waiting for the HRAO to make a speech.
+Waiting for {{content['game'].party[content['game'].whoseTurn()].fullName()}} to make a speech.
 {% endif %}
