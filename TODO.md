@@ -2,7 +2,6 @@ TO DO :
 - DELETE GAME
 - i18n
 - Chat
-- Prevent player from entering the same party name in ViewGame
 - Oh noes ! All the cards' numbers are wrong, they start from 0 but should start from 1 ! For Conflicts, effects on provinces are also wrong
 
 IDEA :

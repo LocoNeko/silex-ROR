@@ -1378,7 +1378,7 @@ class Game
                 $senator = $this->getSenatorWithID($senatorID) ;
                 if ($this->getPartyOfSenator($senator)->user_id == $user_id) {
                     if ($senator->treasury>=$amount) {
-                        $senator->treasury-=$amount ;
+                        $this->party[$user_id]->bidWith = $senator ;
                         $this->party[$user_id]->bid = $amount ;
                         array_push($messages , array($this->party[$user_id]->fullName().' bids '.$amount.'T with '.$senator->name.' for this initiative.'));
                     } else {
@@ -1394,12 +1394,15 @@ class Game
             // We went around the table once : bids are finished
             if ($this->currentBidder == $HRAO['user_id']) {
                 $highestBidder = $this->forum_highestBidder() ;
+                $this->party[$highestBidder['user_id']]->bidWith->treasury-=$highestBidder['bid'];
+                // This is not straight-forward, but it allows for multiple rounds of bidding as a possible variant
                 foreach($this->party as $party) {
                     if ($party->user_id!=$highestBidder['user_id']) {
                         $party->bidDone=TRUE;
+                        $party->bidWith=NULL;
                     }
                 }
-                array_push($messages , array($this->party[$highestBidder['user_id']]->fullName().' wins this initiative.'));
+                array_push($messages , array($this->party[$highestBidder['user_id']]->fullName().' wins this initiative. '.$this->party[$highestBidder['user_id']]->bidWith->name.' spends '.$highestBidder['bid'].'T from his personal treasury.'));
             }
         } else {
             array_push($messages , array('Cannot bid as this initiative already belongs to another player' , 'error' , $user_id));
@@ -2212,6 +2215,8 @@ class Game
             } else {
                 array_push($messages , array('People revolt - Game over.' , 'error'));
             }
+            $this->phase = 'Senate';
+            $this->subPhase = 'Consuls';
         }
         return $messages ;
     }

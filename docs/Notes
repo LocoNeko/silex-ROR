@@ -68,3 +68,10 @@ Bidding has meaning in two different situations : Initiative & Persuasion
 - currentBidder goes around the table, each party deciding to spend money IRREVOCABLY from $party->treasury to resist the persuasion, putting it in $party->bid.
 - Once back to persuader, give opportunity to spend more money and start again.
 - This going around the table, and any further such cycle can be easily identified by the fact that $game->persuasionTarget is already set.
+
+********
+*Senate*
+********
+
+Sub phases :
+Consuls,Pontifex,Dictator,Censor,Prosecutions,Governors,Concessions,Land Bills,Forces,Garrison,Deploy,Recall Proconsul,Recall Pontifex,Priests,Consul for life,Minor
