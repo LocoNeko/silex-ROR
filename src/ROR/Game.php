@@ -1008,24 +1008,24 @@ class Game
                 if (is_null($request[$province->id])) {
                     return array('Undefined province.','error');
                 }
-                $revenue = $province->rollRevenues(-$this->getEventLevel('name' , 'Evil Omens'));
+                $revenue = $province->rollRevenues('senator' , -$this->getEventLevel('name' , 'Evil Omens'));
                 $message = $province->name.' : ';
                 // Spoils
                 if ($request[$province->id] == 'YES') {
                     $senator->corrupt = TRUE ;
-                    $message .= $senator->name.' takes provincial spoils for '.$revenue['senator'].'T .';
-                    if ($revenue['senator']>0) {
-                        $senator->treasury+=$revenue['senator'];
+                    $message .= $senator->name.' takes provincial spoils for '.$revenue.'T .';
+                    if ($revenue>0) {
+                        $senator->treasury+=$revenue;
                     } else {
                         if ($request[$province->id.'_LET_ROME_PAY'] == 'YES') {
                             // The Senator decided to let Rome pay for it
                             $message .= ' He decides to let the negative amount be paid by Rome. ' ;
-                            $this->treasury+=$revenue['senator'];
+                            $this->treasury+=$revenue;
                         } else {
                             // TO DO : Check if the senator is forced to let Rome pay because of his treasury
                             // The Senator decided to pay for it
                             $message .= ' He decides to pay the negative amount. ' ;
-                            $senator->treasury+=$revenue['senator'];
+                            $senator->treasury+=$revenue;
                         }
                     }
                     $message .= ' He is now corrupt.';
@@ -1145,10 +1145,9 @@ class Game
                     foreach ($party->senators->cards as $senator) {
                         foreach ($senator->controls->cards as $province) {
                             if ($province->type=='Province') {
-                                // Evil Omens do not affect the revenue roll, but the total
-                                $revenue = $province->rollRevenues(-$this->getEventLevel('name' , 'Evil Omens'));
-                                array_push($messages , array($province->name.' : Rome\'s revenue is '.$revenue['rome'].'T . ') );
-                                $this->treasury+=$revenue['rome'];
+                                $revenue = $province->rollRevenues('rome' , -$this->getEventLevel('name' , 'Evil Omens'));
+                                array_push($messages , array($province->name.' : Rome\'s revenue is '.$revenue.'T . ') );
+                                $this->treasury+=$revenue;
                             }
                         }
                     }
@@ -1439,8 +1438,8 @@ class Game
                         if ($card->type=='Family') {
                             $possibleStatemen = array() ;
                             foreach ($this->party as $party) {
-                                foreach ($party->senators->card as $senator) {
-                                    if ($senator->type=='Stateman' && $senator->statemanFamily == $card->senatorID) {
+                                foreach ($party->senators->cards as $senator) {
+                                    if ($senator->type=='Stateman' && $senator->statemanFamily() == $card->senatorID) {
                                         array_push($possibleStatemen , array('senator' => $senator , 'party' => $party)) ;
                                     }
                                 }
@@ -1452,7 +1451,7 @@ class Game
                             // Found one or more (in case of brothers) corresponding Statesmen : put the Family under them
                             // Case 1 : only one Stateman
                             } elseif (count($possibleStatemen)==1) {
-                                $possibleStatemen[0]['party']->senators->putOnTop($card) ;
+                                $possibleStatemen[0]['senator']->controls->putOnTop($card) ;
                                 array_push($messages , array($possibleStatemen[0]['party']->fullName().' has '.$possibleStatemen[0]['senator']->name.' so the family joins him.'));
                             // Case 2 : brothers are in play
                             } else {
@@ -1461,7 +1460,7 @@ class Game
                                 usort ($possibleStatemen, function($a, $b) {
                                     return strcmp($a['senator']->senatorID , $b['senator']->senatorID);
                                 });
-                                $possibleStatemen[0]['party']->senators->putOnTop($card) ;
+                                $possibleStatemen[0]['senator']->controls->putOnTop($card) ;
                                 array_push($messages , array($possibleStatemen[0]['party']->fullName().' has '.$possibleStatemen[0]['senator']->name.'  (who has the letter "A" and takes precedence over his brother) so the family joins him.'));
                             }
                         } else {

@@ -28,11 +28,15 @@ class Province extends Card {
 		$this->governor = null ;
 	}
         
-        public function rollRevenues($modifier) {
-            $result = Array() ;
+        /**
+         * Returns the Province's revenues either for Rome or the Senator (in case of Provincial spoils)<br>
+         * Evil Omens do not affect the revenue roll, but the total, so the current Evil Omens event level is passed as $modifier
+         * @param string $type 'rome'|'senator'
+         * @param int $modifier
+         * @return type
+         */
+        public function rollRevenues($type , $modifier) {
             $status = ($this->developed) ? 'developed' : 'undeveloped' ;
-            $result['rome'] = $this->income[$status]['rome']['variable']*mt_rand(1,6) + $this->income[$status]['rome']['fixed'] + $modifier;
-            $result['senator'] = $this->income[$status]['senator']['variable']*mt_rand(1,6) + $this->income[$status]['senator']['fixed'] + $modifier;
-            return $result ;
+            return $this->income[$status][$type]['variable']*mt_rand(1,6) + $this->income[$status][$type]['fixed'] + $modifier;
         }
 }

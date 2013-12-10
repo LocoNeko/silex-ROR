@@ -38,9 +38,6 @@ TO DO :
 - Rebel legions maintenance.
 - Check if a senator is forced to let Rome pay for negative Provincial spoils because of his treasury
 
-Modify : Provinces roll revenues :
-- Maybe separate senator and Rome revenue function as they are separated.
-
 *************
 *   Forum   *
 *************
@@ -48,10 +45,7 @@ Modify : Provinces roll revenues :
 TO DO :
 - Finish events (forum_rollEvent)
 - Wars and Leaders don't go to forum
-- Persuasion : There may be more Persuasion cards than Seduction and Blackmail
-- Confirm blackmail card effects
 - Ruin concessions based on Punic War or slave revolt
-- Handle family appearing on Forum while Stateman is in play
 
 *************
 *Population *
