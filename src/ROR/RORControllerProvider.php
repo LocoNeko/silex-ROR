@@ -140,6 +140,22 @@ class RORControllerProvider implements ControllerProviderInterface
         })
         ->bind('Load');
 
+         /**
+         * For debug purposes : Delete a game
+         */
+        $controllers->match('/Delete/{game_id}', function(Request $request , $game_id) use ($app) {
+            if ($request->isMethod('POST')) {
+                // Erase log & saved_games after that timestamp
+                $app['db']->query("DELETE FROM games WHERE game_id = '".$game_id."'");
+                $app['db']->query("DELETE FROM players WHERE game_id = '".$game_id."'");
+                $app['db']->query("DELETE FROM logs WHERE game_id = '".$game_id."'");
+                $app['db']->query("DELETE FROM saved_games WHERE game_id = '".$game_id."'");
+                $app['session']->getFlashBag()->add('alert','Game deleted');
+            }
+            return $app->redirect($app['url_generator']->generate('ListGames'));
+        })
+        ->bind('Load');
+
         /**
          * The log iframe
          */

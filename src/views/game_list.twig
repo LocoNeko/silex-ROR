@@ -105,7 +105,9 @@
                     </td>
                     {% if is_admin %}
                     <td>
-                        <a class="btn btn-danger">DELETE</a>
+                        <form class="form-horizontal" method="POST" action="{{ path('Delete' , {'game_id' : game.game_id } ) }}">
+                            <a class="btn btn-danger">DELETE</a>
+                        </form>
                     </td>
                     {% endif %}
                 </tr>
