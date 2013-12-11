@@ -45,7 +45,6 @@ TO DO :
 - Finish events (forum_rollEvent)
 - Wars and Leaders don't go to forum
 - Ruin concessions based on Punic War or slave revolt
-- the whoIsAfter($user_id) function should skip players who are unable to bid. This means the function should be aware of the current subPhase.
 
 *************
 *Population *

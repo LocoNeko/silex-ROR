@@ -534,6 +534,8 @@ class Game
      * Say that three times.
      */
     public function whoIsAfter($user_id) {
+        $result = array() ;
+        $result['messages'] = array();
         $orderOfPlay = $this->orderOfPlay() ;
         while ($orderOfPlay[0]!=$user_id) {
             array_push($orderOfPlay , array_shift($orderOfPlay) );
@@ -544,19 +546,30 @@ class Game
             // Whatever happens, we must never pass the HRAO, as all bids will have to stop there anyway
             $firstPlayer = $this->HRAO()['user_id'] ;
             $highestBid = $this->forum_highestBidder() ;
-            // Zap all parties whose richest senator does not have more money than the current highest bid
+            // Skip all parties whose richest senator does not have more money than the current highest bid
             do {
                 $richestSenator = $this->party[$orderOfPlay[0]]->getRichestSenator();
                 if ($richestSenator['amount']<=$highestBid['bid']) {
-                    // TO DO : unfortunately, I have to change this so messages are thrown by this function
-                    echo 'zapping '.$this->party[$orderOfPlay[0]]->fullName().', ';
+                    array_push($result['messages'] , array('Skipping '.$this->party[$orderOfPlay[0]]->fullName().' : not enough talents to bid.'));
                     array_push($orderOfPlay , array_shift($orderOfPlay) );
                 } else {
                     break ;
                 }
             } while ($orderOfPlay[0] != $firstPlayer) ;
+        } elseif ($this->subPhase=='Persuasion') {
+            // Skip all parties who have no money in their party treasury
+            do {
+                if ($this->party[$orderOfPlay[0]]->treasury == 0) {
+                    array_push($result['messages'] , array('Skipping '.$this->party[$orderOfPlay[0]]->fullName().' : no talents in the party treasury to counter-bribe.'));
+                    array_push($orderOfPlay , array_shift($orderOfPlay) );
+                } else {
+                    break ;
+                }
+            // Whatever happens, we must never pass the player with the initiative, as all bids will have to stop there anyway
+            } while ($orderOfPlay[0] != $this->forum_whoseInitiative()) ;
         }
-        return $orderOfPlay[0];
+        $result['user_id'] = $orderOfPlay[0];
+        return $result ;
     }
     
     /**
@@ -1378,8 +1391,12 @@ class Game
         $this->currentBidder = $HRAO['user_id'];
         $richestSenator = $HRAO['party']->getRichestSenator() ;
         if ($richestSenator['amount']==0) {
-            array_push($messages , array('HRAO cannot bid'));
-            $this->currentBidder = $this->whoIsAfter($HRAO['user_id']);
+            array_push($messages , array('Skipping the HRAO ('.$HRAO['party']->fullName().'): not enough talents to bid.'));
+            $nextPlayer = $this->whoIsAfter($HRAO['user_id']);
+            $this->currentBidder = $nextPlayer['user_id'];
+            foreach ($nextPlayer['messages'] as $message) {
+                array_push($messages , $message);
+            }
         }
         return $messages ;
     }
@@ -1415,7 +1432,11 @@ class Game
                 }
             }
             // There was a bid or pass, we need to move on to the next bidder and check if the bids are over
-            $this->currentBidder = $this->whoIsAfter($user_id);
+            $nextPlayer = $this->whoIsAfter($user_id);
+            $this->currentBidder = $nextPlayer['user_id'];
+            foreach ($nextPlayer['messages'] as $message) {
+                array_push($messages , $message);
+            }
             $HRAO = $this->HRAO();
             // We went around the table once : bids are finished
             if ($this->currentBidder == $HRAO['user_id']) {
@@ -1454,9 +1475,9 @@ class Game
                 // Event
                 $eventRoll = $this->rollDice(3,0) ;
                 array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, then rolls a '.$eventRoll['total'].' on the events table.'));
-                $eventNumber = $this->eventTable[$eventRoll['total']][$this->scenario] ;
+                $eventNumber = $this->eventTable[(int)$eventRoll['total']][$this->scenario] ;
                 $message = $this->forum_putEventInPlay('number' , $eventNumber) ;
-                array_push($messages, array($message));
+                array_push($messages, array($message , 'alert'));
             } else {
                 // Card
                 array_push($messages , array($this->party[$user_id]->fullName().' rolls a '.$roll['total'].' and draws a card.'));
@@ -1732,7 +1753,11 @@ class Game
                                 $this->party[$user_id]->bid = $amount ;
                                 $this->persuasionTarget = $targetSenator ;
                                 array_push($messages , array ($persuadingSenator->name.' ('.$partyPersuader->fullName().') attempts to persuade '.$targetSenator->name.' ('.($partyTarget=='forum' ? 'forum' : $partyTarget->fullName()).')')) ;
-                                $this->currentBidder = $this->whoIsAfter($user_id);
+                                $nextPlayer = $this->whoIsAfter($user_id);
+                                $this->currentBidder = $nextPlayer['user_id'];
+                                foreach ($nextPlayer['messages'] as $message) {
+                                    array_push($messages , $message);
+                                }
                             // A persuasion-specific card was played
                             } else {
                                 $card = $this->party[$user_id]->hand->drawCardWithValue('id',$cardID) ;
@@ -1823,8 +1848,12 @@ class Game
                             if ($this->party[$user_id]->bidWith->treasury>=$amount) {
                                 $this->party[$user_id]->bidWith->treasury-=$amount;
                                 $this->party[$user_id]->bid+=$amount;
-                                $this->currentBidder = $this->whoIsAfter($user_id) ;
                                 array_push ($messages , array($this->party[$user_id]->fullName().' bribes more.'));
+                                $nextPlayer = $this->whoIsAfter($user_id);
+                                $this->currentBidder = $nextPlayer['user_id'];
+                                foreach ($nextPlayer['messages'] as $message) {
+                                    array_push($messages , $message);
+                                }
                             } else {
                                 array_push ($messages , array('The senator is too poor' , 'error' , $user_id));
                             }
@@ -1834,12 +1863,20 @@ class Game
                     } else {
                         if ($amount==0) {
                             array_push ($messages , array($this->party[$user_id]->fullName().' doesn\'t spend money to counter-bribe.'));
-                            $this->currentBidder = $this->whoIsAfter($user_id) ;
+                            $nextPlayer = $this->whoIsAfter($user_id);
+                            $this->currentBidder = $nextPlayer['user_id'];
+                            foreach ($nextPlayer['messages'] as $message) {
+                                array_push($messages , $message);
+                            }
                         } elseif ($this->party[$user_id]->treasury >= $amount) {
                             $this->party[$user_id]->treasury -= $amount ;
                             $this->party[$user_id]->bid += $amount ;
-                            $this->currentBidder = $this->whoIsAfter($user_id) ;
                             array_push ($messages , array($this->party[$user_id]->fullName().' spends '.$amount.' T from the party treasury to counter-bribe.'));
+                            $nextPlayer = $this->whoIsAfter($user_id);
+                            $this->currentBidder = $nextPlayer['user_id'];
+                            foreach ($nextPlayer['messages'] as $message) {
+                                array_push($messages , $message);
+                            }
                         } else {
                             return array(array('Error - not enough money in the party\'s treasury','error',$user_id));
                         }
@@ -2077,12 +2114,12 @@ class Game
                 $this->initiative++ ;
                 if ($this->initiative<=6) {
                     $this->subPhase = 'RollEvent';
+                    array_push($messages , array('Initiative #'.$this->initiative , 'alert'));
                     // forum_initInitiativeBids returns messages to indicate players who might have been skipped because they can't bid
                     $initMessages = $this->forum_initInitiativeBids();
                     foreach ($initMessages as $message) {
                         array_push($messages , $message) ;
                     }
-                    array_push($messages , array('Initiative #'.$this->initiative , 'alert'));
                 } else {
                     $this->initiative=6;
                     $this->subPhase = 'curia';
