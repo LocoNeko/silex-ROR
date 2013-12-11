@@ -49,4 +49,17 @@ class Party
         return $this->name.' ['.$this->user_name.']';
     }
     
+    public function getRichestSenator() {
+        $result = array() ;
+        $result['senator'] = NULL ;
+        $result['amount'] = 0 ;
+        foreach ($this->senators->cards as $senator) {
+            if ($result['senator'] == NULL || ($senator->treasury > $result['amount']) ) {
+                $result['senator']= $senator ;
+                $result['amount'] = $senator->treasury ;
+            }
+        }
+        return $result;
+    }
+    
 }

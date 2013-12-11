@@ -539,6 +539,23 @@ class Game
             array_push($orderOfPlay , array_shift($orderOfPlay) );
         }
         array_push($orderOfPlay , array_shift($orderOfPlay) );
+        // We are bidding
+        if ($this->subPhase=='RollEvent') {
+            // Whatever happens, we must never pass the HRAO, as all bids will have to stop there anyway
+            $firstPlayer = $this->HRAO()['user_id'] ;
+            $highestBid = $this->forum_highestBidder() ;
+            // Zap all parties whose richest senator does not have more money than the current highest bid
+            do {
+                $richestSenator = $this->party[$orderOfPlay[0]]->getRichestSenator();
+                if ($richestSenator['amount']<=$highestBid['bid']) {
+                    // TO DO : unfortunately, I have to change this so messages are thrown by this function
+                    echo 'zapping '.$this->party[$orderOfPlay[0]]->fullName().', ';
+                    array_push($orderOfPlay , array_shift($orderOfPlay) );
+                } else {
+                    break ;
+                }
+            } while ($orderOfPlay[0] != $firstPlayer) ;
+        }
         return $orderOfPlay[0];
     }
     
@@ -1351,6 +1368,7 @@ class Game
      * Re-initialises all parties bids for initiative.
      */
     public function forum_initInitiativeBids() {
+        $messages = array() ;
         foreach ($this->party as $party) {
             $party->bidDone=FALSE;
             $party->bid=0;
@@ -1358,6 +1376,12 @@ class Game
         }
         $HRAO = $this->HRAO();
         $this->currentBidder = $HRAO['user_id'];
+        $richestSenator = $HRAO['party']->getRichestSenator() ;
+        if ($richestSenator['amount']==0) {
+            array_push($messages , array('HRAO cannot bid'));
+            $this->currentBidder = $this->whoIsAfter($HRAO['user_id']);
+        }
+        return $messages ;
     }
     
     /**
@@ -1424,6 +1448,8 @@ class Game
         if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
             array_push($messages , array('Event roll Sub Phase'));
             $roll = $this->rollDice(2, 0) ;
+            // TO DO : change this this is for testing
+            $roll['total'] = 7 ;
             if ($roll['total']==7) {
                 // Event
                 $eventRoll = $this->rollDice(3,0) ;
@@ -1502,7 +1528,7 @@ class Game
         $message = '' ;
         $eventNumber = NULL ;
         if ($type == 'number') {
-            $eventNumber = $parameter ;
+            $eventNumber = (int)$parameter ;
         } elseif ($type == 'name') {
             foreach ($this->events as $key=>$eventArray) {
                 if ($eventArray['name'] == $parameter) {
@@ -2051,7 +2077,11 @@ class Game
                 $this->initiative++ ;
                 if ($this->initiative<=6) {
                     $this->subPhase = 'RollEvent';
-                    $this->forum_initInitiativeBids();
+                    // forum_initInitiativeBids returns messages to indicate players who might have been skipped because they can't bid
+                    $initMessages = $this->forum_initInitiativeBids();
+                    foreach ($initMessages as $message) {
+                        array_push($messages , $message) ;
+                    }
                     array_push($messages , array('Initiative #'.$this->initiative , 'alert'));
                 } else {
                     $this->initiative=6;
