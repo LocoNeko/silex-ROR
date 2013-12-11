@@ -1178,8 +1178,21 @@ class Game
                 // Rome gets 100T.
                 $this->treasury+=100 ;
                 array_push($messages , array('Rome collects 100 T.'));
+                // Provinces revenues for aligned Senators
                 foreach ($this->party as $party) {
                     foreach ($party->senators->cards as $senator) {
+                        foreach ($senator->controls->cards as $province) {
+                            if ($province->type=='Province') {
+                                $revenue = $province->rollRevenues('rome' , -$this->getEventLevel('name' , 'Evil Omens'));
+                                array_push($messages , array($province->name.' : Rome\'s revenue is '.$revenue.'T . ') );
+                                $this->treasury+=$revenue;
+                            }
+                        }
+                    }
+                }
+                // Provinces revenues for unaligned Senators
+                foreach ($this->forum->cards as $senator) {
+                    if ($senator->type=='Family') {
                         foreach ($senator->controls->cards as $province) {
                             if ($province->type=='Province') {
                                 $revenue = $province->rollRevenues('rome' , -$this->getEventLevel('name' , 'Evil Omens'));
@@ -1304,6 +1317,24 @@ class Game
                                     $this->forum->putOnTop($senator->controls->drawCardWithValue('id',$card->id));
                                 } else {
                                     array_push($messages , array($senator->name.' spends '.( ($card->mandate==1) ? 'First' : 'Second' ).' game turn in '.$card->name.'.'));
+                                }
+                            }
+                        }
+                    }
+                }
+                // Handle unaligned senators who are governors
+                foreach($this->forum->cards as $senator) {
+                    if ($senator->type=='Family') {
+                        foreach ($senator->controls->cards as $card) {
+                            if ($card->type=='Province') {
+                                $card->mandate++;
+                                if ($card->mandate == 3) {
+                                    array_push($messages , array($senator->name.' (unaligned) returns from '.$card->name.' which is placed in the Forum.'));
+                                    $senator->inRome=TRUE;
+                                    $card->mandate=0;
+                                    $this->forum->putOnTop($senator->controls->drawCardWithValue('id',$card->id));
+                                } else {
+                                    array_push($messages , array($senator->name.' (unaligned) spends '.( ($card->mandate==1) ? 'First' : 'Second' ).' game turn in '.$card->name.'.'));
                                 }
                             }
                         }
