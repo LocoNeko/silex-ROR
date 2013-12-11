@@ -2288,7 +2288,7 @@ class Game
             $HRAO = $this->HRAO();
             // $total is minimum -1 and maximum 18
             $total = max (-1 , min (18 , $roll['total'] + $this->unrest - $HRAO['senator']->POP )) ;
-            array_push($messages , array($HRAO['senator']->name.' rolls '.$roll['total'].' + current unrest ('.$this->unrest.') - '.$HRAO['senator']->POP.' (HRAO\'s Popularity) for a total of '.$total.'.'));
+            array_push($messages , array($HRAO['senator']->name.' rolls '.$roll['total'].' + current unrest ('.$this->unrest.') - HRAO\'s Popularity ('.$HRAO['senator']->POP.')  for a total of '.$total.'.'));
             if ($total!=-1) {
                 $effects = $this->populationTable[$total];
                 foreach ($effects as $effect) {

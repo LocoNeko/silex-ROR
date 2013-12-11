@@ -1,5 +1,4 @@
 TO DO :
-- DELETE GAME
 - i18n
 - Chat
 - Oh noes ! All the cards' numbers are wrong, they start from 0 but should start from 1 ! For Conflicts, effects on provinces are also wrong
