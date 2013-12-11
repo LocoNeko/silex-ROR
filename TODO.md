@@ -35,7 +35,6 @@ TO DO :
 TO DO :
 - Remove events that expire at the beginning of the forum phase
 - Rebel legions maintenance.
-- A unaligned Senator might be Governor : handle that case.
 
 *************
 *   Forum   *
