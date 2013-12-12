@@ -46,7 +46,8 @@ class Game
     public static $VALID_PHASES = array('Setup','Mortality','Revenue','Forum','Population','Senate','Combat','Revolution');
     public static $VALID_ACTIONS = array('Bid','RollEvent','Persuasion','Knights','ChangeLeader','SponsorGames','curia');
     public static $DEFAULT_PARTY_NAMES = array ('Imperials' , 'Plutocrats' , 'Conservatives' , 'Populists' , 'Romulians' , 'Remians');
-    public static $VALID_SCENARIOS = array('EarlyRepublic','MiddleRepublic','LateRepublic');
+    //public static $VALID_SCENARIOS = array('EarlyRepublic','MiddleRepublic','LateRepublic');
+    public static $VALID_SCENARIOS = array('EarlyRepublic');
 
     private $id ;
     public $name ;
@@ -122,7 +123,7 @@ class Game
         $this->createEvents();
         /*
          *  Create Tables : Population
-         * TO DO : popular appeal, etc
+         * TO DO : Land bills table
          */
         $this->populationTable = array();
         $this->createPopulationTable();
