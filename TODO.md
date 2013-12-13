@@ -1,4 +1,5 @@
 TO DO :
+- Move display logic away from Twig templates and into the Game object : that's a big overhaul, but could serve me well. Will use this method for the Senate anyway.
 - i18n
 - Chat
 - Oh noes ! All the cards' numbers are wrong, they start from 0 but should start from 1 ! For Conflicts, effects on provinces are also wrong

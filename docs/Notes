@@ -1,3 +1,18 @@
+*******
+*Views*
+*******
+
+The goal is to provide all the parameters to a twig template from a controller and remove all logic from the templates, put it back into controllers.
+
+Done for :
+- action_setup.twig
+
+TO DO :
+- action_revenue.twig
+- action_forum.twig
+- action_forumPersuasion.twig
+- action_population.twig
+
 *********
 *Revenue*
 *********

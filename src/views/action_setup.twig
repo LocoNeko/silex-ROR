@@ -1,110 +1,104 @@
-{% set current_user_id = content['game'].whoseTurn() %}
-{# PICK LEADER #}
-{% if content['game'].subPhase=='PickLeaders' %}
+{# The view controller #}
+{% set output = content['game'].setup_view(user_id) %}
 
-    {% if current_user_id != user_id %}
-Waiting for {{app['user.manager'].getUser(current_user_id).getName}}<br>
-    {% else %}
-Your turn to choose a leader for your party :<br><br>
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'setup_PickLeader'} ) }}">
-    <fieldset>
+{# Waiting for other player to pick leaders #}
+{% if output['state']=='Pick Leaders - Waiting' %}
+
+    Waiting for {{output['Text1']}}
+    
+{# Pick leader #}
+{% elseif output['state']=='Pick Leaders - Picking' %}
+
+    Your turn to choose a leader for your party :<br><br>
+    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'setup_PickLeader'} ) }}">
+        <fieldset>
+            <div class="control-group">
+                <div class="controls">
+                {% for senator in output['radio1'] %}
+                    <label class="radio">
+                        <input type="radio" name="senatorID" value="{{senator['SenatorID']}}">{{senator['name']}}
+                    </label>
+                {% endfor %}
+                </div>    
+            </div>
+        </fieldset>
         <div class="control-group">
             <div class="controls">
-        {% for senator in content['game'].party[user_id].senators.cards %}
-                <label class="radio">
-                    <input type="radio" name="senatorID" value="{{senator.senatorID}}">{{senator.name}}
-                </label>
-        {% endfor %}
-            </div>    
+                <button type="submit" class="btn btn-info">DONE</button>
+            </div>
         </div>
-    </fieldset>
-    <div class="control-group">
-        <div class="controls">
-            <button type="submit" class="btn btn-info">DONE</button>
-        </div>
-    </div>
-</form>
+    </form>
+
+{# Waiting for other players to play cards #}
+{% elseif output['state']=='Play Cards - Waiting' %}
+    
+    Waiting for {{output['Text1']}}
+
+{# Play cards : Statemen & Concessions OR Done #}
+{% elseif output['state']=='Play Cards' %}
+
+    Your turn to play cards :<br>
+    
+    {# Play Statemen #}
+    {% if output['PlayStatemen']%}
+        STATEMAN :
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'playStateman'} ) }}">
+            <fieldset>
+                <div class="control-group">
+                    <div class="controls">
+                    {% for stateman in output['Statemen'] %}
+                        <label class="radio">
+                            <input type="radio" name="card_id" value="{{stateman['card_id']}}">{{stateman['message']}}
+                        </label>
+                    {% endfor %}
+                    </div>    
+                </div>
+            </fieldset>
+            <div class="control-group">
+                <div class="controls">
+                    <button type="submit" class="btn">Play Stateman</button>
+                </div>
+            </div>
+        </form>
+    {% else %}
+        No Stateman to play<br>
+    {% endif%}
+
+    {# Play Concessions#}
+    {% if output['PlayConcessions']%}
+        CONCESSION :
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'playConcession'} ) }}">
+            <fieldset>
+                <div class="control-group">
+                    <div class="controls">
+                    {% for concession in output['Concessions'] %}
+                        <label class="radio">
+                            <input type="radio" name="card_id" value="{{concession['card_id']}}">{{concession['message']}}
+                        </label>
+                    {% endfor %}
+                    On Senator :
+                    {% for senator in output['Senators'] %}
+                        <label class="radio">
+                            <input type="radio" name="senator_id" value="{{senator.senatorID}}">{{senator.name}}
+                        </label>
+                    {% endfor %}
+                    </div>    
+                </div>
+            </fieldset>
+            <div class="control-group">
+                <div class="controls">
+                    <button type="submit" class="btn">Play Concession on Senator</button>
+                </div>
+            </div>
+        </form>
+    {% else %}
+        No Concession to play<br>
     {% endif %}
 
-{# PLAYING CARDS #}
-{% elseif  content['game'].subPhase=='PlayCards' %}
-    {% if current_user_id != user_id %}
-Waiting for {{app['user.manager'].getUser(current_user_id).getName}}<br>
-    {% else %}
-Your turn to play cards :<br><br>
-        {% set possibleToPlayStateman = FALSE %}
-        {% set possibleToPlayConcession = FALSE %}
-        {% for possibleAction in content['game'].setup_possibleActions(user_id) %}
-            {% if possibleAction['action']=='Stateman' %}
-                {% set possibleToPlayStateman = TRUE %}
-            {% elseif possibleAction['action']=='Concession' %}
-                {% set possibleToPlayConcession = TRUE %}
-            {% endif %}
-        {% endfor %}
-
-{# STATEMEN #}
-        {% if possibleToPlayStateman %}
-STATEMAN :
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'playStateman'} ) }}">
-    <fieldset>
-        <div class="control-group">
-            <div class="controls">
-            {% for possibleAction in content['game'].setup_possibleActions(user_id) %}
-                {% if possibleAction['action']=='Stateman' %}
-                <label class="radio">
-                    <input type="radio" name="card_id" value="{{possibleAction['card_id']}}">{{possibleAction['message']}}
-                </label>
-                {% endif %}
-            {% endfor %}
-            </div>    
-        </div>
-    </fieldset>
-    <div class="control-group">
-        <div class="controls">
-            <button type="submit" class="btn">Play Stateman</button>
-        </div>
-    </div>
-</form>
-        {% else %}
-No Stateman to play<br>
-        {% endif %}
-
-{# CONCESSIONS #}
-        {% if possibleToPlayConcession %}
-CONCESSION :
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'playConcession'} ) }}">
-    <fieldset>
-        <div class="control-group">
-            <div class="controls">
-            {% for possibleAction in content['game'].setup_possibleActions(user_id) %}
-                {% if possibleAction['action']=='Concession' %}
-                <label class="radio">
-                    <input type="radio" name="card_id" value="{{possibleAction['card_id']}}">{{possibleAction['message']}}
-                </label>
-                {% endif %}
-            {% endfor %}
-            On Senator :
-            {% for senator in content['game'].party[user_id].senators.cards %}
-                <label class="radio">
-                    <input type="radio" name="senator_id" value="{{senator.senatorID}}">{{senator.name}}
-                </label>
-            {% endfor %}
-            </div>    
-        </div>
-    </fieldset>
-    <div class="control-group">
-        <div class="controls">
-            <button type="submit" class="btn">Play Concession on Senator</button>
-        </div>
-    </div>
-</form>
-        {% else %}
-No Concession to play<br>
-        {% endif %}
-
-{# SETUP DONE #}
+{# Setup done #}
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'setup_Finished'} ) }}">
     <button type="submit" class="btn btn-info">DONE</button>            
 </form>
-    {% endif %}
+
 {% endif %}
+

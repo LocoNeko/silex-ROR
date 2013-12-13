@@ -1,1 +1,11 @@
 Senate phase<br>
+{% for view in content['game'].senate_view(user_id)%}
+    {% if view['type']=='Message' %}
+        {{view['content']}}
+    {% elseif view['type']=='Form' %}
+        <form style="{{view['content']['style']}}">
+    {% elseif view['type']=='Text input' %}
+    {% elseif view['type']=='Close Form' %}
+        </form>
+    {% endif %}
+{% endfor %}
