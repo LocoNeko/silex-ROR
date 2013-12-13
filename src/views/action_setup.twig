@@ -4,7 +4,7 @@
 {# Waiting for other player to pick leaders #}
 {% if output['state']=='Pick Leaders - Waiting' %}
 
-    Waiting for {{output['Text1']}}
+    Waiting for {{output['Text']}}
     
 {# Pick leader #}
 {% elseif output['state']=='Pick Leaders - Picking' %}
@@ -14,7 +14,7 @@
         <fieldset>
             <div class="control-group">
                 <div class="controls">
-                {% for senator in output['radio1'] %}
+                {% for senator in output['senatorList'] %}
                     <label class="radio">
                         <input type="radio" name="senatorID" value="{{senator['SenatorID']}}">{{senator['name']}}
                     </label>
@@ -32,7 +32,7 @@
 {# Waiting for other players to play cards #}
 {% elseif output['state']=='Play Cards - Waiting' %}
     
-    Waiting for {{output['Text1']}}
+    Waiting for {{output['Text']}}
 
 {# Play cards : Statemen & Concessions OR Done #}
 {% elseif output['state']=='Play Cards' %}

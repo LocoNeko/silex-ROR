@@ -37,7 +37,7 @@ namespace ROR;
  * $fleet array of fleet objects
  * --- SENATE ---
  * $steppedDown : array of SenatorIDs of Senators who have stepped down during this Senate phase
- * $proposals
+ * $proposals : array of proposals for the turn, see proposal class
  * $laws : array of laws in play
  */
 class Game 
@@ -758,9 +758,9 @@ class Game
      * $output['state'] (Mandatory) : gives the name of the current state to be rendered
      * $output['X'] : an array of values 
      * - X is the name of the component to be rendered
-     * - 'values' gives its actual content : text for a text, list of options for select, etc...
-     * @param type $user_id
-     * @return string
+     * - 'values' is the actual content : text for a text, list of options for select, etc...
+     * @param string $user_id
+     * @return array $output
      */
     public function setup_view($user_id) {
         $output = array() ;
@@ -772,14 +772,14 @@ class Game
             if ( $user_id != $this->whoseTurn()) {
                 $output['state'] = 'Pick Leaders - Waiting';
                 // Give the name of the player we are waiting for
-                $output['Text1'] = $this->party[$this->whoseTurn()]->fullName() ;
+                $output['Text'] = $this->party[$this->whoseTurn()]->fullName() ;
             
             // Your turn : give a list of Senators to pick from
             } else {
                 $output['state'] = 'Pick Leaders - Picking';
-                $output['radio1'] = array () ;
+                $output['senatorList'] = array () ;
                 foreach ($this->party[$user_id]->senators->cards as $senator) {
-                    array_push ($output['radio1'] , array('SenatorID' => $senator->senatorID , 'name' => $senator->name) );
+                    array_push ($output['senatorList'] , array('SenatorID' => $senator->senatorID , 'name' => $senator->name) );
                 }
             }
             
@@ -789,7 +789,7 @@ class Game
             if ( $user_id != $this->whoseTurn()) {
                 $output['state'] = 'Play Cards - Waiting';
                 // Give the name of the player we are waiting for
-                $output['Text1'] = $this->party[$this->whoseTurn()]->fullName() ;
+                $output['Text'] = $this->party[$this->whoseTurn()]->fullName() ;
             
             // Your turn : give a list of options
             } else {
@@ -2382,9 +2382,7 @@ class Game
                 array_push($messages , array('People revolt - Game over.' , 'error'));
             }
             array_push($messages , array('SENATE PHASE','alert'));
-            $this->phase = 'Senate';
             $this->senate_init();
-            $this->subPhase = 'Consuls';
         }
         return $messages ;
     }
@@ -2416,6 +2414,8 @@ class Game
      * Initialises various Senate-related variables
      */
     public function senate_init() {
+        $this->phase = 'Senate';
+        $this->subPhase = 'Consuls';
         unset($this->steppedDown);
         $this->steppedDown = array() ;
         unset($this->proposals);
@@ -2437,6 +2437,14 @@ class Game
         }
         return FALSE ;
     }
+
+    /**
+     * Return an array with the Senator & party who is the presiding magistrate
+     * @return array|bool array('senator' , 'user_id')
+     */
+    public function senate_presidingMagistrate() {
+        
+    }
     
     /**
      * Put a proposal forward
@@ -2454,7 +2462,15 @@ class Game
         if ($type=='Consuls') {
             $validation = $this->senate_validateConsulsProposal($typeKey , $parameters) ;
             if ($validation[1]=='error') {
-                array_push($messages , $validation);
+                return $validation;
+            } else {
+                $proposal = new Proposal ;
+                $result = $proposal->init($type,'',$this->party) ;
+                if ( is_set($result[2]) && $result[2]=='error' ) {
+                    return array('Error with proposal type.' , 'error') ;
+                } else {
+                    array_push($this->proposals , $proposal) ;
+                }
             }
         }
         return $messages;
@@ -2505,17 +2521,40 @@ class Game
         }
     }
     
-    /**
-     * This function returns an array of components to be displayed :
-     * - Texts
-     * - Text input fields
-     * - Drop-down lists
-     * - Buttons
-     * The array is : 'type' , 'content'
-     * @param type $user_id
+     /**
+     * setup_view returns all the data needed to render setup templates. The function returns an array $output :
+     * $output['state'] (Mandatory) : gives the name of the current state to be rendered
+     * $output['X'] : an array of values 
+     * - X is the name of the component to be rendered
+     * - 'values' is the actual content : text for a text, list of options for select, etc...
+     * @param string $user_id
+     * @return array $output
      */
     public function senate_view($user_id) {
-        
+        $output = array() ;
+        /* TO DO : Check if the following 2 actions are available (they almost always are) :
+         * - Assassination
+         * - Tribune
+         */
+        $currentProposal = ( is_set($this->proposals[count($this->proposals)-1]) ? $this->proposals[count($this->proposals)-1] : FALSE ) ;
+        if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
+            /* Check if vote underway.
+             *  Yes -> Vote
+             *  No ->
+             *   Check if only one pair is available
+             *   Check if the player can make a proposal
+             */
+            // A 'Consuls' proposal is active : we need to vote
+            if ( ($currentProposal!==FALSE) && ($currentProposal->type=='Consuls') && ($currentProposal->outcome===NULL) ) {
+            
+            // No vote underway : check if the player can make a proposal
+            } else {
+                
+            }
+        } else {
+            $output['state'] = 'Error';
+        }
+        return $output ;
     }
     
     /************************************************************
