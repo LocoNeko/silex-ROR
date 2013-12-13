@@ -49,8 +49,7 @@ class Proposal {
         // Default descriptions
         $this->description = self::$DEFAULT_PROPOSAL_DESCRIPTION[$key] ;
         /*
-         *  TO DO : validate the $parameters array.
-         * This will be a painful process !
+         * TO DO : validate the $parameters array. This will be a painful process ! It has to be done on the Game object side, as many properties of the game will have to be checked
          * Note : Parameters may change after the vote, when proposals require Senators to agree upon themselves on who does what, or prosecutors to be picked, or Master of Horse to be appointed
          */
         // Initialise voting array

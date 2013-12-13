@@ -37,6 +37,8 @@ namespace ROR;
  * $fleet array of fleet objects
  * --- SENATE ---
  * $steppedDown : array of SenatorIDs of Senators who have stepped down during this Senate phase
+ * $proposals
+ * $laws : array of laws in play
  */
 class Game 
 {
@@ -144,7 +146,9 @@ class Game
             $this->legion[$i]->location = 'Rome';
         }
         array_push($messages , array('Rome starts with 4 Legions') ) ;
-        $this->steppedDown = array();
+        $this->steppedDown = array() ;
+        $this->proposals = array() ;
+        $this->laws = array() ;
         /*
          *  Creating parties
          */
@@ -2355,6 +2359,8 @@ class Game
     public function senate_init() {
         unset($this->steppedDown);
         $this->steppedDown = array() ;
+        unset($this->proposals);
+        $this->proposals = array() ;
     }
     
     /**
@@ -2371,6 +2377,67 @@ class Game
             }
         }
         return FALSE ;
+    }
+    
+    /**
+     * Put a proposal forward
+     * @param string $type A valid proposal type, as in Proposal::$VALID_PROPOSAL_TYPES
+     * @param string $description A proposal's description
+     * @param type $parameters an array of parameters
+     * @return type
+     */
+    public function senate_proposal($type , $description , $parameters) {
+        $messages = array() ;
+        $typeKey = array_search($type, Proposal::$VALID_PROPOSAL_TYPES) ;
+        if ($typeKey===FALSE) {
+            return array('Error with proposal type.' , 'error') ;
+        }
+        if ($type=='Consuls') {
+            $validation = $this->senate_validateConsulsProposal($typeKey , $parameters) ;
+            if ($validation[1]=='error') {
+                array_push($messages , $validation);
+            }
+        }
+        return $messages;
+    }
+    
+    private function senate_validateConsulsProposal($typeKey , $parameters) {
+        // Basic check : we have 2 and only 2 Senators
+        if ( ($parameters[0]->type == 'Senator') && ($parameters[1]->type == 'Senator') && (count($parameters)==2) ) {
+            // Sorts the 2 Senators lexicographically
+            usort ($parameters, function($a, $b) {
+                return strcmp($a['senator']->senatorID , $b['senator']->senatorID);
+            });
+            // Check if they are in Rome (where they must do as Romans do)
+            if ((!$parameters[0]->inRome) || (!$parameters[1]->inRome)) {
+                return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Both Senators must be in Rome to be proposed.','error');
+            }
+            // Check if they already have been rejected
+            foreach ($this->proposals as $proposal) {
+                if ($proposal->type=='Consuls' && $proposal->outcome=='Rejected' && $proposal->parameters[0]==$parameters[0] && $proposal->parameters[1]==$parameters[1]) {
+                    return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This pair has already been rejected','error');
+                }
+            }
+            // Check that they are not already Consuls or Dictator Except if 'Tradition Erodes' law is in play
+            if (!in_array('Tradition Erodes' , $this->laws)) {
+                if (
+                    ($parameters[0]->office == 'Dictator') ||
+                    ($parameters[0]->office == 'Rome Consul') ||
+                    ($parameters[0]->office == 'Field Consul') ||
+                    ($parameters[1]->office == 'Dictator') ||
+                    ($parameters[1]->office == 'Rome Consul') ||
+                    ($parameters[1]->office == 'Field Consul')
+                ) {
+                    return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Before the \'Tradition Erodes\' law is in place, Senators cannot be proposed if they are already Dictator or Consul.','error');
+                }
+            }
+            // Check if they are not Pontifex
+            if (($parameters[0]->office == 'Pontifex Maximus') || ($parameters[1]->office == 'Pontifex Maximus')) {
+                return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.','error');
+            }
+        } else {
+            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : You must propose 2 senators','error');
+        }
     }
     
     /************************************************************
