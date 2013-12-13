@@ -432,28 +432,17 @@ class Game
     
     /**
      * Returns the Senator, Party, and user_id of the HRAO
+     * if $presiding is TRUE, ignores senators who have stepped down
      * @return array 'senator' , 'party' , 'user_id'
      */
-    public function HRAO() {
+    public function getHRAO($presiding=FALSE) {
         $allSenators = array ();
+        $rankedSenators = array() ;
         foreach ($this->party as $user_id=>$party) {
             foreach ($party->senators->cards as $senator) {
-                if ($senator->inRome) {
-                    switch ($senator->office) {
-                        case ('Dictator') :
-                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
-                        case ('Rome Consul') :
-                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
-                        case ('Field Consul') :
-                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
-                        case ('Censor') :
-                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
-                        case ('Master of Horse') :
-                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
-                        case ('Pontifex Maximus') :
-                            return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
-                        default :
-                    }
+                if ($senator->inRome && (!$presiding || !in_array($this->steppedDown , $senator->senatorID))) {
+                    // This will put an array ('senator','party','user_id') in another array $rankedSenators, ordered by Valid Offices keys (Dictator first, Rome Consul second, etc...
+                    $rankedSenators[array_search($senator->office, Senator::$VALID_OFFICES)] = array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
                 }
                 /*
                  * In case the HRAO couldn't be determined through offices because no official is in Rome
@@ -461,6 +450,10 @@ class Game
                  */
                 array_push($allSenators , $senator);
             }
+        }
+        // We found at least one ranked Senator
+        if (count($rankedSenators)>0) {
+            return array_shift($rankedSenators) ;
         }
         /* If we reach this part, the HRAO couldn't be determined because there is no Official present in Rome
          * So we check highest INF, break ties with Oratory then lowest ID
@@ -476,7 +469,13 @@ class Game
                 return strcmp($a->senatorID , $b->senatorID);
             }
         });
-        $senator = $allSenators[0] ;
+        if ($presiding) {
+            while (in_array($this->steppedDown , $allSenators[0]->senatorID)) {
+                array_shift($allSenators) ;
+            }
+        } else {
+            $senator = $allSenators[0] ;
+        }
         $party = $this->getPartyOfSenator($senator) ;
         $user_id = $party->user_id ;
         return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
@@ -527,7 +526,7 @@ class Game
      */
     public function orderOfPlay() {
         $result = array_keys ($this->party) ;
-        $user_idHRAO = $this->HRAO()['user_id'];
+        $user_idHRAO = $this->getHRAO()['user_id'];
         while ($result[0]!=$user_idHRAO) {
             array_push($result , array_shift($result) );
         }
@@ -549,7 +548,7 @@ class Game
         // We are bidding
         if ($this->subPhase=='RollEvent') {
             // Whatever happens, we must never pass the HRAO, as all bids will have to stop there anyway
-            $firstPlayer = $this->HRAO()['user_id'] ;
+            $firstPlayer = $this->getHRAO()['user_id'] ;
             $highestBid = $this->forum_highestBidder() ;
             // Skip all parties whose richest senator does not have more money than the current highest bid
             do {
@@ -1438,7 +1437,7 @@ class Game
             }
         }
         if ($result['bid']==0) {
-            $HRAO = $this->HRAO() ;
+            $HRAO = $this->getHRAO() ;
             $result['message']='The HRAO '.$HRAO['party']->fullName().' as all bets are 0.';
             $result['user_id']=$HRAO['user_id'];
         }
@@ -1482,7 +1481,7 @@ class Game
             $party->bid=0;
             $party->bidWith=NULL;
         }
-        $HRAO = $this->HRAO();
+        $HRAO = $this->getHRAO();
         $this->currentBidder = $HRAO['user_id'];
         $richestSenator = $HRAO['party']->getRichestSenator() ;
         if ($richestSenator['amount']==0) {
@@ -1532,7 +1531,7 @@ class Game
             foreach ($nextPlayer['messages'] as $message) {
                 array_push($messages , $message);
             }
-            $HRAO = $this->HRAO();
+            $HRAO = $this->getHRAO();
             // We went around the table once : bids are finished
             if ($this->currentBidder == $HRAO['user_id']) {
                 $highestBidder = $this->forum_highestBidder() ;
@@ -2349,7 +2348,7 @@ class Game
             array_push($messages , array($thisTurnUnrest['message']));
             $this->unrest+=$thisTurnUnrest['total'];
             $roll=$this->rollDice(3, -1) ;
-            $HRAO = $this->HRAO();
+            $HRAO = $this->getHRAO();
             // $total is minimum -1 and maximum 18
             $total = max (-1 , min (18 , $roll['total'] + $this->unrest - $HRAO['senator']->POP )) ;
             array_push($messages , array($HRAO['senator']->name.' rolls '.$roll['total'].' + current unrest ('.$this->unrest.') - HRAO\'s Popularity ('.$HRAO['senator']->POP.')  for a total of '.$total.'.'));
@@ -2438,14 +2437,6 @@ class Game
         return FALSE ;
     }
 
-    /**
-     * Return an array with the Senator & party who is the presiding magistrate
-     * @return array|bool array('senator' , 'user_id')
-     */
-    public function senate_presidingMagistrate() {
-        
-    }
-    
     /**
      * Put a proposal forward
      * @param string $type A valid proposal type, as in Proposal::$VALID_PROPOSAL_TYPES
@@ -2549,7 +2540,11 @@ class Game
             
             // No vote underway : check if the player can make a proposal
             } else {
-                
+                $president = $this->getHRAO(TRUE);
+                // This is the president
+                if ($president['user_id']==$user_id) {
+                    
+                }
             }
         } else {
             $output['state'] = 'Error';
