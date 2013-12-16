@@ -154,7 +154,7 @@ class RORControllerProvider implements ControllerProviderInterface
             }
             return $app->redirect($app['url_generator']->generate('ListGames'));
         })
-        ->bind('Load');
+        ->bind('Delete');
 
         /**
          * The log iframe

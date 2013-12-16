@@ -2457,7 +2457,7 @@ class Game
             } else {
                 $proposal = new Proposal ;
                 $result = $proposal->init($type,'',$this->party) ;
-                if ( is_set($result[2]) && $result[2]=='error' ) {
+                if ( isset($result[2]) && $result[2]=='error' ) {
                     return array('Error with proposal type.' , 'error') ;
                 } else {
                     array_push($this->proposals , $proposal) ;
@@ -2527,7 +2527,7 @@ class Game
          * - Assassination
          * - Tribune
          */
-        $currentProposal = ( is_set($this->proposals[count($this->proposals)-1]) ? $this->proposals[count($this->proposals)-1] : FALSE ) ;
+        $currentProposal = ( isset($this->proposals[count($this->proposals)-1]) ? $this->proposals[count($this->proposals)-1] : FALSE ) ;
         if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
             /* Check if vote underway.
              *  Yes -> Vote
