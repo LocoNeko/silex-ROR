@@ -25,6 +25,7 @@ class Party
     public $treasury ;
     public $phase_done ;
     public $bid , $bidDone , $bidWith  ;
+    public $freeTribunes ;
     
     public function __construct() {
     }
@@ -43,6 +44,7 @@ class Party
         $this->bid = 0 ;
         $this->bidDone = NULL ;
         $this->bidWith = NULL ;
+        $this->freeTribunes = array() ;
     }
     
     public function fullName() {

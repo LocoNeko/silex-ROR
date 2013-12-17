@@ -436,11 +436,14 @@ class Game
      * @return array 'senator' , 'party' , 'user_id'
      */
     public function getHRAO($presiding=FALSE) {
+        /*
+         *  Reminder : $VALID_OFFICES = array('Dictator', 'Rome Consul' , 'Field Consul' , 'Censor' , 'Master of Horse' , 'Pontifex Maximus');
+         */
         $allSenators = array ();
         $rankedSenators = array() ;
         foreach ($this->party as $user_id=>$party) {
             foreach ($party->senators->cards as $senator) {
-                if ($senator->inRome && (!$presiding || !in_array($this->steppedDown , $senator->senatorID))) {
+                if ( $senator->inRome && $senator->office!==NULL && (!$presiding || !in_array($senator->senatorID , $this->steppedDown) )) {
                     // This will put an array ('senator','party','user_id') in another array $rankedSenators, ordered by Valid Offices keys (Dictator first, Rome Consul second, etc...
                     $rankedSenators[array_search($senator->office, Senator::$VALID_OFFICES)] = array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
                 }
@@ -453,7 +456,13 @@ class Game
         }
         // We found at least one ranked Senator
         if (count($rankedSenators)>0) {
-            return array_shift($rankedSenators) ;
+            // If we are looking for the presiding magistrate, The Censor must be returned during the Senate phase, Prosecutions subPhase
+            if ( $presiding && $this->phase=='Senate' && $this->subPhase=='Prosecutions' && isset($rankedSenators[3]) ) {
+                return $rankedSenators[3] ;
+            // Otherwise, the HRAO
+            } else {
+                return array_shift($rankedSenators) ;
+            }
         }
         /* If we reach this part, the HRAO couldn't be determined because there is no Official present in Rome
          * So we check highest INF, break ties with Oratory then lowest ID
@@ -469,8 +478,10 @@ class Game
                 return strcmp($a->senatorID , $b->senatorID);
             }
         });
+        // If we are looking for the Presiding Magistrate, we must ignore senators who have stepped down
+        // The censor for prosecutions is completely irrelevant, since if we are here, there is no Censor, therefore no prosecutions...
         if ($presiding) {
-            while (in_array($this->steppedDown , $allSenators[0]->senatorID)) {
+            while (in_array($allSenators[0]->senatorID , $this->steppedDown)) {
                 array_shift($allSenators) ;
             }
         } else {
@@ -551,15 +562,17 @@ class Game
             $firstPlayer = $this->getHRAO()['user_id'] ;
             $highestBid = $this->forum_highestBidder() ;
             // Skip all parties whose richest senator does not have more money than the current highest bid
-            do {
+            // Don't do anything if we already have a winner (forum_whoseInitiative()==FALSE)
+            while ($orderOfPlay[0] != $firstPlayer && $this->forum_whoseInitiative()==FALSE) {
                 $richestSenator = $this->party[$orderOfPlay[0]]->getRichestSenator();
                 if ($richestSenator['amount']<=$highestBid['bid']) {
                     array_push($result['messages'] , array('Skipping '.$this->party[$orderOfPlay[0]]->fullName().' : not enough talents to bid.'));
+                    $this->party[$orderOfPlay[0]]->bidDone=TRUE;
                     array_push($orderOfPlay , array_shift($orderOfPlay) );
                 } else {
                     break ;
                 }
-            } while ($orderOfPlay[0] != $firstPlayer) ;
+            }
         } elseif ($this->subPhase=='Persuasion') {
             // Skip all parties who have no money in their party treasury
             do {
@@ -1535,7 +1548,9 @@ class Game
             // We went around the table once : bids are finished
             if ($this->currentBidder == $HRAO['user_id']) {
                 $highestBidder = $this->forum_highestBidder() ;
-                $this->party[$highestBidder['user_id']]->bidWith->treasury-=$highestBidder['bid'];
+                if ($highestBidder['bid']>0) {
+                    $this->party[$highestBidder['user_id']]->bidWith->treasury-=$highestBidder['bid'];
+                }
                 // This is not straight-forward, but it allows for multiple rounds of bidding as a possible variant
                 foreach($this->party as $party) {
                     if ($party->user_id!=$highestBidder['user_id']) {
@@ -1543,7 +1558,11 @@ class Game
                         $party->bidWith=NULL;
                     }
                 }
-                array_push($messages , array($this->party[$highestBidder['user_id']]->fullName().' wins this initiative. '.$this->party[$highestBidder['user_id']]->bidWith->name.' spends '.$highestBidder['bid'].'T from his personal treasury.'));
+                if ($highestBidder['bid']>0) {
+                    array_push($messages , array($this->party[$highestBidder['user_id']]->fullName().' wins this initiative. '.$this->party[$highestBidder['user_id']]->bidWith->name.' spends '.$highestBidder['bid'].'T from his personal treasury.'));
+                } else {
+                    array_push($messages , array($this->party[$highestBidder['user_id']]->fullName().' wins this initiative since he is the HRAO and no one bid.'));
+                }
             }
         } else {
             array_push($messages , array('Cannot bid as this initiative already belongs to another player' , 'error' , $user_id));
@@ -1563,8 +1582,6 @@ class Game
         if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
             array_push($messages , array('Event roll Sub Phase'));
             $roll = $this->rollDice(2, 0) ;
-            // TO DO : change this this is for testing
-            $roll['total'] = 7 ;
             if ($roll['total']==7) {
                 // Event
                 $eventRoll = $this->rollDice(3,0) ;
@@ -2415,10 +2432,20 @@ class Game
     public function senate_init() {
         $this->phase = 'Senate';
         $this->subPhase = 'Consuls';
-        unset($this->steppedDown);
-        $this->steppedDown = array() ;
-        unset($this->proposals);
-        $this->proposals = array() ;
+        unset($this->steppedDown); $this->steppedDown = array() ;
+        unset($this->proposals); $this->proposals = array() ;
+        // Free tribunes per party, based on Senators inRome & specialAbility
+        foreach ($this->party as $party) {
+            unset($party->freeTribunes) ; $party->freeTribunes = array() ;
+            foreach ($party->senators->cards as $senator) {
+                if ($senator->inRome && $senator->specialAbility!==NULL) {
+                    $abilities = explode(',' , $senator->specialAbility) ;
+                    if (in_array('Tribune' , $abilities)) {
+                        $party->freeTribunes[] = $senator->senatorID ;
+                    }
+                }
+            }
+        }
     }
     
     /**
@@ -2528,28 +2555,99 @@ class Game
          * - Tribune
          */
         $currentProposal = ( isset($this->proposals[count($this->proposals)-1]) ? $this->proposals[count($this->proposals)-1] : FALSE ) ;
-        if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
-            /* Check if vote underway.
-             *  Yes -> Vote
-             *  No ->
-             *   Check if only one pair is available
-             *   Check if the player can make a proposal
-             */
-            // A 'Consuls' proposal is active : we need to vote
-            if ( ($currentProposal!==FALSE) && ($currentProposal->type=='Consuls') && ($currentProposal->outcome===NULL) ) {
+        
+        // There is a vote underway, the layout should be a voting layout
+        if ($currentProposal!==FALSE && $currentProposal->outcome===NULL) {
             
-            // No vote underway : check if the player can make a proposal
-            } else {
-                $president = $this->getHRAO(TRUE);
-                // This is the president
-                if ($president['user_id']==$user_id) {
-                    
-                }
-            }
+        
+        // There is no vote underway, give the possibility to make proposals
         } else {
-            $output['state'] = 'Error';
+            if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
+                $possiblePairs = $this->senate_consulsPairs() ;
+                // Only one pair is available
+                if (count($possiblePairs)==1) {
+                    // TO DO : Automatic election
+                } else {
+                    $output['state'] = 'Consuls - Proposal';
+                    $output['pairs'] = array() ;
+                    foreach($possiblePairs as $pair) {
+                        $senator1 = $this->getSenatorWithID($pair[0]) ;
+                        $party1 = $this->getPartyOfSenator($senator1) ;
+                        $senator2 = $this->getSenatorWithID($pair[1]) ;
+                        $party2 = $this->getPartyOfSenator($senator2) ;
+                        array_push($output['pairs'] , array($senator1->name.' ('.$party1->fullName().')' , $senator2->name.' ('.$party2->fullName().')'));
+                    }
+                }
+            } else {
+                $output['state'] = 'Error';
+            }
         }
         return $output ;
+    }
+    
+    /**
+     * This function returns a string indicating how player user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune')
+     * or FALSE if he can't
+     * @param type $user_id
+     */
+    public function senate_canMakeProposal($user_id) {
+        $president = $this->getHRAO(TRUE);
+        if ($president['user_id']==$user_id) {
+            return 'president' ;
+        } elseif (count($this->party[$user_id]->freeTribunes) >0 ) {
+            return 'free tribune' ;
+        } else {
+            foreach ($this->party[$user_id]->hand->cards as $card) {
+                if ($card->name == 'TRIBUNE') {
+                    return 'tribune card';
+                }
+            }
+        }
+        return FALSE ;
+    }
+    
+    /**
+     * Returns a list of all possible consul pairs :
+     * - Both in Rome
+     * - Both without an incompatible office before the "Tradition Erodes" law is in place
+     * - Not yet rejected as a pair
+     * @return array
+     */
+    public function senate_consulsPairs() {
+        $listOfSenators=array();
+        foreach($this->party as $party) {
+            foreach($party->senators->cards as $senator) {
+                if ($senator->inRome) {
+                    if ( in_array('Tradition Erodes' , $this->laws) || (($senator->office != 'Dictator') && ($senator->office != 'Rome Consul') && ($senator->office != 'Field Consul') && ($senator->office != 'Pontifex Maximus')) ) {
+                        array_push($listOfSenators , $senator->senatorID);
+                    }
+                }
+            }
+        }
+        usort ($listOfSenators, function($a, $b) {
+                return strcmp($a , $b);
+        });
+        $result=array();
+        foreach ($listOfSenators as $senator1) {
+            foreach ($listOfSenators as $senator2) {
+                if (strcmp($senator1 , $senator2)<0) {
+                    $rejected = FALSE ;
+                    foreach ($this->proposals as $proposal) {
+                        if ($proposal->type=='Consuls') {
+                            if ($proposal->outcome=='Rejected') {
+                                if ($proposal->parameters[0]->senatorID==$senator1 && $proposal->parameters[1]->senatorID==$senator2) {
+                                    $rejected=TRUE;
+                                }
+                            }
+                        }
+                    }
+                    if (!$rejected) {
+                        array_push($result , array($senator1 , $senator2));
+                    }
+                }
+            }
+        }
+        return $result;
     }
     
     /************************************************************

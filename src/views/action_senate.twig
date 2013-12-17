@@ -1,2 +1,9 @@
 {# The view controller #}
 {% set output = content['game'].senate_view(user_id) %}
+
+{# Consuls proposal#}
+{% if output['state']=='Consuls - Proposal' %}
+    {%for pair in output['pairs']%}
+        {{pair[0]}} & {{pair[1]}} <br>
+    {% endfor %}
+{% endif %}
