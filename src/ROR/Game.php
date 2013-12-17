@@ -431,6 +431,22 @@ class Game
     }
     
     /**
+     * Returns a list of all aligned senators
+     * @return array
+     */
+    public function getAllAlignedSenators($inRomeFlag=TRUE) {
+        $result=array();
+        foreach ($this->party as $party) {
+            foreach ($party->senators->cards as $senator) {
+                if ($senator->inRome == $inRomeFlag) {
+                    array_push($result , $senator) ;
+                }
+            }
+        }
+        return $result ;
+    }
+    
+    /**
      * Returns the Senator, Party, and user_id of the HRAO
      * if $presiding is TRUE, ignores senators who have stepped down
      * @return array 'senator' , 'party' , 'user_id'
@@ -2483,7 +2499,7 @@ class Game
                 return $validation;
             } else {
                 $proposal = new Proposal ;
-                $result = $proposal->init($type,'',$this->party) ;
+                $result = $proposal->init($type,$description,$this->party) ;
                 if ( isset($result[2]) && $result[2]=='error' ) {
                     return array('Error with proposal type.' , 'error') ;
                 } else {
@@ -2491,6 +2507,7 @@ class Game
                 }
             }
         }
+        // TO DO
         return $messages;
     }
     
@@ -2539,12 +2556,15 @@ class Game
         }
     }
     
-     /**
+     /*
      * setup_view returns all the data needed to render setup templates. The function returns an array $output :
-     * $output['state'] (Mandatory) : gives the name of the current state to be rendered
-     * $output['X'] : an array of values 
-     * - X is the name of the component to be rendered
-     * - 'values' is the actual content : text for a text, list of options for select, etc...
+     * $output['state'] (Mandatory) gives the name of the current state to be rendered :
+     * - Vote : A vote on a proposal is underway
+     * - Proposal : Make a proposal
+     * - Proposal impossible : Unable to make a proposal
+     * - Agree : Need to agree on a voted proposal (e.g. Consuls decide who does what, Accusator agrees to prosecute, etc)
+     * - Error : A problem occured
+     * $output[{other}] : values or array of values based on context
      * @param string $user_id
      * @return array $output
      */
@@ -2558,7 +2578,7 @@ class Game
         
         // There is a vote underway, the layout should be a voting layout
         if ($currentProposal!==FALSE && $currentProposal->outcome===NULL) {
-            
+            $output['state'] = 'Vote' ;
         
         // There is no vote underway, give the possibility to make proposals
         } else {
@@ -2567,8 +2587,10 @@ class Game
                 // Only one pair is available
                 if (count($possiblePairs)==1) {
                     // TO DO : Automatic election
-                } else {
-                    $output['state'] = 'Consuls - Proposal';
+                } elseif ($this->senate_canMakeProposal($user_id)) {
+                    $output['state'] = 'Proposal';
+                    $output['type'] = 'Consuls';
+                    $output['proposalHow'] = $this->senate_canMakeProposal($user_id);
                     $output['pairs'] = array() ;
                     foreach($possiblePairs as $pair) {
                         $senator1 = $this->getSenatorWithID($pair[0]) ;
@@ -2577,6 +2599,14 @@ class Game
                         $party2 = $this->getPartyOfSenator($senator2) ;
                         array_push($output['pairs'] , array($senator1->name.' ('.$party1->fullName().')' , $senator2->name.' ('.$party2->fullName().')'));
                     }
+                    $output['senators'] = array() ;
+                    $alignedSenators = $this->getAllAlignedSenators(TRUE) ;
+                    foreach ($alignedSenators as $senator) {
+                        array_push($output['senators'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'partyName' => $this->getPartyOfSenator($senator)->fullName())) ;
+                    }
+                    
+                } else {
+                    $output['state'] = 'Proposal impossible';
                 }
             } else {
                 $output['state'] = 'Error';

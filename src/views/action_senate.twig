@@ -1,9 +1,44 @@
 {# The view controller #}
 {% set output = content['game'].senate_view(user_id) %}
 
-{# Consuls proposal#}
-{% if output['state']=='Consuls - Proposal' %}
-    {%for pair in output['pairs']%}
-        {{pair[0]}} & {{pair[1]}} <br>
-    {% endfor %}
+{# Make a Proposal #}
+{% if output['state']=='Proposal' %}
+    You can make a Proposal ({{output['proposalHow']}})<br>
+    
+    {# Consuls proposal #}
+    {% if output['type']=='Consuls' %}
+    Nominate :<br>
+    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_proposal'} ) }}">
+        <select name="senator1" style="width:400px;">
+            {%for senator in output['senators']%}
+            <option value="{{senator['senatorID']}}">
+                 {{senator['name']}} ({{senator['partyName']}})
+            </option>
+            {% endfor %}
+        </select>
+        AND
+        <select name="senator2" style="width:400px;">
+            {%for senator in output['senators']%}
+            <option value="{{senator['senatorID']}}">
+                 {{senator['name']}} ({{senator['partyName']}})
+            </option>
+            {% endfor %}
+        </select>
+        <br><br>
+        <button type="submit" class="btn-danger">MAKE PROPOSAL ({{output['proposalHow']}})</button>
+    </form>
+    {% endif %}
+
+{# Proposal impossible#}
+{% elseif output['state']=='Proposal impossible'%}
+You cannot make a proposal at the moment
+        
+{# Vote #}
+{% elseif output['state']=='Vote'%}
+Vote
+
+{# Error#}
+{% else %}
+ERROR
+
 {% endif %}
