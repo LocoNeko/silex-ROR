@@ -1,23 +1,26 @@
 {# The view controller #}
 {% set output = content['game'].senate_view(user_id) %}
 
-{# Make a Proposal #}
+{#
+    Make a Proposal
+#}
 {% if output['state']=='Proposal' %}
-    You can make a Proposal ({{output['proposalHow']}})<br>
-    
+    You can make a Proposal<br>
+
     {# Consuls proposal #}
     {% if output['type']=='Consuls' %}
     Nominate :<br>
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_proposal'} ) }}">
-        <select name="senator1" style="width:400px;">
+        <input type="hidden" name="type" value="Consuls">
+        <select name="parameters[0]" style="width:500px;">
             {%for senator in output['senators']%}
             <option value="{{senator['senatorID']}}">
                  {{senator['name']}} ({{senator['partyName']}})
             </option>
             {% endfor %}
-        </select>
-        AND
-        <select name="senator2" style="width:400px;">
+        </select><br>
+        AND<br>
+        <select name="parameters[1]" style="width:500px;">
             {%for senator in output['senators']%}
             <option value="{{senator['senatorID']}}">
                  {{senator['name']}} ({{senator['partyName']}})
@@ -25,20 +28,29 @@
             {% endfor %}
         </select>
         <br><br>
-        <button type="submit" class="btn-danger">MAKE PROPOSAL ({{output['proposalHow']}})</button>
+        <button type="submit" class="btn-danger">MAKE PROPOSAL</button><br>Using :<br>
+        {% embed 'action_senate_proposalHow.twig' %}
+        {% endembed %}
+        
     </form>
     {% endif %}
 
-{# Proposal impossible#}
+{#
+    Proposal impossible
+#}
 {% elseif output['state']=='Proposal impossible'%}
 You cannot make a proposal at the moment
         
-{# Vote #}
+{#
+    Vote
+#}
 {% elseif output['state']=='Vote'%}
 Vote
 
-{# Error#}
+{#
+    Error
+#}
 {% else %}
-ERROR
+ERROR - Wrong state
 
 {% endif %}

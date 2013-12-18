@@ -2457,7 +2457,7 @@ class Game
                 if ($senator->inRome && $senator->specialAbility!==NULL) {
                     $abilities = explode(',' , $senator->specialAbility) ;
                     if (in_array('Tribune' , $abilities)) {
-                        $party->freeTribunes[] = $senator->senatorID ;
+                        $party->freeTribunes[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name ) ;
                     }
                 }
             }
@@ -2487,16 +2487,40 @@ class Game
      * @param type $parameters an array of parameters
      * @return type
      */
-    public function senate_proposal($type , $description , $parameters) {
+    public function senate_proposal($user_id , $type , $description , $proposalHow , $parameters) {
         $messages = array() ;
+        
+        // TO DO : Check that no voting is underway already
+        
+        // Check $type
         $typeKey = array_search($type, Proposal::$VALID_PROPOSAL_TYPES) ;
         if ($typeKey===FALSE) {
             return array('Error with proposal type.' , 'error') ;
         }
+
+        // Check if the returned $proposalHow value is valid for this user_id
+        $canMakeProposalList = $this->senate_canMakeProposal($user_id) ;
+        $canMakeProposal = FALSE ;
+        foreach($canMakeProposalList as $how) {
+            if (is_array($how)) {
+                if ($how['senatorID']==$proposalHow) {
+                    $canMakeProposal = TRUE ;
+                }
+            } else {
+                if ($how==$proposalHow) {
+                    $canMakeProposal = TRUE ;
+                }
+            }
+        }
+        if (!$canMakeProposal) {
+            return array('Cannot make proposals using '.$proposalHow , 'error') ;
+        }
+        
+        // Check parameters based on proposal type, and if everything checks out, put the proposal forward
         if ($type=='Consuls') {
             $validation = $this->senate_validateConsulsProposal($typeKey , $parameters) ;
             if ($validation[1]=='error') {
-                return $validation;
+                return array($validation);
             } else {
                 $proposal = new Proposal ;
                 $result = $proposal->init($type,$description,$this->party) ;
@@ -2518,37 +2542,45 @@ class Game
      * @return array A message array
      */
     private function senate_validateConsulsProposal($typeKey , $parameters) {
+        // Sorts the 2 Senators lexicographically
+        usort ($parameters, function($a, $b) {
+            return strcmp($a, $b);
+        });
         // Basic check : we have 2 and only 2 Senators
-        if ( ($parameters[0]->type == 'Senator') && ($parameters[1]->type == 'Senator') && (count($parameters)==2) ) {
-            // Sorts the 2 Senators lexicographically
-            usort ($parameters, function($a, $b) {
-                return strcmp($a['senator']->senatorID , $b['senator']->senatorID);
-            });
+        $senator1 = $this->getSenatorWithID($parameters[0]) ;
+        $senator2 = $this->getSenatorWithID($parameters[1]) ;
+        if ($senator1===FALSE || $senator2===FALSE) {
+            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Error retrieving Senators data.','error');
+        }
+        if ($senator1->senatorID == $senator2->senatorID) {
+            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Please stop drinking.','error');
+        }
+        if ( count($parameters)==2 ) {
             // Check if they are in Rome (where they must do as Romans do)
-            if ((!$parameters[0]->inRome) || (!$parameters[1]->inRome)) {
+            if ((!$senator1->inRome) || (!$senator2->inRome)) {
                 return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Both Senators must be in Rome to be proposed.','error');
             }
             // Check if they already have been rejected
             foreach ($this->proposals as $proposal) {
-                if ($proposal->type=='Consuls' && $proposal->outcome=='Rejected' && $proposal->parameters[0]==$parameters[0] && $proposal->parameters[1]==$parameters[1]) {
+                if ($proposal->type=='Consuls' && $proposal->outcome=='Rejected' && $proposal->parameters[0]==$senator1->senatorID && $proposal->parameters[1]==$senator2->senatorID) {
                     return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This pair has already been rejected','error');
                 }
             }
             // Check that they are not already Consuls or Dictator Except if 'Tradition Erodes' law is in play
             if (!in_array('Tradition Erodes' , $this->laws)) {
                 if (
-                    ($parameters[0]->office == 'Dictator') ||
-                    ($parameters[0]->office == 'Rome Consul') ||
-                    ($parameters[0]->office == 'Field Consul') ||
-                    ($parameters[1]->office == 'Dictator') ||
-                    ($parameters[1]->office == 'Rome Consul') ||
-                    ($parameters[1]->office == 'Field Consul')
+                    ($senator1->office == 'Dictator') ||
+                    ($senator1->office == 'Rome Consul') ||
+                    ($senator1->office == 'Field Consul') ||
+                    ($senator2->office == 'Dictator') ||
+                    ($senator2->office == 'Rome Consul') ||
+                    ($senator2->office == 'Field Consul')
                 ) {
                     return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Before the \'Tradition Erodes\' law is in place, Senators cannot be proposed if they are already Dictator or Consul.','error');
                 }
             }
             // Check if they are not Pontifex
-            if (($parameters[0]->office == 'Pontifex Maximus') || ($parameters[1]->office == 'Pontifex Maximus')) {
+            if (($senator1->office == 'Pontifex Maximus') || ($senator2->office == 'Pontifex Maximus')) {
                 return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.','error');
             }
         } else {
@@ -2574,10 +2606,10 @@ class Game
          * - Assassination
          * - Tribune
          */
-        $currentProposal = ( isset($this->proposals[count($this->proposals)-1]) ? $this->proposals[count($this->proposals)-1] : FALSE ) ;
+        $latestProposal = ( isset($this->proposals[count($this->proposals)-1]) ? $this->proposals[count($this->proposals)-1] : FALSE ) ;
         
         // There is a vote underway, the layout should be a voting layout
-        if ($currentProposal!==FALSE && $currentProposal->outcome===NULL) {
+        if ($latestProposal!==FALSE && $latestProposal->outcome===NULL) {
             $output['state'] = 'Vote' ;
         
         // There is no vote underway, give the possibility to make proposals
@@ -2587,7 +2619,7 @@ class Game
                 // Only one pair is available
                 if (count($possiblePairs)==1) {
                     // TO DO : Automatic election
-                } elseif ($this->senate_canMakeProposal($user_id)) {
+                } elseif (count($this->senate_canMakeProposal($user_id))>0) {
                     $output['state'] = 'Proposal';
                     $output['type'] = 'Consuls';
                     $output['proposalHow'] = $this->senate_canMakeProposal($user_id);
@@ -2616,24 +2648,25 @@ class Game
     }
     
     /**
-     * This function returns a string indicating how player user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune')
+     * This function returns an array indicating all the ways user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune')
      * or FALSE if he can't
      * @param type $user_id
      */
     public function senate_canMakeProposal($user_id) {
+        $result=array() ;
         $president = $this->getHRAO(TRUE);
         if ($president['user_id']==$user_id) {
-            return 'president' ;
-        } elseif (count($this->party[$user_id]->freeTribunes) >0 ) {
-            return 'free tribune' ;
-        } else {
-            foreach ($this->party[$user_id]->hand->cards as $card) {
-                if ($card->name == 'TRIBUNE') {
-                    return 'tribune card';
-                }
+            $result[] = 'President' ;
+        }
+        foreach ($this->party[$user_id]->freeTribunes as $freeTribune) {
+            $result[] = $freeTribune;
+        }
+        foreach ($this->party[$user_id]->hand->cards as $card) {
+            if ($card->name == 'TRIBUNE') {
+                $result[] = 'Tribune card';
             }
         }
-        return FALSE ;
+        return $result ;
     }
     
     /**

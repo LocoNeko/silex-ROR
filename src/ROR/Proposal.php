@@ -42,7 +42,7 @@ class Proposal {
         if ($key===FALSE) {
             return array('Error with proposal type.' , 'error') ;
         }
-        if ($type=='' && !is_string($description)) {
+        if ($type=='Minor' && !is_string($description)) {
             return array('Minor proposal must have a valid description.' , 'error') ;
         }
         $this->type = $type ;
@@ -50,11 +50,11 @@ class Proposal {
         $this->description = self::$DEFAULT_PROPOSAL_DESCRIPTION[$key] ;
         // Initialise voting array
         foreach ($parties as $party) {
-            foreach ($party->senators->card as $senator) {
+            foreach ($party->senators->cards as $senator) {
                 // Always 0 for senators not in Rome
                 $thisSenatorsVotes = ($senator->inRome ? $senator->ORA + $senator->knights : 0) ;
                 // TO DO : compute the votes the senator has for this specific type of proposal, as some senators earn more votes for certain proposals (consul for life, war, etc)
-                $this->voting[] = array ('senatorID' => $senator->senatorID , 'party' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes) ;
+                $this->voting[] = array ('senatorID' => $senator->senatorID , 'user_id' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes) ;
             }
         }
         $this->outcome = NULL ;
