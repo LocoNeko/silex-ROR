@@ -2490,12 +2490,21 @@ class Game
     public function senate_proposal($user_id , $type , $description , $proposalHow , $parameters) {
         $messages = array() ;
         
-        // TO DO : Check that no voting is underway already
+        if ($this->phase!='Senate') {
+            return array(array('Wrong phase.' , 'error')) ;
+        }
+        
+        $latestProposal = $this->senate_getLatestProposal() ;
+        
+        // Check that no voting is underway already
+        if ($latestProposal!==FALSE && $latestProposal->outcome===NULL) {
+            return array(array('Error - Another proposal is underway.' , 'error')) ;
+        }
         
         // Check $type
         $typeKey = array_search($type, Proposal::$VALID_PROPOSAL_TYPES) ;
         if ($typeKey===FALSE) {
-            return array('Error with proposal type.' , 'error') ;
+            return array(array('Error with proposal type.' , 'error')) ;
         }
 
         // Check if the returned $proposalHow value is valid for this user_id
@@ -2513,7 +2522,7 @@ class Game
             }
         }
         if (!$canMakeProposal) {
-            return array('Cannot make proposals using '.$proposalHow , 'error') ;
+            return array(array('Cannot make proposals using '.$proposalHow , 'error')) ;
         }
         
         // Check parameters based on proposal type, and if everything checks out, put the proposal forward
@@ -2525,7 +2534,7 @@ class Game
                 $proposal = new Proposal ;
                 $result = $proposal->init($type,$description,$this->party) ;
                 if ( isset($result[2]) && $result[2]=='error' ) {
-                    return array('Error with proposal type.' , 'error') ;
+                    return array(array('Error with proposal type.' , 'error')) ;
                 } else {
                     array_push($this->proposals , $proposal) ;
                 }
@@ -2606,7 +2615,7 @@ class Game
          * - Assassination
          * - Tribune
          */
-        $latestProposal = ( isset($this->proposals[count($this->proposals)-1]) ? $this->proposals[count($this->proposals)-1] : FALSE ) ;
+        $latestProposal = $this->senate_getLatestProposal() ;
         
         // There is a vote underway, the layout should be a voting layout
         if ($latestProposal!==FALSE && $latestProposal->outcome===NULL) {
@@ -2711,6 +2720,18 @@ class Game
             }
         }
         return $result;
+    }
+    
+    /**
+     * Returns the latest proposal or FALSE if there is none
+     * @return boolean
+     */
+    public function senate_getLatestProposal() {
+        if ( count($this->proposals) > 0) {
+            return $this->proposals[count($this->proposals)-1] ;
+        } else {
+            return FALSE ;
+        }
     }
     
     /************************************************************
