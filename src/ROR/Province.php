@@ -2,11 +2,14 @@
 namespace ROR;
 
 class Province extends Card {
+        public $land ;
+        public $fleet ;
 	public $mandate ;
         public $developed ;
-        public $doneThisTurn ;
-        public $governor ;
+        public $overrun ;
         public $income ;
+        public $frontier ;
+        public $governor ;
 
 	public function create ($data) {
                 // Inherited from Card    
@@ -14,9 +17,12 @@ class Province extends Card {
                 $this->name = ( is_string($data[1]) ? $data[1] : null) ;
                 $this->type = ( ($data[2]=='Province') ?  $data[2] : null );
                 // Unique to Provinces
+                // TO DO :
+                // $this->land
+                // $this->fleet
 		$this->mandate = 0 ;
 		$this->developed = FALSE ;
-		$this->doneThisTurn = FALSE ;
+		$this->overrun = FALSE ;
 		$this->income['undeveloped']['senator']	['variable'] = (int)$data[3] ;
 		$this->income['undeveloped']['senator']	['fixed']    = (int)$data[4] ;
 		$this->income['undeveloped']['rome']	['variable'] = (int)$data[5] ;
@@ -25,6 +31,7 @@ class Province extends Card {
 		$this->income['developed']  ['senator']	['fixed']    = (int)$data[8] ;
 		$this->income['developed']  ['rome']	['variable'] = (int)$data[9] ;
 		$this->income['developed']  ['rome']	['fixed']    = (int)$data[10] ;
+                $this->frontier = FALSE ;
 		$this->governor = null ;
 	}
         

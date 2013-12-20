@@ -2,7 +2,7 @@
 namespace ROR;
 
 /** 
- * int $id : game id
+ * int $id : game id<br>
  * string $name : game name
  * $turn (int)
  * $phase (string) : the current turn phase, can have any value defined in $VALID_PHASES
@@ -32,7 +32,8 @@ namespace ROR;
  * $curia
  * --- LAND BILLS, EVENTS, POPULATION TABLE , LEGIONS & FLEETS ---
  * $landBill array (int)=>(int) : landBill[X]=Y means there is Y land bills of type X
- * $events array (int => array(name , increased_name , max_level , level)) : array of events
+ * $events array (int [event number] => array(name , increased_name , max_level , level)) : array of events
+ * $landBills array (int [land bill level] => array ('cost' , 'duration' , 'sponsor' , 'cosponsor' , 'against' , 'unrest' , 'repeal sponsor' , 'repeal vote' , 'repeal unrest'))
  * $legion array of legion objects
  * $fleet array of fleet objects
  * --- SENATE ---
@@ -50,7 +51,7 @@ class Game
     public static $DEFAULT_PARTY_NAMES = array ('Imperials' , 'Plutocrats' , 'Conservatives' , 'Populists' , 'Romulians' , 'Remians');
     //public static $VALID_SCENARIOS = array('EarlyRepublic','MiddleRepublic','LateRepublic');
     public static $VALID_SCENARIOS = array('EarlyRepublic');
-
+    
     private $id ;
     public $name ;
     public $turn , $phase , $subPhase , $initiative ;
@@ -120,8 +121,7 @@ class Game
         $this->eventTable = array() ;
         $this->createEvents();
         /*
-         *  Create Tables : Population
-         * TO DO : Land bills table
+         *  Create Tables : Population , Appeal, Land bills
          */
         $this->populationTable = array();
         $this->createPopulationTable();
@@ -150,7 +150,6 @@ class Game
         /*
          *  Creating parties
          */
-        $this->firstParty = null ;
         $this->party = array () ;
         foreach ($partyNames as $key=>$value) {
             $this->party[$key] = new Party ;
@@ -717,7 +716,7 @@ class Game
     }
     
     /**
-     * Returns the current level of the event if it's in play or 0
+     * Returns the current level of the event if it's in play, 0 if it's not, FALSE if the request made no sense
      * @param string $type can be 'name' or 'number'
      * @param mixed $search The name of the event <b>OR</b> its number, based on the value of $type
      * @return mixed The event's level (<b>0</b> if not in play) or FALSE if $type was wrong
@@ -927,7 +926,10 @@ class Game
             array_push($messages , array('Mortality phase is finished. Starting revenue phase.'));
             $this->phase = 'Revenue';
             array_push($messages , array('REVENUE PHASE','alert'));
-            $this->revenue_init();
+            $moreMessages = $this->revenue_init();
+            foreach($moreMessages as $message) {
+                array_push($messages , $message) ;
+            }
             return $messages ;
         }
     }
@@ -1051,21 +1053,36 @@ class Game
     /**
      * Initialises revenue phase (called at the end of mortality phase) :
      * - subPhase is 'Base'
-     * - For every Senator with a Province, set Province->doneThisTurn to FALSE
+     * - For every Senator with a Province, set Province->overrun to FALSE
      */
     public function revenue_init() {
+        $messages = array() ;
         $this->resetPhaseDone() ;
         $this->subPhase='Base';
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 foreach ($senator->controls->cards as $card) {
                     if ($card->type=='Province') {
-                        $card->doneThisTurn = FALSE ;
+                        $card->overrun = FALSE ;
+                        // event 163;Barbarian Raids;Barbarian Raids Increase;
+                        $barbarianRaids = $this->getEventLevel('number', 163) ;
+                        if ($barbarianRaids>0) {
+                           if ($card->frontier) {
+                               // TO DO
+                               $provinceName = $card->name ;
+                               $writtenForce = $card->land ;
+                               $garrisons = 0 ;
+                               $governorName = $senator->name ;
+                               $governorMIL = $senator->MIL ;
+                               $total = $writtenForce + 2 * $garrisons + $governorMIL ;
+                               $message = 'Province '.$provinceName.' is attacked by '.($barbarianRaids==2 ? 'increased ' : '').'Barbarian raids. Military force is '.$writtenForce.' (written force) + '.(2*$garrisons).' (for '.$garrisons.' legions) + '.$governorMIL.' ('.$governor.'\'s MIL) = '.$total.'. A X is rolled. ';
+                           }
+                        }
                     }
                 }
             }
-            
         }
+        return $messages ;
     }
     
     /**
@@ -1156,6 +1173,7 @@ class Game
                 if (is_null($request[$province->id])) {
                     return array('Undefined province.','error');
                 }
+                // TO DO : handle overrun province
                 $revenue = $province->rollRevenues('senator' , -$this->getEventLevel('name' , 'Evil Omens'));
                 $message = $province->name.' : ';
                 // Spoils
@@ -1187,6 +1205,7 @@ class Game
                     $message.=$senator->name.' doesn\'t take Provincial spoils.';
                 }
                 // Develop province
+                // TO DO : noe development for overrun provinces
                 if ( !($province->developed)) {
                     $roll = $this->rollOneDie(-1) ;
                     $modifier = ( ($senator->corrupt) ? 0 : 1) ;
@@ -1294,6 +1313,15 @@ class Game
                 // Rome gets 100T.
                 $this->treasury+=100 ;
                 array_push($messages , array('Rome collects 100 T.'));
+                // Event '162;Allied Enthusiasm;Extreme Allied Enthusiasm'
+                $alliedEnthusiasm = $this->getEventLevel('number',162) ;
+                if ($alliedEnthusiasm>0) {
+                    $name = ($alliedEnthusiasm==1 ? 'name' : 'increased_name') ;
+                    $description = ($alliedEnthusiasm==1 ? 'description' : 'increased_description') ;
+                    array_push($messages , $this->events[162][$name].' : '.$this->events[162][$description]);
+                    $this->treasury+=($alliedEnthusiasm==1 ? 50 : 75);
+                    $this->events[162]['level'] = 0 ;
+                }
                 // Provinces revenues for aligned Senators
                 foreach ($this->party as $party) {
                     foreach ($party->senators->cards as $senator) {

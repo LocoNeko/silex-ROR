@@ -70,6 +70,7 @@ No revenue from Provinces<br>
 Revenue from Provincial spoils :<br>
     <fieldset>
             {% for province in revenueBase['provinces'] %}
+        {# TO DO : Remove overrun provinces, just show them #}
         <div class="control-group">
             <label class="control-label">{{ province['province'].name }} ({{province['senator'].name}})</label>
                 <div class="controls">
