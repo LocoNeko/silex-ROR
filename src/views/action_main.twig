@@ -6,13 +6,10 @@
 HRAO : {{ content['game'].getHRAO()['senator'].name }} ({{ content['game'].getHRAO()['party'].name }} - {{ app['user.manager'].getUser(content['game'].getHRAO()['party'].user_id).getName  }} ) , 
 {# ORDER OF PLAY BASED on game->whoseTurn() #}
 Order of play :
-{% for temp_user_id in content['game'].orderOfPlay() %} 
-    {% if (temp_user_id == content['game'].whoseTurn()) %}
-<font style="font-weight:bold ; color: blue ;{{ (temp_user_id==user_id ? ' text-decoration: underline;' : '' )}}">
-    {% else %}
-<font style="font-weight:bold ; color: gray ;{{ (temp_user_id==user_id ? ' text-decoration: underline;' : '' )}}">
-    {% endif %}
-{{app['user.manager'].getUser(temp_user_id).getName}}</font>
+{% for temp_user_id in content['game'].getOrderOfPlay() %} 
+    <font style="font-weight:bold ; color: {{(temp_user_id == content['game'].whoseTurn() ? 'blue' : 'gray')}} ;{{ (temp_user_id==user_id ? ' text-decoration: underline;' : '' )}}">
+        {{app['user.manager'].getUser(temp_user_id).getName}}
+    </font>
 {# Do not display the arrow for the last record#}
         {% if loop.index!=loop.length %}<i class="icon-arrow-right"></i>{% endif %}
 {% endfor %}
@@ -92,14 +89,14 @@ Game Log :<br>
 {% endfor %}
 </table>
 #}
-Debug :<br>
-<pre>
-{{ dump(content['game']) }}
-</pre>
 
 <div class="row-fluid">
     <iframe class="container well well-small span6 " style="height: 500px; width: 100%;" src="{{path('Log' , {'game_id' : game_id , 'user_id' : user_id } )}}" frameborder="0" allowtransparency="true" scrolling="vertical"></iframe>
 </div>
 
+Debug :<br>
+<pre>
+{{ dump(content['game']) }}
+</pre>
 
 {% endblock %}

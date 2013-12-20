@@ -60,13 +60,9 @@ class Game
     public $drawDeck , $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
     public $landBill ;
     public $events , $eventTable ;
-    public $populationTable , $legion , $fleet ;
-    public $appealTable ;
+    public $populationTable , $appealTable , $landBillsTable ;
+    public $legion, $fleet ;
     
-    public function get_id() {
-            return $this->id;
-    }
-
      /************************************************************
      * General functions
      ************************************************************/
@@ -131,6 +127,8 @@ class Game
         $this->createPopulationTable();
         $this->appealTable = array();
         $this->createAppealTable();
+        $this->landBillsTable = array() ;
+        $this->createLandBillsTable();
         /*
          *  Legions and Fleets
          */
@@ -299,6 +297,32 @@ class Game
         fclose($filePointer);
     }
 
+    
+    public function createLandBillsTable() {
+        $filePointer = fopen(dirname(__FILE__).'/../../data/landBills.csv', 'r');
+        if (!$filePointer) {
+            throw new Exception("Could not open the Land Bills table file");
+        }
+        while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
+            if (substr($data[0],0,1)!='#') {
+                $this->landBillsTable[$data[0]] = array();
+                array_push($this->landBillsTable[$data[0]] , array(
+                        'cost' => $data[1] ,
+                        'duration' => $data[2] ,
+                        'sponsor' => $data[3] ,
+                        'cosponsor' => $data[4] ,
+                        'against' => $data[5] ,
+                        'unrest' => $data[6] ,
+                        'repeal sponsor' => $data[7] ,
+                        'repeal vote' => $data[8] ,
+                        'repeal unrest' => $data[9]
+                    )
+                );
+            }
+        }
+        fclose($filePointer);
+    }
+    
     /**
      * Number of legions (location is NOT nonexistent)
      * @return int
@@ -551,7 +575,7 @@ class Game
      * returns array of user_id from HRAO, clockwise in the same order as the array $this->party (order of joining game)
      * @return array 
      */
-    public function orderOfPlay() {
+    public function getOrderOfPlay() {
         $result = array_keys ($this->party) ;
         $user_idHRAO = $this->getHRAO()['user_id'];
         while ($result[0]!=$user_idHRAO) {
@@ -567,7 +591,7 @@ class Game
     public function whoIsAfter($user_id) {
         $result = array() ;
         $result['messages'] = array();
-        $orderOfPlay = $this->orderOfPlay() ;
+        $orderOfPlay = $this->getOrderOfPlay() ;
         while ($orderOfPlay[0]!=$user_id) {
             array_push($orderOfPlay , array_shift($orderOfPlay) );
         }
@@ -610,7 +634,7 @@ class Game
      * @return string|boolean
      */
     public function whoseTurn() {
-        $currentOrder = $this->orderOfPlay() ;
+        $currentOrder = $this->getOrderOfPlay() ;
         foreach ($currentOrder as $user_id) {
             if ( $this->party[$user_id]->phase_done === FALSE) {
                 return $user_id ;
@@ -834,7 +858,7 @@ class Game
                 }
                 $output['PlayStatemen'] = (count($output['Statemen'])>0) ;
                 $output['PlayConcessions'] = (count($output['Concessions'])>0) ;
-                $output['Senators'] = $this->viewParty($user_id) ;
+                $output['Senators'] = $this->view_party($user_id) ;
             }
         } else {
             $output['state'] = 'Error';
@@ -1480,7 +1504,7 @@ class Game
     public function forum_whoseInitiative() {
         // If the current initiative is <= nbPlayers, we don't need to bid. Initiative number X belongs to player number X in the order of play
         if ($this->initiative<=$this->nbPlayers) {
-            $currentOrder = $this->orderOfPlay() ;
+            $currentOrder = $this->getOrderOfPlay() ;
             return $currentOrder[$this->initiative-1] ;
         } else {
         // This initiative was up for bidding, the winner has the initiative. The winner is the only one left with bidDone==FALSE
@@ -2744,7 +2768,7 @@ class Game
      * @param type $card_id
      * @return array
      */
-    public function playStateman( $user_id , $card_id ) {
+    public function revolution_playStateman( $user_id , $card_id ) {
         $messages = array() ;
         $stateman = $this->party[$user_id]->hand->drawCardWithValue('id', $card_id);
         if ($stateman === FALSE ) {
@@ -2824,7 +2848,7 @@ class Game
      * @param type $senator_id
      * @return array
      */
-    public function playConcession( $user_id , $card_id , $senator_id) {
+    public function revolution_playConcession( $user_id , $card_id , $senator_id) {
         $messages = array() ;
         $partyOfTargetSenator = $this->getPartyOfSenatorWithID($senator_id) ;
         if (!$partyOfTargetSenator || $partyOfTargetSenator=='forum') {
@@ -2865,7 +2889,7 @@ class Game
      * Functions used by Views
      ************************************************************/
 
-    public function viewParty($user_id) {
+    public function view_party($user_id) {
         $result = array() ;
         foreach ($this->party[$user_id]->senators->cards as $senator) {
             $result[] = $senator ;

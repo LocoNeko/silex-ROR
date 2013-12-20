@@ -42,7 +42,7 @@
     {# Play Statemen #}
     {% if output['PlayStatemen']%}
         STATEMAN :
-        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'playStateman'} ) }}">
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revolution_playStateman'} ) }}">
             <fieldset>
                 <div class="control-group">
                     <div class="controls">
@@ -67,7 +67,7 @@
     {# Play Concessions#}
     {% if output['PlayConcessions']%}
         CONCESSION :
-        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'playConcession'} ) }}">
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revolution_playConcession'} ) }}">
             <fieldset>
                 <div class="control-group">
                     <div class="controls">

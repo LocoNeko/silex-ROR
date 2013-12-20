@@ -53,11 +53,11 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         case 'setup_PickLeader' :
             log ($app , $game_id , $user_id , $game->setup_setPartyLeader( $user_id , $request->request->get('senatorID') ));
             break ;
-        case 'playStateman' :
-            log ($app , $game_id , $user_id , $game->playStateman ( $user_id , $request->request->get('card_id') ) ) ;
+        case 'revolution_playStateman' :
+            log ($app , $game_id , $user_id , $game->revolution_playStateman ( $user_id , $request->request->get('card_id') ) ) ;
             break ;
-        case 'playConcession' :
-            log ($app , $game_id , $user_id , $game->playConcession ( $user_id , $request->request->get('card_id') , $request->request->get('senator_id') ) ) ;
+        case 'revolution_playConcession' :
+            log ($app , $game_id , $user_id , $game->revolution_playConcession ( $user_id , $request->request->get('card_id') , $request->request->get('senator_id') ) ) ;
             break ;
         case 'setup_Finished' :
             log ($app , $game_id , $user_id , $game->setup_Finished($user_id));
@@ -115,10 +115,10 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     $game_data = serialize($game);
     $app['db']->update('games' , Array ('game_data' => $game_data ) , Array('game_id' => $game_id) );
     // Save game only if we've just moved to a new subPhase
-    if ($game->subPhase != $currentSubPhase) {
+    if ( ($game->subPhase != $currentSubPhase) && ($game->phase!='Senate') ) {
         $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => ($game->phase == 'Forum' ? 'Forum - Initiative #'.$game->initiative : $game->phase ) , 'subPhase' => $game->subPhase , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
     } elseif ($game->phase=='Senate' && ($nbOfProposals!=count($game->proposals)) ) {
-        $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => 'Senate' , 'subPhase' => $game->subPhase , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
+        $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => 'Senate' , 'subPhase' => $game->subPhase.' (Proposal #'.count($game->proposals).')' , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
     }
     // Get the log
     $content['log'] = getLog($app , $game_id , $user_id);
