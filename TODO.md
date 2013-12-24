@@ -26,10 +26,10 @@ Or use Ratchet (PHP)
 - Note  on ZMQ install : add /etc/php5/cli/conf.d/20-zmq.ini and restart php5-fpm
 
 I will need 4 files :
-- One file has some Javascript, using when.js an autobhan.js This file handles what to do when a notification is received from the server, which in my case means it should refresh the display.
-In other words, this file is the MAIN VIEW
 - One file is the push server, to be run from the command line, let's call it PUSH-SERVER.PHP, it has the port, the callback function, and calls the PUSHER class
 - The PUSHER class, that broadcasts what is received.
+- One file has some Javascript, using when.js an autobhan.js This file handles what to do when a notification is received from the server, which in my case means it should refresh the display.
+In other words, this file is the MAIN VIEW
 - Finally, the post page will have some javascript that will push data to the websocket server.
 
 In my case, data should be a list of {user_id}. If a user_id is in a list, it means the data just sent has an effect on that user's game state, so he should see some change,
@@ -38,6 +38,8 @@ which means, the screen should be refreshed.
 My "Topic" should be a game ID, so only clients connected to this game can push and pull changes affecting it. Basically, other games can go on, this won't affect the state of those clients.
 
 That should be it.
+
+onBlogEntry -> onAction
 
 *************
 *  Events   *

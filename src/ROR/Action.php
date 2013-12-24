@@ -2,6 +2,8 @@
 namespace ROR;
 
 use Silex\Application;
+use ZMQContext;
+
 
 /*
  * This is where all actions are handled, based on the following context :
@@ -154,6 +156,16 @@ function log ( Application $app , $game_id , $user_id , $logs) {
             $app['session']->getFlashBag()->add($flashType,$log[0]);
         }
         $app['db']->insert('logs' , Array ('game_id' => $game_id , 'message' => $log[0] , 'type' => $log[1] , 'recipients' => $log[2] , 'time_created' => microtime(TRUE) ) );
+        // Ratchet stuff
+        $entryData = array(
+            'game_id'   => $game_id
+          , 'players'   => $log[2]
+        );
+        // This is our new stuff
+        $context = new \ZMQContext();
+        $socket = $context->getSocket(\ZMQ::SOCKET_PUSH, 'my pusher');
+        $socket->connect("tcp://localhost:5555");
+        $socket->send(json_encode($entryData));
     }
 }
 

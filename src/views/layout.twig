@@ -7,6 +7,25 @@
             <style type="text/css">
                 body { padding: 10px; }
             </style>
+            <script src="localhost:/js/when/when.js"></script> <!-- You will have to download when.js -->
+            <script src="http://autobahn.s3.amazonaws.com/js/autobahn.min.js"></script>
+            <script>
+                var conn = new ab.Session(
+                    'ws://localhost:8081' // The host (our Ratchet WebSocket server) to connect to
+                  , function() {            // Once the connection has been established
+                        conn.subscribe('{{game_id|default('')}}', function(topic, data) {
+                            console.log('Action received for ' + '{{game_id|default('Nothing')}}');
+                            alert('I should reload. I got : '+topic+' , '+data);
+                        });
+                    }
+                  , function() {            // When the connection is closed
+                        console.warn('WebSocket connection closed');
+                    }
+                  , {                       // Additional parameters, we're ignoring the WAMP sub-protocol for older browsers
+                        'skipSubprotocolCheck': true
+                    }
+                );
+            </script>
         {% endblock %}
     </head>
     <body>
