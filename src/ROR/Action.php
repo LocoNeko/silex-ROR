@@ -141,9 +141,15 @@ function log ( Application $app , $game_id , $user_id , $logs) {
         elseif ($log[1]=='alert') {$flashType='warning' ;}
         elseif ($log[1]=='error') {$flashType='danger' ;}
         else {$flashType='success' ;}
-        // types : 'message','chat','alert','error'
-        // translates to flashbag types : 'success' , 'info' , 'warning' , 'danger'
-        // TO DO : limit flash bags to messages where $log[2] is NULL or "$user_id" or "$user_id;"
+        /*
+         * types : 'message','chat','alert','error'
+         * translates to flashbag types : 'success' , 'info' , 'warning' , 'danger'
+         * Limit flash bags to messages where $log[2] is NULL or "$user_id" or "$user_id;"
+         * - NULL : Is a conveninet way to mean "everyone"
+         * - $user_id : only for this user, which means no other user should see anything.
+         * - list of $user_id : only for these users
+         * - TO DO : add a new catagory : user_id1:user_id2;user_id3;... the ":" means this is a message from a player to a list of other players.
+         */
         if ( ($log[2]==NULL) || ($log[2]==$user_id) || (strstr($log[2],$user_id.';')!==FALSE) ) {
             $app['session']->getFlashBag()->add($flashType,$log[0]);
         }
