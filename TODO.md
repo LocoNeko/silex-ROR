@@ -12,34 +12,20 @@ IDEA :
 *  Global   *
 *************
 
-SocketIO :
-- Client side : refresh a page if a refresh event is received for the same game id as the one we are now watching
-- When should I send refresh events to other clients : when data has been submitted (POST is not empty).
-Send the refresh to all clients BUT the originating one. Always limit scope to this game id.
-This is done with :
-// sending to all clients except sender
-socket.broadcast.emit('message', "this is a test");
-// sending to all clients in 'game' room(channel) except sender
-socket.broadcast.to('game').emit('message', 'nice game');
-
-Or use Ratchet (PHP)
+Ratchet (PHP)
+- Follow these instructions : http://socketo.me/docs/push
 - Note  on ZMQ install : add /etc/php5/cli/conf.d/20-zmq.ini and restart php5-fpm
 
-I will need 4 files :
-- One file is the push server, to be run from the command line, let's call it PUSH-SERVER.PHP, it has the port, the callback function, and calls the PUSHER class
-- The PUSHER class, that broadcasts what is received.
-- One file has some Javascript, using when.js an autobhan.js This file handles what to do when a notification is received from the server, which in my case means it should refresh the display.
-In other words, this file is the MAIN VIEW
-- Finally, the post page will have some javascript that will push data to the websocket server.
 
-In my case, data should be a list of {user_id}. If a user_id is in a list, it means the data just sent has an effect on that user's game state, so he should see some change,
-which means, the screen should be refreshed.
+I have created/modified 4 files :
+- /bin/push-server : This is the server, to be run from the command line. It has the port, the callback function, and calls the PUSHER class
+- /Ratchet/Pusher.php : The class called by the server, which subscribes to the connection and has the function onAction($entry) used to broadcast data to all clients
+- ROR/Action.php has been modified to send data when anything happens. Currently in the log function, could/should be moved to the Action function
+- views/layout.twig has been modified to connect to the web socket, and handle the client-side subscription and action (which should conditionally reload the page)
 
-My "Topic" should be a game ID, so only clients connected to this game can push and pull changes affecting it. Basically, other games can go on, this won't affect the state of those clients.
+TO DO : data should be a list of {user_id}. If a user_id is in a list, it means the data just sent has an effect on that user's game state (his screen should be refreshed).
 
-That should be it.
-
-onBlogEntry -> onAction
+The pusher has a game_id, so only clients connected to this game can push and pull changes affecting it. Basically, other games can go on, this won't affect the state of those clients.
 
 *************
 *  Events   *
