@@ -747,6 +747,79 @@ class Game
         }
         return FALSE ;
     }
+    
+    /**
+     * Returns the current total drought level, both from the event card and wars that cause droughts.
+     * @return integer level
+     */
+    public function getTotalDroughtLevel() {
+        $level = $this->getEventLevel('name' , 'Drought') ;
+        //TO DO : Check wars that cause drought even when inactive
+        foreach ($this->activeWars as $war) {
+            if (strstr($war->causes,'drought')!==FALSE) {
+                $level++;
+            }
+        }
+        return $level ;
+    }
+    
+    /**
+     * Goes through all public decks and returns when it finds a card that has a $property equal to $value
+     * An array is returned : 'card' => $card object , 'where' => 'senator|forum|curia|a war deck...' , 'deck' => deck object , and 'senator' & 'party' if 'where' is 'senator'
+     * Warning : THe party CAN BE 'forum'
+     * @param type $property
+     * @param type $value
+     * @return boolean.
+     */
+    public function getSpecificCard($property , $value) {
+        foreach ($this->party as $party) {
+            foreach ($party->senators->cards as $senator) {
+                foreach ($senator->controls->cards as $card) {
+                    if ($card->$property == $value) {
+                        return array ('card' => $card , 'where' => 'senator' , 'deck' => $senator->controls , 'senator' => $senator , 'party' => $senator );
+                    }
+                }
+            }
+        }
+        foreach ($this->forum->cards as $card) {
+            if ($card->$property == $value) {
+                return array ('card' => $card , 'where' => 'forum' , 'deck' => $this->forum);
+            }
+            if ($card->type=='Family' || $card->type=='Stateman') {
+                foreach ($card->controls->cards as $card2) {
+                    if ($card2->$property == $value) {
+                        return array ('card' => $card2 , 'where' => 'senator' , 'deck' => $card->controls , 'senator' => $card , 'party' => 'forum' );
+                    }
+                }
+            }
+        }
+        foreach ($this->curia->cards as $card) {
+            if ($card->$property == $value) {
+                return array ('card' => $card , 'where' => 'curia' , 'deck' => $this->curia);
+            }
+        }
+        foreach ($this->inactiveWars->cards as $card) {
+            if ($card->$property == $value) {
+                return array ('card' => $card , 'where' => 'inactiveWars' , 'deck' => $this->inactiveWars);
+            }
+        }
+        foreach ($this->activeWars->cards as $card) {
+            if ($card->$property == $value) {
+                return array ('card' => $card , 'where' => 'activeWars' , 'deck' => $this->activeWars);
+            }
+        }
+        foreach ($this->imminentWars->cards as $card) {
+            if ($card->$property == $value) {
+                return array ('card' => $card , 'where' => 'imminentWars' , 'deck' => $this->imminentWars);
+            }
+        }
+        foreach ($this->unprosecutedWars->cards as $card) {
+            if ($card->$property == $value) {
+                return array ('card' => $card , 'where' => 'unprosecutedWars' , 'deck' => $this->unprosecutedWars);
+            }
+        }
+        return FALSE ;
+    }
        
     /************************************************************
      * Functions for SETUP phase
@@ -1170,11 +1243,29 @@ class Game
         return $messages ;
     }
     
+    /**
+     * Function that handles the internal disorder events first step (order rolls and immediate effects of failure)
+     * @param integer $internalDisorder
+     * @param Province $province The Province
+     * @param Senator $senator The Governor
+     * @return array $messages
+     */
     private function revenue_internalDisorder($internalDisorder , $province , $senator) {
         $messages = array() ;
-        // TO DO : Check if I should use another property, but looks fine
-        $province->overrun = TRUE ;
-        
+        $garrisons = $this->getProvinceGarrisons($province) ;
+        $roll = $this->rollOneDie(-1);
+        $message = 'Province '.$province->name.' faces internal disorder, '.$senator->name.' rolls a '.$roll.' + '.$garrisons.' garrisons for a total of '.($roll+$garrisons);
+        if (($roll+$garrisons) > ($internalDisorder == 1 ? 4 : 5)) {
+            array_push($messages , array($message.' which is greater than '.($internalDisorder == 1 ? '4' : '5').'. The province will not generate revenue and cannot be improved this turn.'));
+            // TO DO : Check if I should use another property than overrun, but looks fine
+            $province->overrun = TRUE ;
+        } else {
+            array_push($messages , array($message.' which is not greater than '.($internalDisorder == 1 ? '4' : '5') , 'alert'));
+            $this->mortality_killSenator($senator->senatorID);
+            array_push($message , array($senator->name.' is killed with all garrisons and '.$province->name.' becomes an active war.','alert'));
+            // TO DO : destroy garrison legions & move war to forum
+            // Note : The war is now in the forum, because of the mortality_killSenator function
+        }
         return $messages ;
     }
     
@@ -1236,7 +1327,7 @@ class Game
              * Handle increased revenue & POP loss from 'drought' concessions (the two 'grains' concessions)
              * This comes in the request with a YES or NO flag on $request[id] where id is the concession card's id
              */
-            $droughtLevel = $this->getEventLevel('name', 'drought') ;
+            $droughtLevel = $this->getTotalDroughtLevel() ;
             $earnedFromDrought = 0 ;
             $droughtSpecificMessage = array() ;
             if ( $droughtLevel > 0 ) {
@@ -2439,6 +2530,14 @@ class Game
             }
         }
         // TO DO : Ruin concessions based on Punic War or slave revolt
+        foreach($this->activeWars as $war) {
+            if (strstr($war->causes , 'tax farmer')) {
+                $roll=$this->rollOneDie(0);
+                $name='TAX FARMER '.(string)$roll;
+                $toRuin = $this->getSpecificCard('name', $name) ;
+                // RUIN tax farmer
+            }
+        }
         // Curia death/revival
         if (count($this->curia->cards)>0) {
             array_push($messages , array('Rolling for cards in the curia'));
@@ -2508,7 +2607,7 @@ class Game
             $result['message']=substr($result['message'],0,-2);
             $result['message'].=' : + '.$result['total'].' unrest.';
         }
-        $droughtLevel = $this->getEventLevel('name' , 'Drought') ;
+        $droughtLevel = $this->getTotalDroughtLevel();
         if ($droughtLevel > 0 ) {
             if ($result['total']>0) {
                 $result['message'].= ' And ';

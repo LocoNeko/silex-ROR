@@ -4,6 +4,7 @@ TO DO :
 - Chat, by using the log the following way : recipients = "user_id1:user_id2;user_id3;..." the ':' means this is a message from player user_id1 to a list of other players.
 - Update Provinces : land forces and flotillas are lacking
 - Variants : Pontifex, 
+- Now that getSpecificCard is done, shouldn't it replace SOOO many call to foreach party, foreach senator, foreach card ???
 
 IDEA :
 * iFrame page : add "overflow-x:hidden;"
@@ -32,14 +33,14 @@ The pusher has a game_id, so only clients connected to this game can push and pu
 *************
 
 TO DO - 161;Ally Deserts;Roman Auxiliary Deserts; COMBAT PHASE
-DONE  - 162;Allied Enthusiasm;Extreme Allied Enthusiasm; REVENUE PHASE
-80%   - 163;Barbarian Raids;Barbarian Raids Increase; REVENUE PHASE
-TO DO - 164;Drought;Severe Drought;
+*DONE - 162;Allied Enthusiasm;Extreme Allied Enthusiasm; REVENUE PHASE
+**80% - 163;Barbarian Raids;Barbarian Raids Increase; REVENUE PHASE
+**80% - 164;Drought;Severe Drought;
 TO DO - 165;Enemy Leader Dies;Enemy Sues For peace; (END OF) FORUM PHASE
 TO DO - 166;Enemy's Ally Deserts;Enemy Mercenaries Desert; COMBAT PHASE
 TO DO - 167;Epidemic;Foreign Epidemic; IMMEDIATE
 TO DO - 168;Evil Omens;More Evil Omens; IMMEDIATE
-TO DO - 169;Internal Disorder;Increased Internal Disorder; REVENUE PHASE
+**60% - 169;Internal Disorder;Increased Internal Disorder; REVENUE PHASE
 TO DO - 170;Manpower Shortage;Increased Manpower Shortage; SENATE PHASE
 TO DO - 171;Mob Violence;More Mob Violence; IMMEDIATE
 TO DO - 172;Natural Disaster;Widespread Natural Disaster; IMMEDIATE

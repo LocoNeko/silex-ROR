@@ -1,6 +1,9 @@
 <?php
 namespace ROR;
 
+/**
+ * string $causes : a list of effects caused by the war, separated by ','
+ */
 class Conflict extends Card {
     	public $matches ;
         public $nbOfMatch ;
@@ -36,7 +39,7 @@ class Conflict extends Card {
                 $this->nbOfMatch = (int)$data[4] ;
                 $this->description = ( is_string($data[5]) ? $data[5] : null) ;
                 $this->active = (bool)$data[6] ;
-                $this->causes = (int)$data[7] ;
+                $this->causes = ( is_string($data[7]) ? $data[7] : null) ;
                 $this->attacks = ( is_string($data[8]) ? $data[8] : null) ;
                 $this->revolt = ( is_string($data[9]) ? $data[9] : null) ;
                 $this->creates = ( is_string($data[10]) ? $data[10] : null) ;
