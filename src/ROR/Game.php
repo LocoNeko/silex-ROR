@@ -755,7 +755,7 @@ class Game
     public function getTotalDroughtLevel() {
         $level = $this->getEventLevel('name' , 'Drought') ;
         //TO DO : Check wars that cause drought even when inactive
-        foreach ($this->activeWars as $war) {
+        foreach ($this->activeWars->cards as $war) {
             if (strstr($war->causes,'drought')!==FALSE) {
                 $level++;
             }
@@ -3078,29 +3078,29 @@ class Game
         $messages = array() ;
         $partyOfTargetSenator = $this->getPartyOfSenatorWithID($senator_id) ;
         if (!$partyOfTargetSenator || $partyOfTargetSenator=='forum') {
-            array_push($messages , array('This senator is not in play','alert')) ;
+            array_push($messages , array('This senator is not in play','alert',$user_id)) ;
             return $messages;
         }
         $senator = $this->party[$user_id]->senators->drawCardWithValue('senatorID', $senator_id);
         if ($senator === FALSE ) {
-            array_push($messages , array('The senator is not in '.$this->party[$user_id]->fullName().'\'s party' , 'error'));
+            array_push($messages , array('The senator is not in '.$this->party[$user_id]->fullName().'\'s party' , 'error',$user_id));
             return $messages ;   
         }
         $concession = $this->party[$user_id]->hand->drawCardWithValue('id', $card_id);
         if ($concession === FALSE ) {
             $this->party[$user_id]->senators->putOnTop($senator);
-            array_push($messages , array('The card is not in '.$this->party[$user_id]->fullName().'\'s hand' , 'error'));
+            array_push($messages , array('The card is not in '.$this->party[$user_id]->fullName().'\'s hand' , 'error',$user_id));
             return $messages ;   
         } else {
             if ($concession->type!='Concession') {
                $this->party[$user_id]->senators->putOnTop($senator);
                $this->party[$user_id]->hand->putOnTop($concession);
-               array_push($messages , array($concession->name.'" is not a concession' , 'error'));
+               array_push($messages , array($concession->name.'" is not a concession' , 'error',$user_id));
                return $messages ;
             } elseif($concession->special=='land bill' && !$this->landCommissionerPlaybale()) {
                $this->party[$user_id]->senators->putOnTop($senator);
                $this->party[$user_id]->hand->putOnTop($concession);
-               array_push($messages , array('The Land commissioner can only be played while Land bills are enacted.','error'));
+               array_push($messages , array('The Land commissioner can only be played while Land bills are enacted.','error',$user_id));
                return $messages ;
             } else {
                 $senator->controls->putOnTop($concession);

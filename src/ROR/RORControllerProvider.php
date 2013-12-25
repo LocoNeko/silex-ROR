@@ -229,8 +229,7 @@ class RORControllerProvider implements ControllerProviderInterface
     }
     
     public function setPartyName(Application $app , Request $request , $game_id) {
-        // TO DO : Check if a party name already exists that is equal to $request->request->get('party_name')
-        $samePartyName = $app['db']->fetchColumn("SELECT COUNT(user_id) FROM players WHERE game_id='' AND party_name=''");
+        $samePartyName = $app['db']->fetchColumn("SELECT COUNT(user_id) FROM players WHERE game_id='".$game_id."' AND party_name='".$request->request->get('party_name')."'");
         if (strlen($request->request->get('party_name'))>0 && $samePartyName==0 ) {
             $app['db']->update('players', Array('party_name' => $request->request->get('party_name')) , Array('game_id' => $game_id , 'user_id' => $app['user']->getId()));
             return TRUE;
