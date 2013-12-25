@@ -136,6 +136,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
  * @param ($logs) - An array of logs which are an array of 'message'[0] , 'type'[1] and 'recipients'[2]
  */
 function log ( Application $app , $game_id , $user_id , $logs) {
+    // TO DO : do nothing here (and most importantly no Ratchet stuff) if $logs is empty. That can happen if an action function returns nothing
     $listOfRecipients = array();
     foreach ($logs as $log) {
         if (!isset($log[1])) {$log[1]='message';}

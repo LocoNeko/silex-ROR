@@ -834,26 +834,22 @@ class Game
      * @return type array messages in the form of arrays ('message','type of message','recipients')
      */
     public function setup_setPartyLeader( $user_id , $senatorID ) {
-        if ($this->subPhase!='PickLeaders') {
-            return array(array('Wrong phase','error'));
-        }
-        if ($this->party[$user_id]->leader !== NULL) {
-            return array(array('The leader is already set','error'));
-        }
-        foreach ($this->party[$user_id]->senators->cards as $senator) {
-            if ( ($senator->senatorID == $senatorID) && is_null($this->party[$user_id]->leader) ) {
-                $this->party[$user_id]->leader = $senator ;
-                $card = $this->party[$user_id]->senators->drawCardWithValue('senatorID' , $senatorID);
-                $this->party[$user_id]->senators->putOnTop($card);
-                $this->party[$user_id]->phase_done = TRUE ;
-                if ($this->whoseTurn() === FALSE ) {
-                    $this->subPhase = 'PlayCards' ;
-                    $this->resetPhaseDone() ;
+        if ( ($this->phase=='Setup') && ($this->subPhase=='PickLeaders') && ($this->party[$user_id]->leader === NULL) ) {
+            foreach ($this->party[$user_id]->senators->cards as $senator) {
+                if ($senator->senatorID == $senatorID) {
+                    $this->party[$user_id]->leader = $senator ;
+                    $card = $this->party[$user_id]->senators->drawCardWithValue('senatorID' , $senatorID);
+                    $this->party[$user_id]->senators->putOnTop($card);
+                    $this->party[$user_id]->phase_done = TRUE ;
+                    if ($this->whoseTurn() === FALSE ) {
+                        $this->subPhase = 'PlayCards' ;
+                        $this->resetPhaseDone() ;
+                    }
+                    return array(array($senator->name.' is the new leader of party '.$this->party[$user_id]->name , 'alert'));
                 }
-                return array(array($senator->name.' is the new leader of party '.$this->party[$user_id]->name , 'alert'));
             }
+            return array(array('Undocumented error - party leader not set.', 'error', $user_id));
         }
-        return array(array('Undocumented error - party leader not set.','error'));
     }
     
     /**
