@@ -41,10 +41,12 @@ class Pusher implements WampServerInterface {
         if ($entryData['game_id'] != $this->game_id) {
             return;
         }
-        
-        echo time().'game_id : '.$this->game_id.PHP_EOL;
+        if (count($entryData['players'])>0) {
+            $listPlayers = implode(',',$entryData['players']);
+        } else {
+            $listPlayers = 'Everyone.';
+        }
+        echo date('G:H:s').' game_id : '.$this->game_id.', From : '.$entryData['from'].', Recipients : '.$listPlayers.PHP_EOL;
         $this->game_id->broadcast($entryData);
-        
-        print_r($entryData);
     }
 }

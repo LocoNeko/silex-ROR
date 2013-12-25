@@ -13,10 +13,11 @@ function numberToRoman($num) {
     return $result;
 }
 
+/**
+ * @param string $Location NULL if Legion doesn't exist
+ */
 class Legion
 {
-    public static $VALID_LOCATIONS = array('nonexistent', 'Rome');
-
     public $name, $veteran , $loyalty , $location ;
     
     public function __construct() {
@@ -27,7 +28,7 @@ class Legion
         $this->name = ( (strlen($romanName)>0) ? $romanName : NULL) ;
         $this->veteran = FALSE ;
         $this->loyalty = NULL ;
-        $this->location = 'nonexistent' ;
+        $this->location = NULL ;
     }
         
 }

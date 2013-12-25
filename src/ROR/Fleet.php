@@ -1,10 +1,12 @@
 <?php
 namespace ROR;
 
+/**
+ * @param string $Location NULL if Fleet doesn't exist
+ */
+
 class Fleet
 {
-    public static $VALID_LOCATIONS = array('nonexistent', 'Rome');
-
     public $name, $location ;
     
     public function __construct() {
@@ -13,7 +15,7 @@ class Fleet
     public function create ($nb) {
         $romanName = numberToRoman($nb) ;
         $this->name = ( (strlen($romanName)>0) ? $romanName : NULL) ;
-        $this->location = 'nonexistent' ;
+        $this->location = NULL ;
     }
         
 }

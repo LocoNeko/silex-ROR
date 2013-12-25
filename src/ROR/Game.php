@@ -323,13 +323,13 @@ class Game
     }
     
     /**
-     * Number of legions (location is NOT nonexistent)
+     * Number of legions (location is NOT NULL)
      * @return int
      */
     public function getNbOfLegions() {
         $result = 0 ;
         foreach($this->legion as $legion) {
-            if ($legion->location <> 'nonexistent' ) {
+            if ($legion->location <> NULL ) {
                 $result++;
             }
         }
@@ -337,17 +337,32 @@ class Game
     }
     
     /**
-     * Number of fleets (location is NOT nonexistent)
+     * Number of fleets (location is NOT NULL)
      * @return int
      */
     public function getNbOfFleets() {
         $result = 0 ;
         foreach($this->fleet as $fleet) {
-            if ($fleet->location <> 'nonexistent' ) {
+            if ($fleet->location <> NULL ) {
                 $result++;
             }
         }
         return $result ;
+    }
+    
+    public function getProvinceGarrisons($province) {
+        $result = 0 ;
+        if ($province->type == 'Province') {
+            $id = $province->id;
+            foreach ($this->legion as $legion) {
+                if ($legion->location == $id) {
+                    $result++;
+                }
+            }
+        } else {
+            return FALSE ;
+        }
+        return $result;
     }
     
     /**
@@ -1064,24 +1079,102 @@ class Game
                 foreach ($senator->controls->cards as $card) {
                     if ($card->type=='Province') {
                         $card->overrun = FALSE ;
-                        // event 163;Barbarian Raids;Barbarian Raids Increase;
+                        // Event 163;Barbarian Raids;Barbarian Raids Increase;
                         $barbarianRaids = $this->getEventLevel('number', 163) ;
-                        if ($barbarianRaids>0) {
-                           if ($card->frontier) {
-                               // TO DO
-                               $provinceName = $card->name ;
-                               $writtenForce = $card->land ;
-                               $garrisons = 0 ;
-                               $governorName = $senator->name ;
-                               $governorMIL = $senator->MIL ;
-                               $total = $writtenForce + 2 * $garrisons + $governorMIL ;
-                               $message = 'Province '.$provinceName.' is attacked by '.($barbarianRaids==2 ? 'increased ' : '').'Barbarian raids. Military force is '.$writtenForce.' (written force) + '.(2*$garrisons).' (for '.$garrisons.' legions) + '.$governorMIL.' ('.$governor.'\'s MIL) = '.$total.'. A X is rolled. ';
-                           }
+                        // Only for frontier provinces
+                        if ($barbarianRaids>0 && $card->frontier) {
+                            $barabarianRaidsMessages = revenue_barbarianRaids($barbarianRaids , $card , $senator) ;
+                            foreach($barabarianRaidsMessages as $message) {
+                                array_push ($messages , $message ) ;
+                            }
+                        }
+                        // Event 169;Internal Disorder;Increased Internal Disorder;
+                        $internalDisorder = $this->getEventLevel('number', 169) ;
+                        // Only for undeveloped provinces
+                        if ($internalDisorder>0 && !$card->developed) {
+                            $internalDisorderMessages = revenue_internalDisorder($internalDisorder , $card , $senator) ;
+                            foreach($internalDisorderMessages as $message) {
+                                array_push ($messages , $message ) ;
+                            }
                         }
                     }
                 }
             }
         }
+        return $messages ;
+    }
+    
+    /**
+     * Function that handles the Barabarian raid event first step (the rolls, and the immediate effects of overrunning)
+     * Later, the overrun flag will be used to prevent income and development
+     * @param integer $barbarianRaids the raids level : 1|2
+     * @param Province $province The provincial Province being governed by the governing Governor
+     * @param Senator $senator The Governor governing the provincial Province being governed
+     * @return array messages
+     */
+    private function revenue_barbarianRaids ($barbarianRaids , $province , $senator) {
+        $messages = array() ;
+        $provinceName = $province->name ;
+        $writtenForce = $province->land ;
+        $garrisons = $this->getProvinceGarrisons($province) ;
+        $governorName = $senator->name ;
+        $governorMIL = $senator->MIL ;
+        $roll = $this->rollDice(2, -1) ;
+        $total = $writtenForce + 2 * $garrisons + $governorMIL + $roll['total'];
+        $message =   'Province '.$provinceName.
+                     ' is attacked by '.($barbarianRaids==2 ? 'increased ' : '').
+                     'Barbarian raids. Military force is '.$writtenForce.' (written force) + '.
+                     (2*$garrisons).' (for '.$garrisons.' legions) + '.
+                     $governorMIL.' ('.$governorName.'\'s MIL) '.
+                     ', a '.$roll['total'].' (white die: '.$roll[0].', black die: '.$roll[0].') is rolled for a total of '.
+                     $total.' ';
+        if ($total>( $barbarianRaids==1 ? 15 : 17)) {
+            $message.= ' which is greater than '.( $barbarianRaids==1 ? 15 : 17).', the province is safe.' ;
+            array_push($messages , array($message));
+        } else {
+            $province->overrun = TRUE ;
+            $message.= ' which is not greater than '.( $barbarianRaids==1 ? 15 : 17).', the province is overrun.' ;
+            array_push($messages , array($message,'alert'));
+            if ($province->developed) {
+                $province->developed = FALSE ;
+                array_push($messages , array('The Province reverts to undeveloped status','alert'));
+            }
+            $mortalityChits = $this->mortality_chits($roll[1]) ;
+            $message = 'The black die was a '.$roll[1].', so '.$roll[1].' mortality chits are drawn : ';
+            $outcome = 'safe' ;
+            $i=1 ;
+            foreach($mortalityChits as $chit) {
+                $message.=$chit.', ';
+                if (    ($senator->type=='Family' && $senator->senatorID==$chit)
+                    ||  ($senator->type=='Stateman' && $senator->statemanFamily()==$chit)
+                    ) {
+                    // The outcome is based on whether or not the chit drawn was the last (which means capture)
+                    $outcome = ($i++==$roll[1] ? 'captured' : 'killed') ;
+                }
+            }
+            $message=substr($message, 0, -2);
+            array_push($messages , $message);
+            switch($outcome) {
+                case 'killed' :
+                    $this->mortality_killSenator($senator->senatorID);
+                    array_push($messages , array($senator->name.' is killed by the barbaric barbarians.','alert'));
+                    break ;
+                case 'captured' :
+                    $senator->captive='barbarians';
+                    array_push($messages , array($senator->name.' is captured by the barbaric barbarians. Ransom must be paid before next Forum phase or he\'s BBQ.','alert'));
+                    break ; 
+                default :
+                    array_push($messages , array($senator->name.' is safe.'));
+            }
+        }
+        return $messages ;
+    }
+    
+    private function revenue_internalDisorder($internalDisorder , $province , $senator) {
+        $messages = array() ;
+        // TO DO : Check if I should use another property, but looks fine
+        $province->overrun = TRUE ;
+        
         return $messages ;
     }
     
@@ -1114,6 +1207,7 @@ class Game
                     $result['total']+=$card->income ;
                     array_push($result['concessions'] , array( 'id' => $card->id , 'name' => $card->name , 'income' => $card->income , 'special' => $card->special , 'senator_name' => $senator->name , 'senatorID' => $senator->senatorID ) );
                 } elseif ( $card->type == 'Province' ) {
+                    // TO DO : add 'overrun' property in order to display it and prevent action on it
                     array_push($result['provinces'] , array('province' => $card , 'senator' => $senator ) );
                 }
             }
@@ -1173,49 +1267,52 @@ class Game
                 if (is_null($request[$province->id])) {
                     return array('Undefined province.','error');
                 }
-                // TO DO : handle overrun province
-                $revenue = $province->rollRevenues('senator' , -$this->getEventLevel('name' , 'Evil Omens'));
-                $message = $province->name.' : ';
-                // Spoils
-                if ($request[$province->id] == 'YES') {
-                    $senator->corrupt = TRUE ;
-                    $message .= $senator->name.' takes provincial spoils for '.$revenue.'T .';
-                    if ($revenue>0) {
-                        $senator->treasury+=$revenue;
-                    } else {
-                        if ($request[$province->id.'_LET_ROME_PAY'] == 'YES') {
-                            // The Senator decided to let Rome pay for it
-                            $message .= ' He decides to let the negative amount be paid by Rome. ' ;
-                            $this->treasury+=$revenue;
+                // Check if province was overrun by barbarians
+                if (!$province->overrun) {
+                    $revenue = $province->rollRevenues('senator' , -$this->getEventLevel('name' , 'Evil Omens'));
+                    $message = $province->name.' : ';
+                    // Spoils
+                    if ($request[$province->id] == 'YES') {
+                        $senator->corrupt = TRUE ;
+                        $message .= $senator->name.' takes provincial spoils for '.$revenue.'T .';
+                        if ($revenue>0) {
+                            $senator->treasury+=$revenue;
                         } else {
-                            if ($senator->treasury<$revenue) {
-                                // The senator is forced to let Rome pay because of his treasury
-                                $message .= ' He has to let the negative amount be paid by Rome. ' ;
+                            if ($request[$province->id.'_LET_ROME_PAY'] == 'YES') {
+                                // The Senator decided to let Rome pay for it
+                                $message .= ' He decides to let the negative amount be paid by Rome. ' ;
                                 $this->treasury+=$revenue;
                             } else {
-                                // The Senator decided to pay for it
-                                $message .= ' He decides to pay the negative amount. ' ;
-                                $senator->treasury+=$revenue;
+                                if ($senator->treasury<$revenue) {
+                                    // The senator is forced to let Rome pay because of his treasury
+                                    $message .= ' He has to let the negative amount be paid by Rome. ' ;
+                                    $this->treasury+=$revenue;
+                                } else {
+                                    // The Senator decided to pay for it
+                                    $message .= ' He decides to pay the negative amount. ' ;
+                                    $senator->treasury+=$revenue;
+                                }
                             }
                         }
-                    }
-                    $message .= ' He is now corrupt.';
-                } else {
-                // No spoils
-                    $message.=$senator->name.' doesn\'t take Provincial spoils.';
-                }
-                // Develop province
-                // TO DO : noe development for overrun provinces
-                if ( !($province->developed)) {
-                    $roll = $this->rollOneDie(-1) ;
-                    $modifier = ( ($senator->corrupt) ? 0 : 1) ;
-                    if ( ($roll+$modifier) >= 6 ) {
-                        $message.=' A '.$roll.' is rolled'.($modifier==1 ? ' (modified by +1 since senator is not corrupt)' : '').', the province is developed. '.$senator->name.' gains 3 INFLUENCE.';
-                        $province->developed = TRUE ;
-                        $senator->INF+=3;
+                        $message .= ' He is now corrupt.';
                     } else {
-                        $message.=' A '.$roll.' is rolled'.($modifier==1 ? ' (modified by +1 since senator is not corrupt)' : '').', the province is not developed.';
+                    // No spoils
+                        $message.=$senator->name.' doesn\'t take Provincial spoils.';
                     }
+                    // Develop province
+                    if ( !($province->developed)) {
+                        $roll = $this->rollOneDie(-1) ;
+                        $modifier = ( ($senator->corrupt) ? 0 : 1) ;
+                        if ( ($roll+$modifier) >= 6 ) {
+                            $message.=' A '.$roll.' is rolled'.($modifier==1 ? ' (modified by +1 since senator is not corrupt)' : '').', the province is developed. '.$senator->name.' gains 3 INFLUENCE.';
+                            $province->developed = TRUE ;
+                            $senator->INF+=3;
+                        } else {
+                            $message.=' A '.$roll.' is rolled'.($modifier==1 ? ' (modified by +1 since senator is not corrupt)' : '').', the province is not developed.';
+                        }
+                    }
+                } else {
+                    $message = $province->name.' was overrun. No revenue nor development this turn.';
                 }
                 array_push ($messages , array($message)) ;
             }
@@ -1380,6 +1477,7 @@ class Game
      * @return array
      */
     public function revenue_Contributions($user_id , $rawSenator , $amount) {
+        // TO DO : add the ability to pay ransom of Senators captured during barbarian raids
         $amount=(int)$amount;
         $medium = explode('|' , $rawSenator);
         $senatorID = $medium[0];
@@ -1584,12 +1682,13 @@ class Game
      * @return array
      */
     public function forum_bid ($user_id , $senatorRaw , $amount) {
+        $amount = (int)$amount ;
         $messages = array() ;
         if ($this->forum_whoseInitiative()===FALSE) {
             // There was no bid
-            if ($senatorRaw=='NONE') {
+            if ($senatorRaw=='NONE' || $amount<=0 ) {
                 array_push($messages , array($this->party[$user_id]->fullName().' cannot or will not bid for this initiative.'));
-            // There was a bid    
+            // There was a bid
             } else {
                 $senatorData = explode('|' , $senatorRaw) ;
                 $senatorID = $senatorData[0] ;
@@ -2592,7 +2691,7 @@ class Game
                 }
             }
         }
-        // TO DO
+        // TO DO : Other proposals types
         return $messages;
     }
     

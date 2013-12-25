@@ -33,7 +33,7 @@ The pusher has a game_id, so only clients connected to this game can push and pu
 
 TO DO - 161;Ally Deserts;Roman Auxiliary Deserts; COMBAT PHASE
 DONE  - 162;Allied Enthusiasm;Extreme Allied Enthusiasm; REVENUE PHASE
-TO DO - 163;Barbarian Raids;Barbarian Raids Increase; REVENUE PHASE
+80%   - 163;Barbarian Raids;Barbarian Raids Increase; REVENUE PHASE
 TO DO - 164;Drought;Severe Drought;
 TO DO - 165;Enemy Leader Dies;Enemy Sues For peace; (END OF) FORUM PHASE
 TO DO - 166;Enemy's Ally Deserts;Enemy Mercenaries Desert; COMBAT PHASE
@@ -57,7 +57,7 @@ TO DO - 178;Trial Of Verres -70BC;Another Corruption Trial; REVENUE PHASE
 TO DO :
 - Other scenarios
 - Oh noes ! All the cards' numbers are wrong, they start from 0 but should start from 1 ! For Conflicts, effects on provinces are also wrong
-- Provinces need a "Frontier" property
+- Provinces need new propoerties : 'land', 'fleet', and 'frontier'
 
 *************
 *  Revenue  *

@@ -14,9 +14,7 @@
                     'ws://localhost:8081' // The host (our Ratchet WebSocket server) to connect to
                   , function() {            // Once the connection has been established
                         conn.subscribe('{{game_id|default('')}}', function(js_game_id, data) {
-                            console.log('Action received for ' + '{{game_id|default('Nothing')}}');
-                            console.log(data);
-                            //alert('I should reload. I got : ' + js_game_id + ' , ' + data);
+                            console.log('Action received. Data is : ' + JSON.stringify(data, null, 4));
                             window.location.href = window.location.href;
                         });
                     }
