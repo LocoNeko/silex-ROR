@@ -78,6 +78,18 @@ WARS :<br>
 
 <hr>
 
+{# CHAT #}
+Chat :<br>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'chat'} ) }}">
+    <textarea rows="4" name="message" id="message"></textarea><br>
+    {% for player in content['game'].party %}
+        {% if player.user_id!=user_id %}
+            <input type="checkbox" name="recipients[]" id="recipients[]" value="{{player.user_id}}">{{player.fullName()}}<br>
+        {% endif %}
+    {% endfor %}
+    <button type="submit" class="btn btn-danger">SEND</button>
+</form>
+
 {# DISPLAY GAME LOG #}
 {#
 Game Log :<br>

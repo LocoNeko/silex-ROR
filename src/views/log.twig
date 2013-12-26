@@ -7,7 +7,7 @@
         </style>
     </head>
     <body>
-        {% set logs = app['db'].fetchAll("SELECT * FROM logs WHERE game_id='" ~ game_id ~ "' AND (recipients IS NULL OR recipients='" ~ user_id ~ "' OR recipients LIKE '%" ~ user_id ~ ";%') ORDER BY time_created DESC") %}
+        {% set logs = app['db'].fetchAll("SELECT * FROM logs WHERE game_id='" ~ game_id ~ "' AND (recipients IS NULL OR recipients='" ~ user_id ~ "' OR recipients LIKE '%" ~ user_id ~ ";%' OR recipients LIKE '%" ~ user_id ~ ":%') ORDER BY time_created DESC") %}
         <table class="table table-condensed">
 {% set textColor = { 'message':'indigo' , 'chat':'seagreen' , 'alert':'orange' , 'error':'red' } %}
 {% for message in logs %}
@@ -16,6 +16,9 @@
                     {{ message['time_created']|number_format(0,'','')|date('Y/m/d (H:i:s)')}}    
                 </td>
                 <td class="span10" style="color:{{textColor[message['type']]}} ; font-weight:bold">
+                    {% if message['type']=='chat' %}
+                        {{message['recipients']}}
+                    {% endif %}
                     {{ message['message']}}
                 </td>
             </tr>

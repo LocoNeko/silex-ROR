@@ -1,7 +1,7 @@
 TO DO :
 - Move display logic away from Twig templates and into the Game object : Only forum left (biggest one)
 - i18n
-- Chat, by using the log the following way : recipients = "user_id1:user_id2;user_id3;..." the ':' means this is a message from player user_id1 to a list of other players.
+- Improve Chat
 - Provinces need new properties : 'land', 'fleet', and 'frontier'
 - Variants : Pontifex, 
 - Now that getSpecificCard is done, shouldn't it replace calls to {foreach party { foreach senator {foreach card}}} ???

@@ -109,6 +109,10 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         case 'senate_proposal' :
             log ($app , $game_id , $user_id , $game->senate_proposal($user_id , $request->request->get('type') , $request->request->get('description')  , $request->request->get('proposalHow')  , $request->request->get('parameters') ) );
             break ;
+        case 'chat' :
+            $recipients = implode(';', $request->request->get('recipients')).';';
+            log ($app , $game_id , $user_id , array(array($request->request->get('message') , 'chat' , $user_id.':'.$recipients))) ;
+            break ;
     }
     
     /* 
@@ -153,10 +157,9 @@ function log ( Application $app , $game_id , $user_id , $logs) {
              * - NULL : Is a conveninet way to mean "everyone"
              * - $user_id : only for this user, which means no other user should see anything.
              * - list of $user_id : only for these users
-             * - TO DO : add a new catagory : user_id1:user_id2;user_id3;... the ":" means this is a message from a player to a list of other players.
+             * - user_id1:user_id2;user_id3;... the ":" means this is a message from a player to a list of other players.
              */
-            // TO DO : use strtok with ';:' to create a list of recipients that handles both log and chat messages
-            if ( ($log[2]==NULL) || ($log[2]==$user_id) || (strstr($log[2],$user_id.';')!==FALSE) ) {
+            if ( ($log[2]==NULL) || ($log[2]==$user_id) || (strstr($log[2],$user_id.';')!==FALSE) || (strstr($log[2],$user_id.':')!==FALSE) ) {
                 $app['session']->getFlashBag()->add($flashType,$log[0]);
             }
             $app['db']->insert('logs' , Array ('game_id' => $game_id , 'message' => $log[0] , 'type' => $log[1] , 'recipients' => $log[2] , 'time_created' => microtime(TRUE) ) );
@@ -188,12 +191,12 @@ function log ( Application $app , $game_id , $user_id , $logs) {
 }
 
 /**
- * Returns the logs that match the recipients : NULL (everyone) , "$user_id" , "or $userid;" as the ";" is the delimiter for multiple recipients
+ * Returns the logs that match the recipients : NULL (everyone) , "$user_id" , "or $userid;"  , "or $userid;" as the ";" is the delimiter for multiple recipients and ":" the delimiter for chat
  * @param \Silex\Application $app
  * @param type $game_id
  * @param type $user_id
  * @return type
  */
 function getLog ( Application $app , $game_id , $user_id) {
-    return $app['db']->fetchAll("SELECT * FROM logs WHERE game_id='".$game_id."' AND (recipients IS NULL OR recipients='".$user_id."' OR recipients LIKE '%".$user_id.";%')");
+    return $app['db']->fetchAll("SELECT * FROM logs WHERE game_id='".$game_id."' AND (recipients IS NULL OR recipients='".$user_id."' OR recipients LIKE '%".$user_id.";%' OR recipients LIKE '%".$user_id.":%')");
 }
