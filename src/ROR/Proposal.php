@@ -52,7 +52,7 @@ class Proposal {
         foreach ($parties as $party) {
             foreach ($party->senators->cards as $senator) {
                 // Always 0 for senators not in Rome
-                $thisSenatorsVotes = ($senator->inRome ? $senator->ORA + $senator->knights : 0) ;
+                $thisSenatorsVotes = ($senator->inRome() ? $senator->ORA + $senator->knights : 0) ;
                 // TO DO : compute the votes the senator has for this specific type of proposal, as some senators earn more votes for certain proposals (consul for life, war, etc)
                 $this->voting[] = array ('senatorID' => $senator->senatorID , 'user_id' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes) ;
             }

@@ -476,7 +476,7 @@ class Game
         $result=array();
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
-                if ($senator->inRome == $inRomeFlag) {
+                if ($senator->inRome() == $inRomeFlag) {
                     array_push($result , $senator) ;
                 }
             }
@@ -497,7 +497,7 @@ class Game
         $rankedSenators = array() ;
         foreach ($this->party as $user_id=>$party) {
             foreach ($party->senators->cards as $senator) {
-                if ( $senator->inRome && $senator->office!==NULL && (!$presiding || !in_array($senator->senatorID , $this->steppedDown) )) {
+                if ( $senator->inRome() && $senator->office!==NULL && (!$presiding || !in_array($senator->senatorID , $this->steppedDown) )) {
                     // This will put an array ('senator','party','user_id') in another array $rankedSenators, ordered by Valid Offices keys (Dictator first, Rome Consul second, etc...
                     $rankedSenators[array_search($senator->office, Senator::$VALID_OFFICES)] = array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
                 }
@@ -822,6 +822,25 @@ class Game
             }
         }
         return FALSE ;
+    }
+
+    /**
+     * This adds the ability to pay ransom of Senators captured during barbarian raids
+     * This should be a global function, called from the main view interface to allow for payment at any time.
+     * TO DO : Killing of captives should be checked when needed (defeat of the war if captured during battle, or Forum phase if captured by Barbarians)
+     * @param type $user_id
+     * @return array
+     */
+    public function getListOfCaptives($user_id) {
+        $result = array () ;
+        foreach($this->party[$user_id] as $party) {
+            foreach($party->senators->cards as $senator) {
+                if($senator->captive!==FALSE) {
+                    array_push( array('captiveOf' => $senator->captive , 'senatorID' => $senator->senatorID , 'ransom' => max(10 , 2 * $senator->INF)));
+                }
+            }
+        }
+        return $result ;
     }
        
     /************************************************************
@@ -1571,7 +1590,6 @@ class Game
      * @return array
      */
     public function revenue_Contributions($user_id , $rawSenator , $amount) {
-        // TO DO : add the ability to pay ransom of Senators captured during barbarian raids
         $amount=(int)$amount;
         $medium = explode('|' , $rawSenator);
         $senatorID = $medium[0];
@@ -1648,7 +1666,6 @@ class Game
                                 $card->mandate++;
                                 if ($card->mandate == 3) {
                                     array_push($messages , array($senator->name.' returns from '.$card->name.' which is placed in the Forum.'));
-                                    $senator->inRome=TRUE;
                                     $card->mandate=0;
                                     $this->forum->putOnTop($senator->controls->drawCardWithValue('id',$card->id));
                                 } else {
@@ -1666,7 +1683,6 @@ class Game
                                 $card->mandate++;
                                 if ($card->mandate == 3) {
                                     array_push($messages , array($senator->name.' (unaligned) returns from '.$card->name.' which is placed in the Forum.'));
-                                    $senator->inRome=TRUE;
                                     $card->mandate=0;
                                     $this->forum->putOnTop($senator->controls->drawCardWithValue('id',$card->id));
                                 } else {
@@ -1793,6 +1809,7 @@ class Game
                 $output['contributions'] = $this->revenue_listContributions($user_id) ;
             }
         }
+        
         return $output ;
     }
     
@@ -2082,7 +2099,7 @@ class Game
         if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
             foreach ($this->party as $party) {
                 foreach ($party->senators->cards as $senator) {
-                    if ($senator->inRome && $senator->senatorID != $party->leader->senatorID && $party->user_id!=$user_id) {
+                    if ($senator->inRome() && $senator->senatorID != $party->leader->senatorID && $party->user_id!=$user_id) {
                         array_push($result, array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party' => $party->user_id , 'LOY' => $this->getSenatorActualLoyalty($senator) , 'treasury' => $senator->treasury)) ;
                     }
                 }
@@ -2109,7 +2126,7 @@ class Game
         $result = array();
         if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
             foreach ($this->party[$user_id]->senators->cards as $senator) {
-                if ($senator->inRome) {
+                if ($senator->inRome()) {
                     array_push( $result , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'ORA' => $senator->ORA , 'INF' => $senator->INF , 'treasury' => $senator->treasury )) ;
                 }
             }
@@ -2410,7 +2427,7 @@ class Game
     public function forum_listKnights($user_id) {
         $result = array () ;
         foreach ($this->party[$user_id]->senators->cards as $senator) {
-            array_push($result , array ( 'senatorID' => $senator->senatorID , 'name' => $senator->name , 'knights' => $senator->knights , 'treasury' => $senator->treasury , 'inRome' => $senator->inRome) );
+            array_push($result , array ( 'senatorID' => $senator->senatorID , 'name' => $senator->name , 'knights' => $senator->knights , 'treasury' => $senator->treasury , 'inRome' => $senator->inRome()) );
         }
         return $result ;
     }
@@ -2521,7 +2538,7 @@ class Game
         $result = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='SponsorGames') ) {
             foreach ($this->party[$user_id]->senators->cards as $senator) {
-                if ($senator->inRome && $senator->treasury >=7) {
+                if ($senator->inRome() && $senator->treasury >=7) {
                     array_push($result , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury));
                 }
             }
@@ -2813,7 +2830,7 @@ class Game
         foreach ($this->party as $party) {
             unset($party->freeTribunes) ; $party->freeTribunes = array() ;
             foreach ($party->senators->cards as $senator) {
-                if ($senator->inRome && $senator->specialAbility!==NULL) {
+                if ($senator->inRome() && $senator->specialAbility!==NULL) {
                     $abilities = explode(',' , $senator->specialAbility) ;
                     if (in_array('Tribune' , $abilities)) {
                         $party->freeTribunes[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name ) ;
@@ -2925,7 +2942,7 @@ class Game
         }
         if ( count($parameters)==2 ) {
             // Check if they are in Rome (where they must do as Romans do)
-            if ((!$senator1->inRome) || (!$senator2->inRome)) {
+            if ((!$senator1->inRome()) || (!$senator2->inRome())) {
                 return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Both Senators must be in Rome to be proposed.','error');
             }
             // Check if they already have been rejected
@@ -3048,7 +3065,7 @@ class Game
         $listOfSenators=array();
         foreach($this->party as $party) {
             foreach($party->senators->cards as $senator) {
-                if ($senator->inRome) {
+                if ($senator->inRome()) {
                     if ( in_array('Tradition Erodes' , $this->laws) || (($senator->office != 'Dictator') && ($senator->office != 'Rome Consul') && ($senator->office != 'Field Consul') && ($senator->office != 'Pontifex Maximus')) ) {
                         array_push($listOfSenators , $senator->senatorID);
                     }

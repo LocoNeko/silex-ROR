@@ -1,14 +1,15 @@
 TO DO :
-- Move display logic away from Twig templates and into the Game object : that's a big overhaul, but could serve me well. Will use this method for the Senate anyway.
+- Move display logic away from Twig templates and into the Game object : Only forum left (biggest one)
 - i18n
 - Chat, by using the log the following way : recipients = "user_id1:user_id2;user_id3;..." the ':' means this is a message from player user_id1 to a list of other players.
-- Update Provinces : land forces and flotillas are lacking
+- Provinces need new properties : 'land', 'fleet', and 'frontier'
 - Variants : Pontifex, 
-- Now that getSpecificCard is done, shouldn't it replace SOOO many call to foreach party, foreach senator, foreach card ???
+- Now that getSpecificCard is done, shouldn't it replace calls to {foreach party { foreach senator {foreach card}}} ???
 - IMPORTANT : Check every function called from the main Action.php switch : they should all be sanitised for current phase, current subPhase, etc,
-  so they don't erroneously commit data and put the game in the wrong state
+  so they don't erroneously commit data and put the game into a wrong state
+
 MAYBE :
-- In the Game class, I should use 'public function foobar()' only for the functions called from Action.php, but turn every other function in the Game object into private functions.
+- In the Game class, I should use 'public function foobar()' only for the functions called from Action.php, but turn most other functions in the Game object into private functions.
 - Change logs so that {user_id} is recorded. That way, if a player looks at the logs, his party & user names can be replaced by "you"
 
 IDEA :
@@ -21,7 +22,6 @@ IDEA :
 Ratchet (PHP)
 - Follow these instructions : http://socketo.me/docs/push
 - Note  on ZMQ install : add /etc/php5/cli/conf.d/20-zmq.ini and restart php5-fpm
-
 
 I have created/modified 4 files :
 - /bin/push-server : This is the server, to be run from the command line. It has the port, the callback function, and calls the PUSHER class
@@ -63,7 +63,6 @@ TO DO - 178;Trial Of Verres -70BC;Another Corruption Trial; REVENUE PHASE
 TO DO :
 - Other scenarios
 - Conflicts : change provinces names to provinces numbers
-- Provinces need new properties : 'land', 'fleet', and 'frontier'
 
 *************
 *  Revenue  *

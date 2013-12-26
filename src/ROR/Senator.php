@@ -39,7 +39,6 @@ class Senator extends Card
     public $corrupt ;
     public $controls ;
     public $major ;
-    public $inRome ;
     public $rebel ;
     public $captive ;
     public $freeTribune ;
@@ -77,7 +76,6 @@ class Senator extends Card
             $this->freeTribune = 0 ;
             $this->rebel = FALSE ;
             $this->captive = FALSE ;
-            $this->inRome = TRUE ;
     }
 
     public function resetSenator() {
@@ -109,6 +107,23 @@ class Senator extends Card
     public function changeINF ($value) {
         $this->INF+=$value ;
         if ( $this->INF < 0 ) { $this->INF = 0 ; }
+    }
+    
+    public function inRome() {
+        $result = TRUE ;
+        // Captive
+        if ($this->captive!==FALSE) {
+            $result = FALSE ;
+        }
+        // Governor
+        // TO DO : What about legates ?
+        foreach ($this->controls->cards as $card) {
+            if($card->type=='Province') {
+                $result = FALSE ;
+            }
+        }
+        // TO DO : commander of an army
+        return $result ;
     }
     
 }
