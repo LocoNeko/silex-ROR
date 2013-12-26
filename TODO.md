@@ -5,6 +5,11 @@ TO DO :
 - Update Provinces : land forces and flotillas are lacking
 - Variants : Pontifex, 
 - Now that getSpecificCard is done, shouldn't it replace SOOO many call to foreach party, foreach senator, foreach card ???
+- IMPORTANT : Check every function called from the main Action.php switch : they should all be sanitised for current phase, current subPhase, etc,
+  so they don't erroneously commit data and put the game in the wrong state
+MAYBE :
+- In the Game class, I should use 'public function foobar()' only for the functions called from Action.php, but turn every other function in the Game object into private functions.
+- Change logs so that {user_id} is recorded. That way, if a player looks at the logs, his party & user names can be replaced by "you"
 
 IDEA :
 * iFrame page : add "overflow-x:hidden;"

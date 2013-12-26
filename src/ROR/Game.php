@@ -881,7 +881,9 @@ class Game
      * @return type array messages
      */
     public function setup_Finished($user_id) {
-        $this->party[$user_id]->phase_done = TRUE ;
+        if ( ($this->phase=='Setup') && ($this->subPhase=='PlayCards') ) {
+            $this->party[$user_id]->phase_done = TRUE ;
+        }
         if ($this->whoseTurn()===FALSE) {
             return $this->mortality_base();
         }

@@ -136,39 +136,41 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
  * @param ($logs) - An array of logs which are an array of 'message'[0] , 'type'[1] and 'recipients'[2]
  */
 function log ( Application $app , $game_id , $user_id , $logs) {
-    // TO DO : do nothing here (and most importantly no Ratchet stuff) if $logs is empty. That can happen if an action function returns nothing
+    // Do nothing here if $logs is empty. That can happen if an action function returns nothing
     $listOfRecipients = array();
-    foreach ($logs as $log) {
-        if (!isset($log[1])) {$log[1]='message';}
-        if (!isset($log[2])) {$log[2]=NULL;}
-        if ($log[1]=='chat') {$flashType='info' ;}
-        elseif ($log[1]=='alert') {$flashType='warning' ;}
-        elseif ($log[1]=='error') {$flashType='danger' ;}
-        else {$flashType='success' ;}
-        /*
-         * types : 'message','chat','alert','error'
-         * translates to flashbag types : 'success' , 'info' , 'warning' , 'danger'
-         * Limit flash bags to messages where $log[2] is NULL or "$user_id" or "$user_id;"
-         * - NULL : Is a conveninet way to mean "everyone"
-         * - $user_id : only for this user, which means no other user should see anything.
-         * - list of $user_id : only for these users
-         * - TO DO : add a new catagory : user_id1:user_id2;user_id3;... the ":" means this is a message from a player to a list of other players.
-         */
-        // TO DO : use strtok with ';:' to create a list of recipients that handles both log and chat messages
-        if ( ($log[2]==NULL) || ($log[2]==$user_id) || (strstr($log[2],$user_id.';')!==FALSE) ) {
-            $app['session']->getFlashBag()->add($flashType,$log[0]);
-        }
-        $app['db']->insert('logs' , Array ('game_id' => $game_id , 'message' => $log[0] , 'type' => $log[1] , 'recipients' => $log[2] , 'time_created' => microtime(TRUE) ) );
-        // If a message is aimed at all players, set the listOfRecipients to NULL (which means everyone)
-        if ($log[2]==NULL) {
-            $listOfRecipients = NULL ;
-        // Otherwise, check if the listOfRecipients is not already equal to NULL (then we have nothing to do)
-        } elseif($listOfRecipients!=NULL) {
-            // If it's not, go through the list of recipients for this message and add them to listOfRecipients if they're not already there.
-            $explodedList = explode(';', $log[2]) ;
-            foreach ($explodedList as $recipient) {
-                if (!in_array($recipient, $listOfRecipients)) {
-                    $listOfRecipients[]=$recipient ;
+    if (count($logs)>0) {
+        foreach ($logs as $log) {
+            if (!isset($log[1])) {$log[1]='message';}
+            if (!isset($log[2])) {$log[2]=NULL;}
+            if ($log[1]=='chat') {$flashType='info' ;}
+            elseif ($log[1]=='alert') {$flashType='warning' ;}
+            elseif ($log[1]=='error') {$flashType='danger' ;}
+            else {$flashType='success' ;}
+            /*
+             * types : 'message','chat','alert','error'
+             * translates to flashbag types : 'success' , 'info' , 'warning' , 'danger'
+             * Limit flash bags to messages where $log[2] is NULL or "$user_id" or "$user_id;"
+             * - NULL : Is a conveninet way to mean "everyone"
+             * - $user_id : only for this user, which means no other user should see anything.
+             * - list of $user_id : only for these users
+             * - TO DO : add a new catagory : user_id1:user_id2;user_id3;... the ":" means this is a message from a player to a list of other players.
+             */
+            // TO DO : use strtok with ';:' to create a list of recipients that handles both log and chat messages
+            if ( ($log[2]==NULL) || ($log[2]==$user_id) || (strstr($log[2],$user_id.';')!==FALSE) ) {
+                $app['session']->getFlashBag()->add($flashType,$log[0]);
+            }
+            $app['db']->insert('logs' , Array ('game_id' => $game_id , 'message' => $log[0] , 'type' => $log[1] , 'recipients' => $log[2] , 'time_created' => microtime(TRUE) ) );
+            // If a message is aimed at all players, set the listOfRecipients to NULL (which means everyone)
+            if ($log[2]==NULL) {
+                $listOfRecipients = NULL ;
+            // Otherwise, check if the listOfRecipients is not already equal to NULL (then we have nothing to do)
+            } elseif($listOfRecipients!=NULL) {
+                // If it's not, go through the list of recipients for this message and add them to listOfRecipients if they're not already there.
+                $explodedList = explode(';', $log[2]) ;
+                foreach ($explodedList as $recipient) {
+                    if (!in_array($recipient, $listOfRecipients)) {
+                        $listOfRecipients[]=$recipient ;
+                    }
                 }
             }
         }
