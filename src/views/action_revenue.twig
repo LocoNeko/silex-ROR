@@ -97,7 +97,7 @@
         <fieldset>
             Give from 
             <select id="fromRaw" name="fromRaw" onClick="updateRedistributionAmount();">
-                {% for listRedistribute in ouptut['redistribution'] %}
+                {% for listRedistribute in output['redistribution'] %}
                     {% if listRedistribute['list']=='from' %}
                     <option value="{{listRedistribute['type']}}|{{listRedistribute['id']}}|{{listRedistribute['treasury']}}">
                         {{(( listRedistribute['type']=='party' and listRedistribute['id']==user_id) ? 'Party treasury' : listRedistribute['name'])}}
@@ -107,7 +107,7 @@
             </select>
             to
             <select id="toRaw" name="toRaw">
-                {% for listRedistribute in ouptut['redistribution'] %}
+                {% for listRedistribute in output['redistribution'] %}
                     {% if listRedistribute['list']=='to' %}
                     <option value="{{listRedistribute['type']}}|{{listRedistribute['id']}}">
                         {{(( listRedistribute['type']=='party' and listRedistribute['id']==user_id) ? 'Party treasury' : listRedistribute['name'])}}

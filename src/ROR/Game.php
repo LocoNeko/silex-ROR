@@ -833,11 +833,9 @@ class Game
      */
     public function getListOfCaptives($user_id) {
         $result = array () ;
-        foreach($this->party[$user_id] as $party) {
-            foreach($party->senators->cards as $senator) {
-                if($senator->captive!==FALSE) {
-                    array_push( array('captiveOf' => $senator->captive , 'senatorID' => $senator->senatorID , 'ransom' => max(10 , 2 * $senator->INF)));
-                }
+        foreach($this->party[$user_id]->senators->cards as $senator) {
+            if($senator->captive!==FALSE) {
+                array_push( array('captiveOf' => $senator->captive , 'senatorID' => $senator->senatorID , 'ransom' => max(10 , 2 * $senator->INF)));
             }
         }
         if (count($result)==0) {
@@ -1742,11 +1740,11 @@ class Game
                 $output['text']['leader'] = ($revenueBase['leader']!='' ? 'Revenue collected from Leader '.$revenueBase['leader'].' : 3T.' : 'Currently no leader : no revenue collected from leader.');
                 $output['text']['knights'] = ($revenueBase['knights']>0 ? 'Revenue collected from '.$revenueBase['knights'].' knights : '.$revenueBase['knights'] : 'Currently no knight : no revenue collected from knights.');
                 // Concessions
+                $output['concessions'] = array() ;
+                $output['concession_drought'] = array();
                 if (count($revenueBase['concessions'])>0) {
                     $output['text']['concessions'] = 'Revenue collected from concessions :';
-                    $output['concessions'] = array() ;
                     $droughtLevel = $this->getTotalDroughtLevel() ;
-                    $output['concession_drought'] = array();
                     foreach ($revenueBase['concessions'] as $concession) {
                         array_push($output['concessions'] , $concession['income'].'T from '.$concession['name'].' ('.$concession['senator_name'].')');
                         // Populates the $output['concession_drought'] array to show the interface allowing senators to profit from drought-affected concessions
@@ -1759,9 +1757,9 @@ class Game
                 }
                 $output['text']['total'] = 'Total base revenue : '.$revenueBase['total'];
                 // Provinces
+                $output['provinces'] = array () ;
                 if (count($revenueBase['provinces'])>0) {
                     $output['text']['provinces'] = 'Revenue from Provincial spoils :';
-                    $output['provinces'] = array () ;
                     foreach ($revenueBase['provinces'] as $province) {
                         array_push  ($output['provinces'] , array (
                                 'province_name' => $province['province']->name
@@ -2659,7 +2657,7 @@ class Game
             }
         }
         // TO DO : Ruin concessions based on Punic War or slave revolt
-        foreach($this->activeWars as $war) {
+        foreach($this->activeWars->cards as $war) {
             if (strstr($war->causes , 'tax farmer')) {
                 $roll=$this->rollOneDie(0);
                 $name='TAX FARMER '.(string)$roll;
