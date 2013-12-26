@@ -18,163 +18,141 @@
         amount.options[amount.length] = option;
     }
   }
-  updateContributionAmount();
 </script>
-{% endblock %}  
+{% endblock %}
 
-{# BASE SUBPHASE#}
-{% if content['game'].subPhase=='Base' %}
-Sub phase : Collect revenue<br>
+{# The view controller #}
+{% set output = content['game'].revenue_view(user_id) %}
 
-    {# ALREADY PLAYED - WAIT #}
-    {% if content['game'].party[user_id].phase_done%}
-Waiting for 
-        {% for current_user_id in content['game'].party %}
-            {% if content['game'].party[current_user_id.user_id].phase_done==FALSE %}
-                {{ app['user.manager'].getUser(current_user_id.user_id).getName }} ,
-            {% endif %}
-        {% endfor %}
-            
-{# HASN'T PLAYED YET - PLAY #}
-    {% else %}
-        {% set revenueBase = content['game'].revenue_Base(user_id) %}
-Revenue collected from {{revenueBase['senators']}} senators : {{revenueBase['senators']}}<br>
-Revenue collected from Leader {{revenueBase['leader']}} : 3<br>
-Revenue collected from {{revenueBase['knights']}} knights : {{revenueBase['knights']}}<br>
-Revenue collected from concessions :<br>
-        {% for concession in revenueBase['concessions'] %}
-{{concession['income']}} from {{concession['name']}} ({{concession['senator_name']}})<br>
-        {% endfor %}
-<br>
-Total base revenue : {{ revenueBase['total'] }}<br>
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_ProvincialSPoils'} ) }}">
-    
-{# DECIDE TO EARN MORE OR NOT ON CONCESSIONS WITH THE special=='drought' FLAG IF DROUGHT IS IN PLAY #}
-    {% set droughtLevel = content['game'].getEventLevel ('name' , 'drought') %}
-    {% if droughtLevel > 0 %}
-        {% for concession in revenueBase['concessions'] %}
-            {% if concession['special']=='drought' %}
-                Do you want {{concession['senator_name']}} to be a sick bastard and earn more money from {{concession['name']}} because of the drought :
-                <select name="{{concession['id']}}">
-                        <option>YES</option>
-                        <option selected>NO</option>
-                </select>
-            {% endif %}
+{# sub phase : base - waiting for other players #}
+{% if output['state']=='Base - Waiting' %}
+    Sub phase : Collect revenues<br>
+    Waiting for : {{output['text']}}
+
+{# sub phase : base - playing #}
+{% elseif output['state']=='Base - Playing' %}
+    Sub phase : Collect revenues<br>
+    {{output['text']['senators']}}<br>
+    {{output['text']['leader']}}<br>
+    {{output['text']['knights']}}<br>
+    {{output['text']['concessions']}}<br>
+    {% if output['concessions']|length > 0 %}
+        {% for concession in output['concessions']%}
+            {{concession}}<br>
         {% endfor %}
     {% endif %}
+    {{output['text']['total']}}<br>
+    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_ProvincialSPoils'} ) }}">
     
-{# DECIDE ON PROVINCIAL SPOILS AND WHETHER OR NOT ROME SHOULD PAY FOR NEGATIVE AMOUNTS #}
-        {%if revenueBase['provinces']|length == 0 %}
-No revenue from Provinces<br>
-        {%else%}
-Revenue from Provincial spoils :<br>
-    <fieldset>
-            {% for province in revenueBase['provinces'] %}
-        {# TO DO : Remove overrun provinces, just show them #}
-        <div class="control-group">
-            <label class="control-label">{{ province['province'].name }} ({{province['senator'].name}})</label>
-                <div class="controls">
-                    <select name="{{province['province'].id}}">
-                        <option value="YES" selected>Take spoils</option>
-                        <option value="NO">Don't take spoils</option>
-                    </select>
-                    <select name="{{province['province'].id}}_LET_ROME_PAY">
-                        <option value="YES" selected>Let Rome pay if negative</option>
-                        <option value="NO">Let Senator pay if negative</option>
-                    </select>
-                </div>
-        </div>
-            {% endfor %}
-    </fieldset>
-        {%endif%}
-    <button type="submit" class="btn btn-info">DONE</button>
-</form>
-    {% endif %}
-
-{# REDISTRIBUTION SUBPHASE#}
-{% elseif content['game'].subPhase=='Redistribution' %}
-Sub Phase : Redistribution<br>
-
-    {# ALREADY PLAYED - WAIT #}
-    {% if content['game'].party[user_id].phase_done%}
-    Waiting for 
-        {% for current_user_id in content['game'].party %}
-            {% if content['game'].party[current_user_id.user_id].phase_done==FALSE %}
-                {{ app['user.manager'].getUser(current_user_id.user_id).getName }} ,
-            {% endif %}
+    {# Allow Senators to profit from drought-affected concessions #}
+    {% if output['concession_drought']|length > 0 %}
+        {% for concession_drought in output['concession_drought'] %}
+            {{concession_drought['text']}}
+            <select name="{{concession_drought['id']}}">
+                    <option>YES</option>
+                    <option selected>NO</option>
+            </select>
         {% endfor %}
+    {% endif %}
+        
+    {# Provinces - Allow Governors to take provincial spoils and whether or not Rome should pay for negative amounts #}
+    {{output['text']['provinces']}}<br>
+    {% if output['provinces']|length > 0 %}
+        <fieldset>
+        {% for province in output['provinces'] %}
+            <div class="control-group">
+                <label class="control-label">{{ province['province_name']}} ({{province['governor_name']}})</label>
+                    {% if province['overrun'] == FALSE %}
+                    <div class="controls">
+                        <select name="{{province['province_id']}}">
+                            <option value="YES" selected>Take spoils</option>
+                            <option value="NO">Don't take spoils</option>
+                        </select>
+                        <select name="{{province['province_id']}}_LET_ROME_PAY">
+                            <option value="YES" selected>Let Rome pay if negative</option>
+                            <option value="NO">Let Senator pay if negative</option>
+                        </select>
+                    </div>
+                    {% else %}
+                    <div class="controls">
+                        This province is being overrun by Barbarian raids and/or Internal Disorder
+                    </div>
+                    {% endif %}
+            </div>
+        {% endfor %}
+        </fieldset>
+    {% endif %}
+        <button type="submit" class="btn btn-info">DONE</button>
+    </form>
+    
+{# sub phase : Redistribution - waiting for other players #}
+{% elseif output['state']=='Redistribution - Waiting' %}
+    Sub phase : Redistribution<br>
+    Waiting for : {{output['text']}}
 
-    {# HASN'T PLAYED YET - PLAY #}
-    {% else %}
-<br>
-<form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Redistribution'} ) }}">
-    <fieldset>
-Give from 
-        <select id="fromRaw" name="fromRaw" onClick="updateRedistributionAmount()">
-            {% for listRedistribute in content['game'].revenue_ListRedistribute(user_id) %}
-            {% if listRedistribute['list']=='from' %}
-            <option value="{{listRedistribute['type']}}|{{listRedistribute['id']}}|{{listRedistribute['treasury']}}">
-                {{(( listRedistribute['type']=='party' and listRedistribute['id']==user_id) ? 'Party treasury' : listRedistribute['name'])}}
-            </option>
-            {% endif %}
-            {% endfor %}
-        </select>
-to
-        <select id="toRaw" name="toRaw">
-            {% for listRedistribute in content['game'].revenue_ListRedistribute(user_id) %}
-            {% if listRedistribute['list']=='to' %}
-            <option value="{{listRedistribute['type']}}|{{listRedistribute['id']}}">
-                {{(( listRedistribute['type']=='party' and listRedistribute['id']==user_id) ? 'Party treasury' : listRedistribute['name'])}}
-            </option>
-            {% endif %}
-            {% endfor %}
-        </select>
-amount
-        <select id="amount" name="amount">
-        </select>
-    </fieldset>
-    <br>
+{# sub phase : Redistribution - playing #}
+{% elseif output['state']=='Redistribution - Playing' %}
+    Sub phase : Redistribution<br>
+    <form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Redistribution'} ) }}">
+        <fieldset>
+            Give from 
+            <select id="fromRaw" name="fromRaw" onClick="updateRedistributionAmount();">
+                {% for listRedistribute in ouptut['redistribution'] %}
+                    {% if listRedistribute['list']=='from' %}
+                    <option value="{{listRedistribute['type']}}|{{listRedistribute['id']}}|{{listRedistribute['treasury']}}">
+                        {{(( listRedistribute['type']=='party' and listRedistribute['id']==user_id) ? 'Party treasury' : listRedistribute['name'])}}
+                    </option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            to
+            <select id="toRaw" name="toRaw">
+                {% for listRedistribute in ouptut['redistribution'] %}
+                    {% if listRedistribute['list']=='to' %}
+                    <option value="{{listRedistribute['type']}}|{{listRedistribute['id']}}">
+                        {{(( listRedistribute['type']=='party' and listRedistribute['id']==user_id) ? 'Party treasury' : listRedistribute['name'])}}
+                    </option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            amount
+            <select id="amount" name="amount">
+            </select>
+        </fieldset>
+        <br>
     <button type="submit" class="btn btn-sucess">TRANSFER</button>
-</form>
-<form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_RedistributionFinished'} ) }}">
-    <button type="submit" class="btn btn-danger">DONE</button>
-</form>
-    {% endif %}
-{# CONTRIBUTIONS SUBPHASE#}
-{% elseif content['game'].subPhase=='Contributions' %}
-Sub Phase : Contributions<br>
-    {# ALREADY PLAYED - WAIT #}
-    {% if content['game'].party[user_id].phase_done%}
-Waiting for 
-        {% for current_user_id in content['game'].party %}
-            {% if content['game'].party[current_user_id.user_id].phase_done==FALSE %}
-                {{ app['user.manager'].getUser(current_user_id.user_id).getName }} ,
-            {% endif %}
-        {% endfor %}
-            
-    {# HASN'T PLAYED YET - PLAY #}
-    {% else %}
-<br>
-<form class="form-horizontal" id="contributions" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Contributions'} ) }}">
-    <fieldset>
-Give from 
-        <select id="senator" name="senator" onClick="updateContributionAmount()">
-            {% for list in content['game'].revenue_listContributions(user_id) %}
-            <option value="{{list['senatorID']}}|{{list['treasury']}}">
-                {{list['name']}}
-            </option>
-            {% endfor %}
-        </select>
-amount
-        <select id="amount" name="amount">
-        </select>
-    </fieldset>
-    <br>
-    <button type="submit" class="btn btn-sucess">GIVE TO ROME</button>
-</form>
-<form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Finished'} ) }}">
-    <button type="submit" class="btn btn-danger">DONE</button>
-</form>
-    {% endif %}
+    </form>
+    <form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_RedistributionFinished'} ) }}">
+        <button type="submit" class="btn btn-danger">DONE</button>
+    </form>
+    
+{# sub phase : Contributions - waiting for other players #}
+{% elseif output['state']=='Contributions - Waiting' %}
+    Sub phase : Contributions<br>
+    Waiting for : {{output['text']}}
+
+{# sub phase : Contributions - playing #}
+{% elseif output['state']=='Contributions - Playing' %}
+    Sub phase : Contributions<br>
+    <form class="form-horizontal" id="contributions" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Contributions'} ) }}">
+        <fieldset>
+    Give from 
+            <select id="senator" name="senator" onClick="updateContributionAmount();">
+                {% for list in output['contributions'] %}
+                <option value="{{list['senatorID']}}|{{list['treasury']}}">
+                    {{list['name']}}
+                </option>
+                {% endfor %}
+            </select>
+    amount
+            <select id="amount" name="amount">
+            </select>
+        </fieldset>
+        <br>
+        <button type="submit" class="btn btn-sucess">GIVE TO ROME</button>
+    </form>
+    <form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Finished'} ) }}">
+        <button type="submit" class="btn btn-danger">DONE</button>
+    </form>
 
 {% endif %}

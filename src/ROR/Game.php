@@ -737,13 +737,15 @@ class Game
      * @return mixed The event's level (<b>0</b> if not in play) or FALSE if $type was wrong
      */
     public function getEventLevel ($type , $search) {
-        if ($type=='name' || $type=='number') {
+        if ($type=='name') {
             foreach ($this->events as $event) {
-                if ($event[$type] == $search) {
+                if ($event['name'] == $search) {
                     return $event['level'];
                 }
             }
             return 0 ;
+        } elseif ($type=='number') {
+            return $this->events[$search]['level'] ;
         }
         return FALSE ;
     }
@@ -764,12 +766,13 @@ class Game
     }
     
     /**
-     * Goes through all public decks and returns when it finds a card that has a $property equal to $value
-     * An array is returned : 'card' => $card object , 'where' => 'senator|forum|curia|a war deck...' , 'deck' => deck object , and 'senator' & 'party' if 'where' is 'senator'
-     * Warning : THe party CAN BE 'forum'
+     * Goes through all public decks and returns when it finds a card that has a $property equal to $value. 
+     * 
      * @param type $property
      * @param type $value
-     * @return boolean.
+     * @return array 'card' => $card object , 'where' => 'senator|forum|curia|a war deck...' , 'deck' => deck object , and 'senator' & 'party' if 'where' is 'senator'.<br>
+     * Warning : The party CAN BE 'forum'<br>
+     * returns FALSE if the card was not found
      */
     public function getSpecificCard($property , $value) {
         foreach ($this->party as $party) {
@@ -1255,14 +1258,16 @@ class Game
         $message = 'Province '.$province->name.' faces internal disorder, '.$senator->name.' rolls a '.$roll.' + '.$garrisons.' garrisons for a total of '.($roll+$garrisons);
         if (($roll+$garrisons) > ($internalDisorder == 1 ? 4 : 5)) {
             array_push($messages , array($message.' which is greater than '.($internalDisorder == 1 ? '4' : '5').'. The province will not generate revenue and cannot be improved this turn.'));
-            // TO DO : Check if I should use another property than overrun, but looks fine
+            // Using the overrun property both for Barbarian raids & Internal Disorder
             $province->overrun = TRUE ;
         } else {
+            // Revolt : Kill Senator, garrisons, and move Province to the Active War deck
             array_push($messages , array($message.' which is not greater than '.($internalDisorder == 1 ? '4' : '5') , 'alert'));
             $this->mortality_killSenator($senator->senatorID);
-            array_push($message , array($senator->name.' is killed with all garrisons and '.$province->name.' becomes an active war.','alert'));
-            // TO DO : destroy garrison legions & move war to forum
-            // Note : The war is now in the forum, because of the mortality_killSenator function
+            // Note : The war is now in the forum, because of the mortality_killSenator function, so $revoltedProvince['deck'] should be $this->forum
+            $revoltedProvince = $this->getSpecificCard('id', $province->id);
+            $this->activeWars->putOnTop($this->$revoltedProvince['deck']->drawCardWithValue('id', $province->id));
+            array_push($message , array($senator->name.' is killed'.($garrisons>0 ? ' with all '.$garrisons.' garrisons, ' : '').' and '.$province->name.' becomes an active war.','alert'));
         }
         return $messages ;
     }
@@ -1270,7 +1275,7 @@ class Game
     /**
      * Returns a list of the various components of base revenue : senators, leader, knights, concessions, provinces
      * @param string $user_id
-     * @return array ['total'] , ['senators'] , ['leader'] , ['knights'] , array ['concessions'] , array ['province_name'] , array ['province_senatorID']
+     * @return array ['total'] , ['senators'] , ['leader'] , ['knights'] , array ['concessions'] , array ['provinces'] => 'province' , 'senator'
      */
     public function revenue_Base($user_id) {
         $result = array() ;
@@ -1296,7 +1301,6 @@ class Game
                     $result['total']+=$card->income ;
                     array_push($result['concessions'] , array( 'id' => $card->id , 'name' => $card->name , 'income' => $card->income , 'special' => $card->special , 'senator_name' => $senator->name , 'senatorID' => $senator->senatorID ) );
                 } elseif ( $card->type == 'Province' ) {
-                    // TO DO : add 'overrun' property in order to display it and prevent action on it
                     array_push($result['provinces'] , array('province' => $card , 'senator' => $senator ) );
                 }
             }
@@ -1356,7 +1360,7 @@ class Game
                 if (is_null($request[$province->id])) {
                     return array('Undefined province.','error');
                 }
-                // Check if province was overrun by barbarians
+                // Check if province was overrun by barbarians / internal disorder
                 if (!$province->overrun) {
                     $revenue = $province->rollRevenues('senator' , -$this->getEventLevel('name' , 'Evil Omens'));
                     $message = $province->name.' : ';
@@ -1401,7 +1405,7 @@ class Game
                         }
                     }
                 } else {
-                    $message = $province->name.' was overrun. No revenue nor development this turn.';
+                    $message = $province->name.' was overrun by Barbarians and/or internal disorder. No revenue nor development this turn.';
                 }
                 array_push ($messages , array($message)) ;
             }
@@ -1417,9 +1421,10 @@ class Game
     }
 
     /**
-    * Lists all the possible "From" and "To" (Senators and Parties) for redistribution of wealth
+    * Lists all the possible "from" and "to" (Senators and Parties) for redistribution of wealth
     * @param string $user_id the player's user_id
-    * @return array
+    * @return array A list of 'from' & 'to' <br>
+    * 'list' => 'from'|'to' ,<br> 'type' => 'senator'|'party' ,<br> 'id' => senatorID|user_id ,<br> 'name' => senator or party name ,<br> 'treasury' => senator or party treasury (only for 'from')
     */
     public function revenue_ListRedistribute ($user_id) {
         $result=array() ;
@@ -1685,6 +1690,112 @@ class Game
         return $messages ;
     }
 
+    /**
+     * revenue_view returns all the data needed to render revenue templates. The function returns an array $output :
+     * $output['state'] (Mandatory) : gives the name of the current state to be rendered
+     * $output['X'] : an array of values 
+     * - X is the name of the component to be rendered
+     * - 'values' is the actual content : text for a text, list of options for select, etc...
+     * @param string $user_id
+     * @return array $output
+     */
+    public function revenue_view($user_id) {
+        $output = array() ;
+
+        // Base revenue sub phase
+        if ( ($this->phase=='Revenue') && ($this->subPhase=='Base') ) {
+            // Waiting for other players
+            if ($this->party[$user_id]->phase_done) {
+                $output['state'] = 'Base - Waiting' ;
+                $waitingFor = '' ;
+                foreach($this->party as $party) {
+                    if(!$party->phase_done) {
+                        $waitingFor.=$party->fullName().', ';
+                    }
+                }
+                $waitingForBis = substr($waitingFor, 0, -2);
+                $output['text'] = $waitingForBis ;
+            // Playing base revenue phase : Getting more from concessions during drought & Provincial spoils
+            } else {
+                $output['state'] = 'Base - Playing' ;
+                $revenueBase = $this->revenue_Base($user_id) ;
+                $output['text']['senators'] = ($revenueBase['senators']>0 ? 'Revenue collected from '.$revenueBase['senators'].' senators : '.$revenueBase['senators'].'T.' : 'Currently no Senators in the party : no revenue collected from senators.');
+                $output['text']['leader'] = ($revenueBase['leader']!='' ? 'Revenue collected from Leader '.$revenueBase['leader'].' : 3T.' : 'Currently no leader : no revenue collected from leader.');
+                $output['text']['knights'] = ($revenueBase['knights']>0 ? 'Revenue collected from '.$revenueBase['knights'].' knights : '.$revenueBase['knights'] : 'Currently no knight : no revenue collected from knights.');
+                // Concessions
+                if (count($revenueBase['concessions'])>0) {
+                    $output['text']['concessions'] = 'Revenue collected from concessions :';
+                    $output['concessions'] = array() ;
+                    $droughtLevel = $this->getTotalDroughtLevel() ;
+                    $output['concession_drought'] = array();
+                    foreach ($revenueBase['concessions'] as $concession) {
+                        array_push($output['concessions'] , $concession['income'].'T from '.$concession['name'].' ('.$concession['senator_name'].')');
+                        // Populates the $output['concession_drought'] array to show the interface allowing senators to profit from drought-affected concessions
+                        if ($concession['special'] == 'drought' && $droughtLevel>0) {
+                            array_push($output['concession_drought'] , array('id' => $concession['id'], 'text' => 'Do you want '.$concession['senator_name'].' to be a sick bastard and earn more money from '.$concession['name'].' because of the drought'));
+                        }
+                    }
+                } else {
+                    $output['text']['concessions'] = 'Currently no concessions : no revenue collected from concessions.' ;
+                }
+                $output['text']['total'] = 'Total base revenue : '.$revenueBase['total'];
+                // Provinces
+                if (count($revenueBase['provinces'])>0) {
+                    $output['text']['provinces'] = 'Revenue from Provincial spoils :';
+                    $output['provinces'] = array () ;
+                    foreach ($revenueBase['provinces'] as $province) {
+                        array_push  ($output['provinces'] , array (
+                                'province_name' => $province['province']->name
+                              , 'governor_name' => $province['senator']->name
+                              , 'overrun' => $province['province']->overrun
+                              , 'province_id' => $province['province']->id
+                            )
+                        );
+                    }
+                } else {
+                    $output['text']['provinces'] = 'Currently no provinces : no revenue collected from provinces.' ;
+                }
+            }
+
+        // Redistribution sub phase
+        } elseif ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') ) {
+            // Waiting for other players
+            if ($this->party[$user_id]->phase_done) {
+                $output['state'] = 'Redistribution - Waiting' ;
+                $waitingFor = '' ;
+                foreach($this->party as $party) {
+                    if(!$party->phase_done) {
+                        $waitingFor.=$party->fullName().', ';
+                    }
+                }
+                $waitingForBis = substr($waitingFor, 0, -2);
+                $output['text'] = $waitingForBis ;
+            } else {
+                $output['state'] = 'Redistribution - Playing' ;
+                $output['redistribution'] = $this->revenue_ListRedistribute($user_id) ;
+            }
+            
+        // Contributions sub phase
+        } elseif ( ($this->phase=='Revenue') && ($this->subPhase=='Contributions') ) {
+            // Waiting for other players
+            if ($this->party[$user_id]->phase_done) {
+                $output['state'] = 'Contributions - Waiting' ;
+                $waitingFor = '' ;
+                foreach($this->party as $party) {
+                    if(!$party->phase_done) {
+                        $waitingFor.=$party->fullName().', ';
+                    }
+                }
+                $waitingForBis = substr($waitingFor, 0, -2);
+                $output['text'] = $waitingForBis ;
+            } else {
+                $output['state'] = 'Contributions - Playing' ;
+                $output['contributions'] = $this->revenue_listContributions($user_id) ;
+            }
+        }
+        return $output ;
+    }
+    
      /************************************************************
      * Functions for FORUM phase
      ************************************************************/
@@ -1820,7 +1931,7 @@ class Game
                     array_push($messages , array($this->party[$highestBidder['user_id']]->fullName().' wins this initiative since he is the HRAO and no one bid.'));
                 }
             }
-        } else {
+        } elseif ($user_id!=$this->forum_whoseInitiative()) {
             array_push($messages , array('Cannot bid as this initiative already belongs to another player' , 'error' , $user_id));
         }
         return $messages ;

@@ -39,13 +39,13 @@ The pusher has a game_id, so only clients connected to this game can push and pu
 
 TO DO - 161;Ally Deserts;Roman Auxiliary Deserts; COMBAT PHASE
 *DONE - 162;Allied Enthusiasm;Extreme Allied Enthusiasm; REVENUE PHASE
-**80% - 163;Barbarian Raids;Barbarian Raids Increase; REVENUE PHASE
+*DONE - 163;Barbarian Raids;Barbarian Raids Increase; REVENUE PHASE
 **80% - 164;Drought;Severe Drought;
 TO DO - 165;Enemy Leader Dies;Enemy Sues For peace; (END OF) FORUM PHASE
 TO DO - 166;Enemy's Ally Deserts;Enemy Mercenaries Desert; COMBAT PHASE
 TO DO - 167;Epidemic;Foreign Epidemic; IMMEDIATE
 TO DO - 168;Evil Omens;More Evil Omens; IMMEDIATE
-**60% - 169;Internal Disorder;Increased Internal Disorder; REVENUE PHASE
+*DONE - 169;Internal Disorder;Increased Internal Disorder; REVENUE PHASE
 TO DO - 170;Manpower Shortage;Increased Manpower Shortage; SENATE PHASE
 TO DO - 171;Mob Violence;More Mob Violence; IMMEDIATE
 TO DO - 172;Natural Disaster;Widespread Natural Disaster; IMMEDIATE
@@ -62,15 +62,15 @@ TO DO - 178;Trial Of Verres -70BC;Another Corruption Trial; REVENUE PHASE
 
 TO DO :
 - Other scenarios
-- Oh noes ! All the cards' numbers are wrong, they start from 0 but should start from 1 ! For Conflicts, effects on provinces are also wrong
-- Provinces need new propoerties : 'land', 'fleet', and 'frontier'
+- Conflicts : change provinces names to provinces numbers
+- Provinces need new properties : 'land', 'fleet', and 'frontier'
 
 *************
 *  Revenue  *
 *************
 
 TO DO :
-- Remove events that expire at the beginning of the forum phase
+- Remove events that expire at the beginning of the forum phase : Should I create a flag in the event file ?
 - Rebel legions maintenance.
 
 *************
@@ -81,6 +81,7 @@ TO DO :
 - Finish events (forum_rollEvent)
 - Wars and Leaders don't go to forum
 - Ruin concessions based on Punic War or slave revolt
+- Still some problems on initiative bidding
 
 *************
 *Population *
@@ -89,4 +90,3 @@ TO DO :
 ************
 *  Senate  *
 ************
-
