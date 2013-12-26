@@ -3,7 +3,7 @@ namespace ROR;
 
 class Card
 {
-    public static $VALID_TYPES = array('Family', 'Stateman' , 'Concession' , 'Province' , 'War' , 'Leader' ,'Faction' ,'Era ends');
+    public static $VALID_TYPES = array('Family', 'Statesman' , 'Concession' , 'Province' , 'War' , 'Leader' ,'Faction' ,'Era ends');
 
     public $id, $type, $name ;
     

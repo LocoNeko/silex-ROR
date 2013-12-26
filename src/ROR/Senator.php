@@ -52,7 +52,7 @@ class Senator extends Card
             // Inherited from Card
             $this->id = (int)$data[0] ;
             $this->name = ( is_string($data[1]) ? $data[1] : NULL) ;
-            $this->type = ( ($data[2]=='Family' || $data[2]=='Stateman') ?  $data[2] : NULL ); // "Family" or "Stateman"
+            $this->type = ( ($data[2]=='Family' || $data[2]=='Statesman') ?  $data[2] : NULL ); // "Family" or "Statesman"
             $this->senatorID = (string)( preg_match('/\d?\d\w?/i',$data[3]) ? $data[3] : NULL) ;
             $this->baseMIL = (int)($data[4]) ;
             $this->baseORA = (int)($data[5]) ;
@@ -90,8 +90,8 @@ class Senator extends Card
             $this->priorConsul = false ;		
     }
     
-    public function statemanFamily () {
-        if ($this->type != 'Stateman') {
+    public function statesmanFamily () {
+        if ($this->type != 'Statesman') {
             return FALSE ;
         } else {
             return str_replace ( Array('A' , 'B' , 'C') , Array('' , '' , '') , $this->senatorID);

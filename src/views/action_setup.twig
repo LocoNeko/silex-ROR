@@ -42,13 +42,13 @@
     {# Play Statemen #}
     {% if output['PlayStatemen']%}
         STATEMAN :
-        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revolution_playStateman'} ) }}">
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revolution_playStatesman'} ) }}">
             <fieldset>
                 <div class="control-group">
                     <div class="controls">
-                    {% for stateman in output['Statemen'] %}
+                    {% for statesman in output['Statemen'] %}
                         <label class="radio">
-                            <input type="radio" name="card_id" value="{{stateman['card_id']}}">{{stateman['message']}}
+                            <input type="radio" name="card_id" value="{{statesman['card_id']}}">{{statesman['message']}}
                         </label>
                     {% endfor %}
                     </div>    
@@ -56,12 +56,12 @@
             </fieldset>
             <div class="control-group">
                 <div class="controls">
-                    <button type="submit" class="btn">Play Stateman</button>
+                    <button type="submit" class="btn">Play Statesman</button>
                 </div>
             </div>
         </form>
     {% else %}
-        No Stateman to play<br>
+        No Statesman to play<br>
     {% endif%}
 
     {# Play Concessions#}

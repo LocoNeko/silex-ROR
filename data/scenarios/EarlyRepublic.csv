@@ -9,11 +9,11 @@
 7;2ND MACEDONIAN WAR;Conflict;Macedonian;4;200 - 196 BC	;0	;;Illyricum, Macedonia;Macedonia;;;10;5;0;13;14;45
 8;SYRIAN WAR;Conflict;Syrian;1;192 - 189 BC		;1	;;Bithynia, Macedonia, Asia;Syria;;;6;2;0;16;15;45
 ;;Family;ID;MIL;ORA;LOY;Influence;LOY Special;Abilities;;;;;;;;
-;;Stateman;ID;MIL;ORA;LOY;Influence;LOY Special;Abilities;;;;;;;;
+;;Statesman;ID;MIL;ORA;LOY;Influence;LOY Special;Abilities;;;;;;;;
 9;CORNELIUS;Family;1;4;3;9;5;;;;;;;;;;
-10;P. CORNELIUS SCIPIO AFRICANUS;Stateman;1A;5;5;7;6;-22A;Punic;;;;;;;;
+10;P. CORNELIUS SCIPIO AFRICANUS;Statesman;1A;5;5;7;6;-22A;Punic;;;;;;;;
 11;FABIUS;Family;2;4;2;9;5;;;;;;;;;;
-12;Q. FABIUS MAXIMUS VERRUCOSUS CUNCTATOR;Stateman;2A;5;2;7;3;;HalvesLosses;;;;;;;;
+12;Q. FABIUS MAXIMUS VERRUCOSUS CUNCTATOR;Statesman;2A;5;2;7;3;;HalvesLosses;;;;;;;;
 13;VALERIUS;Family;3;1;2;10;5;;;;;;;;;;
 14;JULIUS;Family;4;4;3;9;4;;;;;;;;;;
 15;CLAUDIUS;Family;5;2;3;7;4;;;;;;;;;;
@@ -30,11 +30,11 @@
 26;CALPURNIUS;Family;16;1;2;9;2;;;;;;;;;;
 27;PLAUTIUS;Family;17;2;1;6;2;;;;;;;;;;
 28;QUINCTIUS;Family;18;3;2;6;1;;;;;;;;;;
-29;T. QUINCTIUS FLAMINIUS;Stateman;18A;5;4;7;4;-22A;Macedonian;;;;;;;;
+29;T. QUINCTIUS FLAMINIUS;Statesman;18A;5;4;7;4;-22A;Macedonian;;;;;;;;
 30;AEMILIUS;Family;19;4;2;8;1;;;;;;;;;;
-31;L. AEMILIUS PAULLUS MACEDONICUS;Stateman;19A;5;4;8;4;;Macedonian;;;;;;;;
+31;L. AEMILIUS PAULLUS MACEDONICUS;Statesman;19A;5;4;8;4;;Macedonian;;;;;;;;
 32;TERENTIUS;Family;20;2;1;6;1;;;;;;;;;;
-33;M. PORCIUS CATO THE ELDER;Stateman;22A;1;6;10;1;-1A,-1B,-18A;Tribune,Law6;;;;;;;;
+33;M. PORCIUS CATO THE ELDER;Statesman;22A;1;6;10;1;-1A,-1B,-18A;Tribune,Law6;;;;;;;;
 ;;Leader;Matched to;Subtext;Strength;D;S;Ability;Causes;;;;;;;;
 34;HAMILCAR;Leader;Punic;275 - 229 BC;3;8;12;May combine with Hannibal;;;;;;;;;
 35;HANNIBAL;Leader;Punic;247 - 183 BC;7;9;16;May combine with Hamilcar;2+1;;;;;;;;

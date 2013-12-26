@@ -55,8 +55,8 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
         case 'setup_PickLeader' :
             log ($app , $game_id , $user_id , $game->setup_setPartyLeader( $user_id , $request->request->get('senatorID') ));
             break ;
-        case 'revolution_playStateman' :
-            log ($app , $game_id , $user_id , $game->revolution_playStateman ( $user_id , $request->request->get('card_id') ) ) ;
+        case 'revolution_playStatesman' :
+            log ($app , $game_id , $user_id , $game->revolution_playStatesman ( $user_id , $request->request->get('card_id') ) ) ;
             break ;
         case 'revolution_playConcession' :
             log ($app , $game_id , $user_id , $game->revolution_playConcession ( $user_id , $request->request->get('card_id') , $request->request->get('senator_id') ) ) ;

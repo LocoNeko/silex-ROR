@@ -77,7 +77,7 @@ class Deck
             if ($data[0]!='') {
                 switch ($data[2]) {
                     case 'Family' :
-                    case 'Stateman' :
+                    case 'Statesman' :
                         $card = new Senator;
                         $card->create($data);
                         break;

@@ -165,7 +165,7 @@ class Game
         $this->discard->putOnTop($this->earlyRepublic->drawCardWithValue('name', 'ERA ENDS')) ;
         /* 
          * Give initial senators to parties
-         * - Create a temporary deck with all 20 families (not statemen)
+         * - Create a temporary deck with all 20 families (not statesmen)
          * - Shuffle the temp deck
          * - Go through all parties, give each of them 3 senators from the temp deck
          * - Put the temp deck back into the Early Republic deck
@@ -186,7 +186,7 @@ class Game
             $this->earlyRepublic->putOnTop($tempDeck->drawTopCard());
         }
         /*
-         * Give 3 cards to each players, only keeping Faction and Stateman cards
+         * Give 3 cards to each players, only keeping Faction and Statesman cards
          */
         foreach ($this->party as $key=>$party) {
             $cardsLeftToDraw = 3 ;
@@ -195,7 +195,7 @@ class Game
                 $card = $this->earlyRepublic->drawTopCard() ;
                 switch ($card->type) {
                     case 'Faction' :
-                    case 'Stateman' :
+                    case 'Statesman' :
                     case 'Concession' :
                         $party->hand->putOnTop($card);
                         $cardsLeftToDraw--;
@@ -445,8 +445,8 @@ class Game
         $party = $this->getPartyOfSenator($senator) ;
         // +7 for party affiliation
         $result += ($party=='forum' ? 0 : 7);
-        if ($senator->type=='Stateman') {
-            // This Stateman has some personal enemies/friends
+        if ($senator->type=='Statesman') {
+            // This Statesman has some personal enemies/friends
             if ($senator->specialLOY != NULL) {
                 $list = explode(',', $senator->specialLOY) ;
                 foreach ($list as $friendOrFoe) {
@@ -549,36 +549,36 @@ class Game
     /**
      * 
      * @param user_id $user_id
-     * @param \ROR\Senator $stateman
+     * @param \ROR\Senator $statesman
      * @return array 'flag' = TRUE|FALSE , 'message'
      */
-    public function statemanPlayable ($user_id , Senator $stateman) {
-        if ($stateman->type != 'Stateman') {
+    public function statesmanPlayable ($user_id , Senator $statesman) {
+        if ($statesman->type != 'Statesman') {
             return array('flag' => FALSE, 'message' => '***ERROR***');
         }
         foreach ($this->party as $otherUser_id=>$party) {
             foreach ($party->senators->cards as $senator) {
                 // Check if the family is already in play
-                if ( ($senator->type == 'Family') && ($senator->senatorID == $stateman->statemanFamily()) ) {
+                if ( ($senator->type == 'Family') && ($senator->senatorID == $statesman->statesmanFamily()) ) {
                     if ($otherUser_id != $user_id) {
                         return array('flag' => FALSE , 'message' => 'The Family is already in party '.$party->name);
                     } else {
                         return array('flag' => TRUE , 'message' => 'You have the family');
                     }
                 }
-                // Check if a related Stateman is already in play
-                if ( ($senator->type == 'Stateman') && ($senator->statemanFamily() == $stateman->statemanFamily()) ) {
-                    if ( ($stateman->statemanFamily()!=25) && ($stateman->statemanFamily()!=29) ) {
-                        return array('flag' => FALSE , 'message' => 'The related stateman '.$senator->name.' is already in play.');
+                // Check if a related Statesman is already in play
+                if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $statesman->statesmanFamily()) ) {
+                    if ( ($statesman->statesmanFamily()!=25) && ($statesman->statesmanFamily()!=29) ) {
+                        return array('flag' => FALSE , 'message' => 'The related statesman '.$senator->name.' is already in play.');
                     } else {
                         // The other brother is in play : this is valid
-                        return array('flag' => TRUE , 'message' => $stateman->name.' playable, but the other brother '.$senator->name.' is in play.');
+                        return array('flag' => TRUE , 'message' => $statesman->name.' playable, but the other brother '.$senator->name.' is in play.');
                     }
                 }
             }
         }
         foreach ($this->forum->cards as $card) {
-            if ($card->type=='Senator' && ($card->senatorID == $stateman->statemanFamily()) ) {
+            if ($card->type=='Senator' && ($card->senatorID == $statesman->statesmanFamily()) ) {
                 return array('flag' => TRUE , 'message' => 'The corresponding family card is in the forum');
             }
         }
@@ -788,7 +788,7 @@ class Game
             if ($card->$property == $value) {
                 return array ('card' => $card , 'where' => 'forum' , 'deck' => $this->forum);
             }
-            if ($card->type=='Family' || $card->type=='Stateman') {
+            if ($card->type=='Family' || $card->type=='Statesman') {
                 foreach ($card->controls->cards as $card2) {
                     if ($card2->$property == $value) {
                         return array ('card' => $card2 , 'where' => 'senator' , 'deck' => $card->controls , 'senator' => $card , 'party' => 'forum' );
@@ -881,13 +881,13 @@ class Game
      * - Concessions
      * @param string $user_id the player's user_id
      * @return array ('action' , 'card_id' , 'message')<br>
-     * 'action' can be Stateman|Concession|Done
+     * 'action' can be Statesman|Concession|Done
      */
     public function setup_possibleActions($user_id) {
         $result = array() ;
         foreach ($this->party[$user_id]->hand->cards as $card) {
-            if ( (($card->type == 'Stateman') && $this->statemanPlayable($user_id, $card)['flag']) ) {
-                array_push($result, array('action' => 'Stateman' , 'card_id' => $card->id , 'message' => $card->name)) ;
+            if ( (($card->type == 'Statesman') && $this->statesmanPlayable($user_id, $card)['flag']) ) {
+                array_push($result, array('action' => 'Statesman' , 'card_id' => $card->id , 'message' => $card->name)) ;
             } elseif ($card->type == 'Concession') {
                 // The Land Commissioner is not playable without Land bills in play
                 if ($card->name!='LAND COMMISSIONER' || $this->landCommissionerPlayable()) {
@@ -957,7 +957,7 @@ class Game
                 $output['Statemen'] = array() ;
                 $output['Concessions'] = array() ;
                 foreach ($this->setup_possibleActions($user_id) as $possibleAction) {
-                    if ($possibleAction['action']=='Stateman') {
+                    if ($possibleAction['action']=='Statesman') {
                         array_push($output['Statemen'] , array('card_id' => $possibleAction['card_id'] , 'message' => $possibleAction['message']));
                     }
                     if ($possibleAction['action']=='Concession') {
@@ -1092,7 +1092,7 @@ class Game
         $deadSenators = array() ;
         foreach($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
-                if ( ($senator->type == 'Stateman') && ($senator->statemanFamily() == $senatorID ) ) {
+                if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $senatorID ) ) {
                     array_push($deadSenators , $senator) ;
                 } elseif ( ($senator->type == 'Family') && ($senator->senatorID == $senatorID) ) {
                     array_push($deadSenators , $senator) ;
@@ -1114,12 +1114,12 @@ class Game
         if ($party === FALSE) {
             return array('ERROR retrieving the party of the dead Senator','error');
         }
-        if ($deadSenator->type == 'Stateman') {
+        if ($deadSenator->type == 'Statesman') {
             // Death of a Statesman
-            $deadStateman = $party->senators->drawCardWithValue('senatorID',$deadSenator->senatorID) ;
-            $deadStateman->resetSenator();
-            $this->discard->putOnTop($deadStateman);
-            $message.=$deadStateman->name.' ('.$party->fullName().') dies. The card is discarded. ' ;
+            $deadStatesman = $party->senators->drawCardWithValue('senatorID',$deadSenator->senatorID) ;
+            $deadStatesman->resetSenator();
+            $this->discard->putOnTop($deadStatesman);
+            $message.=$deadStatesman->name.' ('.$party->fullName().') dies. The card is discarded. ' ;
         } else {
             // Death of a normal Senator
             $deadSenator->resetSenator() ;
@@ -1141,7 +1141,7 @@ class Game
                 $this->forum->putOnTop($card);
                 $message.=$card->name.' goes to the forum. ';
             } elseif ($card->type=='Family') {
-                if ($party->leader->senatorID == $deadStateman->senatorID) {
+                if ($party->leader->senatorID == $deadStatesman->senatorID) {
                     $party->senators->putOnTop($card);
                     $message.=$card->name.' stays in the party. ';
                 } else {
@@ -1240,7 +1240,7 @@ class Game
             foreach($mortalityChits as $chit) {
                 $message.=$chit.', ';
                 if (    ($senator->type=='Family' && $senator->senatorID==$chit)
-                    ||  ($senator->type=='Stateman' && $senator->statemanFamily()==$chit)
+                    ||  ($senator->type=='Statesman' && $senator->statesmanFamily()==$chit)
                     ) {
                     // The outcome is based on whether or not the chit drawn was the last (which means capture)
                     $outcome = ($i++==$roll[1] ? 'captured' : 'killed') ;
@@ -1984,28 +1984,28 @@ class Game
                 array_push($messages , array($this->party[$user_id]->fullName().' rolls a '.$roll['total'].' and draws a card.'));
                 $card = $this->drawDeck->drawTopCard() ;
                 if ($card !== NULL) {
-                    if ($card->type == 'Stateman' || $card->type == 'Faction' || $card->type == 'Concession') {
+                    if ($card->type == 'Statesman' || $card->type == 'Faction' || $card->type == 'Concession') {
                         // Keep the card
                         $this->party[$user_id]->hand->putOnTop($card);
                         array_push($messages , array($this->party[$user_id]->fullName().' draws a faction card and keeps it.','message',$this->getAllButOneUserID($user_id)));
                         array_push($messages , array('You draw '.$card->name.' and put it in your hand.','message',$user_id));
                     } else {
-                        // If a Family has been drawn check if a corresponding Stateman is in play
+                        // If a Family has been drawn check if a corresponding Statesman is in play
                         if ($card->type=='Family') {
                             $possibleStatemen = array() ;
                             foreach ($this->party as $party) {
                                 foreach ($party->senators->cards as $senator) {
-                                    if ($senator->type=='Stateman' && $senator->statemanFamily() == $card->senatorID) {
+                                    if ($senator->type=='Statesman' && $senator->statesmanFamily() == $card->senatorID) {
                                         array_push($possibleStatemen , array('senator' => $senator , 'party' => $party)) ;
                                     }
                                 }
                             }
-                            // No corresponding stateman : Family goes to the Forum
+                            // No corresponding statesman : Family goes to the Forum
                             if (count($possibleStatemen)==0) {
                                 $this->forum->putOnTop($card) ;
                                 array_push($messages , array($this->party[$user_id]->fullName().' draws '.$card->name.' that goes to the forum.'));
                             // Found one or more (in case of brothers) corresponding Statesmen : put the Family under them
-                            // Case 1 : only one Stateman
+                            // Case 1 : only one Statesman
                             } elseif (count($possibleStatemen)==1) {
                                 $possibleStatemen[0]['senator']->controls->putOnTop($card) ;
                                 array_push($messages , array($possibleStatemen[0]['party']->fullName().' has '.$possibleStatemen[0]['senator']->name.' so the family joins him.'));
@@ -3184,26 +3184,26 @@ class Game
      * @param type $card_id
      * @return array
      */
-    public function revolution_playStateman( $user_id , $card_id ) {
+    public function revolution_playStatesman( $user_id , $card_id ) {
         $messages = array() ;
         if ( (($this->phase=='Setup') && ($this->subPhase=='PlayCards')) || (($this->phase=='Revolution') && ($this->subPhase=='PlayCards')) ) {
-            $stateman = $this->party[$user_id]->hand->drawCardWithValue('id', $card_id);
-            if ($stateman === FALSE ) {
+            $statesman = $this->party[$user_id]->hand->drawCardWithValue('id', $card_id);
+            if ($statesman === FALSE ) {
                 array_push($messages , array('The card is not in '.$this->party[$user_id]->fullName().'\'s hand','error'));
                 return $messages ;   
             } else {
-                if ($stateman->type!='Stateman') {
-                    // This is not a stateman, put the card back and report an error
-                    $this->party[$user_id]->hand->putOnTop($stateman);
-                    array_push($messages , array('"'.$stateman->name.'" is not a stateman','error'));
+                if ($statesman->type!='Statesman') {
+                    // This is not a statesman, put the card back and report an error
+                    $this->party[$user_id]->hand->putOnTop($statesman);
+                    array_push($messages , array('"'.$statesman->name.'" is not a statesman','error'));
                     return $messages ;
                 } else {
-                    // This is a Stateman, proceed
-                    // First, get the stateman's family number
-                    $family = $stateman->statemanFamily() ;
+                    // This is a Statesman, proceed
+                    // First, get the statesman's family number
+                    $family = $statesman->statesmanFamily() ;
                     if ($family === FALSE) {
                         // This family is weird. Put the card back and report the error
-                        $this->party[$user_id]->hand->putOnTop($stateman);
+                        $this->party[$user_id]->hand->putOnTop($statesman);
                         array_push($messages , array('Weird family.','error'));
                         return $messages ;
                     }
@@ -3213,27 +3213,27 @@ class Game
                             // Family found in the player's party
                             $matchedFamily = $this->party[$user_id]->senators->drawCardWithValue('senatorID' , $family);
                             if ($matchedFamily === FALSE) {
-                                $this->party[$user_id]->hand->putOnTop($stateman);
+                                $this->party[$user_id]->hand->putOnTop($statesman);
                                 $this->party[$user_id]->senators->putOnTop($matchedFamily);
                                 array_push($messages , array('Weird family.','error'));
                                 return $messages ;
                             } else {
-                                // SUCCESS : Family is in player's party - put it under the Stateman
-                                $this->party[$user_id]->senators->putOnTop($stateman) ;
-                                $stateman->controls->putOnTop($matchedFamily);
-                                // Adjust Stateman's value that are below the Family's
-                                if ($matchedFamily->priorConsul) {$stateman->priorConsul ;}
-                                if ($matchedFamily->INF > $stateman->INF) {$stateman->INF = $matchedFamily->INF ;}
-                                if ($matchedFamily->POP > $stateman->POP) {$stateman->POP = $matchedFamily->POP ;}
-                                $stateman->treasury = $matchedFamily->treasury ;
-                                $stateman->knights = $matchedFamily->knights ;
-                                $stateman->office = $matchedFamily->office ;
+                                // SUCCESS : Family is in player's party - put it under the Statesman
+                                $this->party[$user_id]->senators->putOnTop($statesman) ;
+                                $statesman->controls->putOnTop($matchedFamily);
+                                // Adjust Statesman's value that are below the Family's
+                                if ($matchedFamily->priorConsul) {$statesman->priorConsul ;}
+                                if ($matchedFamily->INF > $statesman->INF) {$statesman->INF = $matchedFamily->INF ;}
+                                if ($matchedFamily->POP > $statesman->POP) {$statesman->POP = $matchedFamily->POP ;}
+                                $statesman->treasury = $matchedFamily->treasury ;
+                                $statesman->knights = $matchedFamily->knights ;
+                                $statesman->office = $matchedFamily->office ;
                                 $matchedFamily->resetSenator() ;
                                 // The family was the party's leader
                                 if ($this->party[$user_id]->leader->senatorID == $matchedFamily->senatorID) {
-                                    $this->party[$user_id]->leader=$stateman;
+                                    $this->party[$user_id]->leader=$statesman;
                                 }
-                                array_push($messages , array($this->party[$user_id]->fullName().' plays Stateman '.$stateman->name.' on top of senator '.$matchedFamily->name));
+                                array_push($messages , array($this->party[$user_id]->fullName().' plays Statesman '.$statesman->name.' on top of senator '.$matchedFamily->name));
                                 return $messages ;
                             }
                         }
@@ -3242,17 +3242,17 @@ class Game
                     foreach ($this->forum->cards as $card) {
                         if ( ($card->type == 'Family') && ($card->senatorID == $family) ) {
                             $matchedFamily = $this->forum->drawCardWithValue('senatorID' , $family);
-                            // SUCCESS : Family is unaligned in the forum - put it under the Stateman
-                            $this->party[$user_id]->senators->putOnTop($stateman) ;
-                            $stateman->controls->putOnTop($matchedFamily);
-                            array_push($messages , array($this->party[$user_id]->fullName().' plays Stateman '.$stateman->name.' and gets the matching unaligned family from the Forum.'));
+                            // SUCCESS : Family is unaligned in the forum - put it under the Statesman
+                            $this->party[$user_id]->senators->putOnTop($statesman) ;
+                            $statesman->controls->putOnTop($matchedFamily);
+                            array_push($messages , array($this->party[$user_id]->fullName().' plays Statesman '.$statesman->name.' and gets the matching unaligned family from the Forum.'));
                             return $messages ;
                         }
 
                     }
                     // SUCCESS : There was no matched family in the player's party or the Forum
-                    $this->party[$user_id]->senators->putOnTop($stateman) ;
-                    array_push($messages , array($this->party[$user_id]->fullName().' plays Stateman '.$stateman->name));
+                    $this->party[$user_id]->senators->putOnTop($statesman) ;
+                    array_push($messages , array($this->party[$user_id]->fullName().' plays Statesman '.$statesman->name));
                     return $messages ;
                 }
             }

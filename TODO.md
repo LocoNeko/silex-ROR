@@ -5,12 +5,11 @@ TO DO :
 - Provinces need new properties : 'land', 'fleet', and 'frontier'
 - Variants : Pontifex, 
 - Now that getSpecificCard is done, shouldn't it replace calls to {foreach party { foreach senator {foreach card}}} ???
-- Replace 'Stateman' by 'Statesman'
 - Show a "pay ransom" interface in the action_captives.twig screen
 
 MAYBE :
 - In the Game class, I should use 'public function foobar()' only for the functions called from Action.php, but turn most other functions in the Game object into private functions.
-- Change logs so that {user_id} is recorded. That way, if a player looks at the logs, his party & user names can be replaced by "you"
+- Change logs so that $user_id is recorded. That way, if a player looks at the logs, his party & user names can be replaced by "you"
 
 IDEA :
 * iFrame page : add "overflow-x:hidden;"
