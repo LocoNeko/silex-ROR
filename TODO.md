@@ -81,8 +81,6 @@ TO DO :
 TO DO :
 - Finish events (forum_rollEvent)
 - Wars and Leaders don't go to forum
-- Ruin concessions based on Punic War or slave revolt
-- Still some problems on initiative bidding
 
 *************
 *Population *

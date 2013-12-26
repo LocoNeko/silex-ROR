@@ -2645,7 +2645,9 @@ class Game
      */
     public function forum_curia() {
         $messages = array();
-        // Major corruption markers
+        /*
+         *  Major corruption markers
+         */
         foreach($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 if ($senator->office !=NULL) {
@@ -2656,16 +2658,18 @@ class Game
                 }
             }
         }
-        // TO DO : Ruin concessions based on Punic War or slave revolt
-        foreach($this->activeWars->cards as $war) {
-            if (strstr($war->causes , 'tax farmer')) {
-                $roll=$this->rollOneDie(0);
-                $name='TAX FARMER '.(string)$roll;
-                $toRuin = $this->getSpecificCard('name', $name) ;
-                // RUIN tax farmer
-            }
+        
+        /*
+         *  Ruin tax farmers if 2nd Punic War or slave revolts are in place
+         */
+        $ruinMessages = $this->forum_ruinTaxFarmers();
+        foreach($ruinMessages as $message) {
+            array_push($messages , $message);
         }
-        // Curia death/revival
+        
+        /*
+         *  Curia death/revival
+         */
         if (count($this->curia->cards)>0) {
             array_push($messages , array('Rolling for cards in the curia'));
             $cardsToMoveToForum = array() ;
@@ -2689,7 +2693,7 @@ class Game
                     }
                 }
             }
-            // Doing this later in order not to disturb the main loop above (unsure how foreach would behave with an potentially shrinking array...)
+            // Doing this later in order not to disturb the main loop above (unsure how foreach would behave with a potentially shrinking array...)
             foreach ($cardsToMoveToForum as $cardID) {
                 $card = $this->curia->drawCardWithValue('id' , $cardID) ;
                 if ($card!==FALSE) {
@@ -2709,7 +2713,59 @@ class Game
         }
         return $messages ;
     }
+
+    /**
+     * Function taken out of forum_curia for readibility's sake
+     * Ruins tax farmers if a conflict that causes their ruin is in place (2nd Punic War or slave revolt)
+     * @return array messages
+     */
+    private function forum_ruinTaxFarmers() {
+        $messages = array() ;
+        // Ruined by active war
+        foreach($this->activeWars->cards as $war) {
+            if (strstr($war->causes , 'tax farmer')) {
+                $roll=$this->rollOneDie(0);
+                $name='TAX FARMER '.(string)$roll;
+                $toRuin = $this->getSpecificCard('name', $name) ;
+                array_push($messages , array($this->forum_ruinSpecificTaxFarmer($toRuin , $war->name , $roll),'alert'));
+            }
+        }
+        // Ruined by unprosecuted war
+        foreach($this->unprosecutedWars->cards as $war) {
+            if (strstr($war->causes , 'tax farmer')) {
+                $roll=$this->rollOneDie(0);
+                $name='TAX FARMER '.(string)$roll;
+                $toRuin = $this->getSpecificCard('name', $name) ;
+                array_push($messages , array($this->forum_ruinSpecificTaxFarmer($toRuin , $war->name , $roll),'alert'));
+            }
+        }
+        return $messages ;
+    }
     
+    /**
+     * This function is part of forum_ruinTaxFarmers and was also split for readibility's sake
+     * @param type $toRuin
+     * @param type $becauseOf
+     * @return type
+     */
+    private function forum_ruinSpecificTaxFarmer($toRuin , $becauseOf , $roll) {
+        // RUIN tax farmer
+        if ($toRuin!==FALSE) {
+            if ($toRuin['where']=='curia') {
+                return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : no effect as this tax farmer is already in the curia.';
+            } elseif ($toRuin['where']=='senator') {
+                $this->curia->putOnTop($toRuin['deck']->drawCardWithValue('id',$toRuin['card']->id));
+                return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : the ruined tax farmer is removed from '.$toRuin['senator']->name.'\'s control and placed in the curia.';
+            } elseif ($toRuin['where']=='forum') {
+                $this->curia->putOnTop($toRuin['deck']->drawCardWithValue('id',$toRuin['card']->id));
+                return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : the ruined tax farmer is removed from the forum and placed in the curia.';
+            } else {
+                return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : ERROR - the ruined tax farmer was found in the wrong deck ('.$toRuin['where'].')';
+            }
+        } else {
+            return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : no effect as this tax farmer is not in play.';
+        }
+    }
     
     /************************************************************
      * Functions for POPULATION phase
