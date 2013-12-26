@@ -825,11 +825,11 @@ class Game
     }
 
     /**
-     * This adds the ability to pay ransom of Senators captured during barbarian raids
-     * This should be a global function, called from the main view interface to allow for payment at any time.
+     * This adds the ability to pay ransom of Senators captured during battle or barbarian raids<br>
+     * This is a global function, called from the main view interface to allow for payment at any time.<br>
      * TO DO : Killing of captives should be checked when needed (defeat of the war if captured during battle, or Forum phase if captured by Barbarians)
-     * @param type $user_id
-     * @return array
+     * @param string $user_id the user id
+     * @return array 'captiveOf' , 'senatorID' , 'ransom'
      */
     public function getListOfCaptives($user_id) {
         $result = array () ;
@@ -839,6 +839,9 @@ class Game
                     array_push( array('captiveOf' => $senator->captive , 'senatorID' => $senator->senatorID , 'ransom' => max(10 , 2 * $senator->INF)));
                 }
             }
+        }
+        if (count($result)==0) {
+            $result = FALSE ;
         }
         return $result ;
     }
@@ -3248,4 +3251,5 @@ class Game
         }
         return $result ;
     }
+    
 }

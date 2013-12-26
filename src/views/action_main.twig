@@ -44,6 +44,12 @@ YOUR PARTY :<br>
 {% embed 'action_viewParty.twig' %}
 {% endembed %}
 
+{# IF THERE IS CAPTIVES, SHOW THEM AND GIVE A CHANCE TO PAY THE RANSOM #}
+{% if content['game'].listOfCaptives(user_id) %}
+    {% embed 'action_captives.twig' %}
+    {% endembed %}
+{% endif %}
+
 <hr>
 {# DISPLAY PLAYER'S HAND #}
 YOUR HAND :<br>

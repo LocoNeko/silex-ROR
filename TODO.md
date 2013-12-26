@@ -7,6 +7,8 @@ TO DO :
 - Now that getSpecificCard is done, shouldn't it replace calls to {foreach party { foreach senator {foreach card}}} ???
 - IMPORTANT : Check every function called from the main Action.php switch : they should all be sanitised for current phase, current subPhase, etc,
   so they don't erroneously commit data and put the game into a wrong state
+- Replace 'Stateman' by 'Statesman'
+- Show a "pay ransom" interface in the action_captives.twig screen
 
 MAYBE :
 - In the Game class, I should use 'public function foobar()' only for the functions called from Action.php, but turn most other functions in the Game object into private functions.

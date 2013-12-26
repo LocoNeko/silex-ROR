@@ -1,0 +1,8 @@
+Some of your senators are captives :<br>
+<div class="row">
+{% for captive in content['game'].listOfCaptives(user_id) %}
+    <div class="span3">
+        {{captive['senatorID']}} is held by {{captive['captiveOf']}} for a ransom of {{captive['ransom']}} T.
+    </div>
+{% endfor %}
+</div>
