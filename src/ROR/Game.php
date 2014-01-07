@@ -2847,6 +2847,8 @@ class Game
                         default :
                             $effect=(int)$effect;
                             $this->unrest+=$effect;
+                            // Unrest cannot be negative
+                            $this->unrest=max(0 , $this->unrest) ;
                             array_push($messages , array('The unrest is changed by '.($effect>0 ? '+' :'').$effect.', now at '.$this->unrest,'alert')) ;
                     }
                 }
@@ -3002,7 +3004,7 @@ class Game
             return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Error retrieving Senators data.','error' , $user_id);
         }
         if ($senator1->senatorID == $senator2->senatorID) {
-            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Please stop drinking.','error' , $user_id);
+            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This is a pair of one. Please stop drinking.','error' , $user_id);
         }
         if ( count($parameters)==2 ) {
             // Check if they are in Rome (where they must do as Romans do)

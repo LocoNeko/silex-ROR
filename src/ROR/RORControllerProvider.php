@@ -5,6 +5,7 @@ include 'Action.php';
 use Silex\Application;
 use Silex\ControllerProviderInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use ROR\Game;
 use ROR\Action;
 
@@ -119,7 +120,7 @@ class RORControllerProvider implements ControllerProviderInterface
         })
         ->value ('action' , NULL )
         ->bind('Action');
-
+        
         /**
          * For debug purposes : Load a saved game
          */
