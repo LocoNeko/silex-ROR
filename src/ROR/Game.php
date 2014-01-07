@@ -2931,20 +2931,20 @@ class Game
         $messages = array() ;
         
         if ($this->phase!='Senate') {
-            return array(array('Wrong phase.' , 'error')) ;
+            return array(array('Wrong phase.' , 'error' , $user_id)) ;
         }
         
         $latestProposal = $this->senate_getLatestProposal() ;
         
         // Check that no voting is underway already
         if ($latestProposal!==FALSE && $latestProposal->outcome===NULL) {
-            return array(array('Error - Another proposal is underway.' , 'error')) ;
+            return array(array('Error - Another proposal is underway.' , 'error' , $user_id)) ;
         }
         
         // Check $type
         $typeKey = array_search($type, Proposal::$VALID_PROPOSAL_TYPES) ;
         if ($typeKey===FALSE) {
-            return array(array('Error with proposal type.' , 'error')) ;
+            return array(array('Error with proposal type.' , 'error' , $user_id)) ;
         }
 
         // Check if the returned $proposalHow value is valid for this user_id
@@ -2967,7 +2967,7 @@ class Game
         
         // Check parameters based on proposal type, and if everything checks out, put the proposal forward
         if ($type=='Consuls') {
-            $validation = $this->senate_validateConsulsProposal($typeKey , $parameters) ;
+            $validation = $this->senate_validateConsulsProposal($typeKey , $parameters , $user_id) ;
             if ($validation[1]=='error') {
                 return array($validation);
             } else {
@@ -2990,7 +2990,7 @@ class Game
      * @param array $parameters An array of parameters to be validated
      * @return array A message array
      */
-    private function senate_validateConsulsProposal($typeKey , $parameters) {
+    private function senate_validateConsulsProposal($typeKey , $parameters , $user_id) {
         // Sorts the 2 Senators lexicographically
         usort ($parameters, function($a, $b) {
             return strcmp($a, $b);
@@ -2999,20 +2999,20 @@ class Game
         $senator1 = $this->getSenatorWithID($parameters[0]) ;
         $senator2 = $this->getSenatorWithID($parameters[1]) ;
         if ($senator1===FALSE || $senator2===FALSE) {
-            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Error retrieving Senators data.','error');
+            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Error retrieving Senators data.','error' , $user_id);
         }
         if ($senator1->senatorID == $senator2->senatorID) {
-            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Please stop drinking.','error');
+            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Please stop drinking.','error' , $user_id);
         }
         if ( count($parameters)==2 ) {
             // Check if they are in Rome (where they must do as Romans do)
             if ((!$senator1->inRome()) || (!$senator2->inRome())) {
-                return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Both Senators must be in Rome to be proposed.','error');
+                return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Both Senators must be in Rome to be proposed.','error' , $user_id);
             }
             // Check if they already have been rejected
             foreach ($this->proposals as $proposal) {
                 if ($proposal->type=='Consuls' && $proposal->outcome=='Rejected' && $proposal->parameters[0]==$senator1->senatorID && $proposal->parameters[1]==$senator2->senatorID) {
-                    return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This pair has already been rejected','error');
+                    return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This pair has already been rejected' , 'error' , $user_id);
                 }
             }
             // Check that they are not already Consuls or Dictator Except if 'Tradition Erodes' law is in play
@@ -3025,15 +3025,15 @@ class Game
                     ($senator2->office == 'Rome Consul') ||
                     ($senator2->office == 'Field Consul')
                 ) {
-                    return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Before the \'Tradition Erodes\' law is in place, Senators cannot be proposed if they are already Dictator or Consul.','error');
+                    return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Before the \'Tradition Erodes\' law is in place, Senators cannot be proposed if they are already Dictator or Consul.' , 'error' , $user_id);
                 }
             }
             // Check if they are not Pontifex
             if (($senator1->office == 'Pontifex Maximus') || ($senator2->office == 'Pontifex Maximus')) {
-                return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.','error');
+                return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.' , 'error'  , $user_id);
             }
         } else {
-            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : You must propose 2 senators','error');
+            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : You must propose 2 senators' , 'error' , $user_id);
         }
     }
     

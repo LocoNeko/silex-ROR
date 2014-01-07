@@ -6,10 +6,13 @@ TO DO :
 - Variants : Pontifex, 
 - Now that getSpecificCard is done, shouldn't it replace calls to {foreach party { foreach senator {foreach card}}} ???
 - Show a "pay ransom" interface in the action_captives.twig screen
+- Delete 'GetLog' in Action.php, as the log is displayed in an iFrame
 
 MAYBE :
 - In the Game class, I should use 'public function foobar()' only for the functions called from Action.php, but turn most other functions in the Game object into private functions.
-- Change logs so that $user_id is recorded. That way, if a player looks at the logs, his party & user names can be replaced by "you"
+- Change logs so that $user_id is recorded. That way, if a player looks at the logs, his party & user names can be replaced by "you". This was first corrected the other way around.
+In order to display log messages properly, user ids should be recorded as {%ID%} and replaced within the log file by passing a list of players to the display function.
+This list is essentially NOT needed when WRITING the log, just when displaying it.
 
 IDEA :
 * iFrame page : add "overflow-x:hidden;"

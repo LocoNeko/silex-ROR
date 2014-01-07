@@ -15,7 +15,15 @@
                   , function() {            // Once the connection has been established
                         conn.subscribe('{{game_id|default('')}}', function(js_game_id, data) {
                             console.log('Action received. Data is : ' + JSON.stringify(data, null, 4));
-                            window.location.href = window.location.href;
+                            if (typeof data["from"] != 'undefined') {
+                                if (data["from"]=="{{user_id|default()}}" ) {
+                                    console.log("No need to refresh");
+                                } else {
+                                    location.reload(true);
+                                }
+                            } else {
+                                alert("Undefined From");
+                            }
                         });
                     }
                   , function() {            // When the connection is closed
