@@ -126,8 +126,6 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     } elseif ($game->phase=='Senate' && ($nbOfProposals!=count($game->proposals)) ) {
         $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => 'Senate' , 'subPhase' => $game->subPhase.' (Proposal #'.count($game->proposals).')' , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
     }
-    // Get the log
-    $content['log'] = getLog($app , $game_id , $user_id);
     $content['game'] = $game ;
     return $content;
 }
@@ -188,15 +186,4 @@ function log ( Application $app , $game_id , $user_id , $logs) {
     $socket = $context->getSocket(\ZMQ::SOCKET_PUSH, 'my pusher');
     $socket->connect("tcp://localhost:5555");
     $socket->send(json_encode($entryData));
-}
-
-/**
- * Returns the logs that match the recipients : NULL (everyone) , "$user_id" , "or $userid;"  , "or $userid;" as the ";" is the delimiter for multiple recipients and ":" the delimiter for chat
- * @param \Silex\Application $app
- * @param type $game_id
- * @param type $user_id
- * @return type
- */
-function getLog ( Application $app , $game_id , $user_id) {
-    return $app['db']->fetchAll("SELECT * FROM logs WHERE game_id='".$game_id."' AND (recipients IS NULL OR recipients='".$user_id."' OR recipients LIKE '%".$user_id.";%' OR recipients LIKE '%".$user_id.":%')");
 }
