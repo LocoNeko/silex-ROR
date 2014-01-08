@@ -44,7 +44,7 @@ class RORControllerProvider implements ControllerProviderInterface
                     return $app->redirect($app['url_generator']->generate('ListGames'));
                 default :
                     $this->joinGame($app , $game_id);
-                    $app['session']->getFlashBag()->set('alert','You have joined this game');
+                    $app['session']->getFlashBag()->set('alert',_('You have joined this game'));
                     return $app->redirect($app['url_generator']->generate('ViewGame' , Array ('game_id' => $game_id )));
             }
         })
@@ -61,13 +61,13 @@ class RORControllerProvider implements ControllerProviderInterface
             if ($request->isMethod('POST')) {
                 if ($request->request->get('start')==0) {
                     if ($this->setPartyName($app , $request , $game_id) ) {
-                        $app['session']->getFlashBag()->add('alert','You have set your party\'s name');
+                        $app['session']->getFlashBag()->add('alert',_('You have set your party\'s name'));
                     } else {
-                        $app['session']->getFlashBag()->add('alert','Party name cannot be blank or the same as an existing party.');
+                        $app['session']->getFlashBag()->add('alert',_('Party name cannot be blank or the same as an existing party.'));
                     }
                 } else {
                     if ($this->startGame($app , $game_id)) {
-                        $app['session']->getFlashBag()->add('alert','The game has just started.');
+                        $app['session']->getFlashBag()->add('alert',_('The game has just started.'));
                         return $app->redirect($app['url_generator']->generate('Action' , Array ('game_id' => $game_id )));   
                     }
                 }
@@ -88,9 +88,9 @@ class RORControllerProvider implements ControllerProviderInterface
         $controllers->match('/CreateGame/', function(Request $request) use ($app) {
             if ($request->isMethod('POST')) {
                 if ($this->createGame($app , $request)) {
-                    $app['session']->getFlashBag()->add('alert','You have created game '.$request->request->get('name'));
+                    $app['session']->getFlashBag()->add('alert',sprintf(_('You have created game %s') , $request->request->get('name')));
                 } else {
-                    $app['session']->getFlashBag()->add('error','There was an error. Game '.$request->request->get('name').' was not created.');
+                    $app['session']->getFlashBag()->add('error',sprintf(_('There was an error. Game %s was not created.') , $request->request->get('name')));
                 }
                 return $app->redirect($app['url_generator']->generate('ListGames'));
             } else {
@@ -133,7 +133,7 @@ class RORControllerProvider implements ControllerProviderInterface
                 $app['db']->query("DELETE FROM logs WHERE game_id = '".$game_id."' AND time_created > ".$time);
                 $app['db']->query("DELETE FROM saved_games WHERE game_id = '".$game_id."' AND time_saved > ".$time);
                 $app['db']->update("games" , Array("game_data" => $game_data) , Array ("game_id" => $game_id) );
-                $app['session']->getFlashBag()->add('alert','Game loaded');
+                $app['session']->getFlashBag()->add('alert',_('Game loaded'));
                 return $app->redirect($app['url_generator']->generate('Action' , Array('game_id' => $game_id) ) );
             } else {
                 return $app->redirect($app['url_generator']->generate('ListGames'));
@@ -151,7 +151,7 @@ class RORControllerProvider implements ControllerProviderInterface
                 $app['db']->query("DELETE FROM players WHERE game_id = '".$game_id."'");
                 $app['db']->query("DELETE FROM logs WHERE game_id = '".$game_id."'");
                 $app['db']->query("DELETE FROM saved_games WHERE game_id = '".$game_id."'");
-                $app['session']->getFlashBag()->add('alert','Game deleted');
+                $app['session']->getFlashBag()->add('alert',_('Game deleted'));
             }
             return $app->redirect($app['url_generator']->generate('ListGames'));
         })
@@ -203,12 +203,12 @@ class RORControllerProvider implements ControllerProviderInterface
         $sql = "SELECT COUNT(user_id) as nbPlayers FROM players as pl WHERE pl.game_id='".$game_id."'";
         $row = $app['db']->fetchAssoc( $sql , Array() ) ;
         if ($row['nbPlayers']==6) {
-            return Array('type' => 'error' , 'message' => 'This game is full');
+            return Array('type' => 'error' , 'message' => _('This game is full'));
         } else {
             $sql = "SELECT COUNT(user_id) AS alreadyIn FROM players WHERE game_id='".$game_id."' AND user_id = ".$app['user']->getId();
             $row = $app['db']->fetchAssoc( $sql , Array() ) ;
             if ($row['alreadyIn']==1) {
-                return Array('type' => 'error' , 'message' => 'You have already joined this game.');
+                return Array('type' => 'error' , 'message' => _('You have already joined this game.'));
             } else {
                 return Array('type' => 'OK');
             }
@@ -261,22 +261,22 @@ class RORControllerProvider implements ControllerProviderInterface
     public function startGame(Application $app , $game_id) {
         $playersList = $this->listPlayers ($app , $game_id);
         if (count($playersList)<3) {
-            $app['session']->getFlashBag()->add('error','The game can\'t start with less than 3 players.');
+            $app['session']->getFlashBag()->add('error',_('The game can\'t start with less than 3 players.'));
             return false;
         }
         foreach ($playersList as $player) {
             if (strlen($player['party_name'])<1) {
-                $app['session']->getFlashBag()->add('error','The game can\'t start as party name of '.$player['name'].' cannot be blank.');
+                $app['session']->getFlashBag()->add('error' , sprintf(_('The game can\'t start as party name of %s cannot be blank.') , $player['name']));
                 return false ;
             }
         }
         $gameDetails = $this-> gameDetails ($app , $game_id) ;
         if (!in_array($gameDetails['scenario'], Game::$VALID_SCENARIOS)) {
-            $app['session']->getFlashBag()->add('error','The game can\'t start as the scenario is invalid.');
+            $app['session']->getFlashBag()->add('error' , _('The game can\'t start as the scenario is invalid.') );
             return false ;
         }
         if ($gameDetails['status']!='Pre-game'){
-            $app['session']->getFlashBag()->add('error','The game can\'t start as the game status is invalid.');
+            $app['session']->getFlashBag()->add('error' , _('The game can\'t start as the game status is invalid.') );
             return false ;
         }
         // Everything is fine, we can switch the game status to 'Setup'

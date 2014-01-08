@@ -17,6 +17,7 @@
                             console.log('Action received. Data is : ' + JSON.stringify(data, null, 4));
                             if (typeof data["from"] != 'undefined') {
                                 if (data["from"]=="{{user_id|default()}}" ) {
+                                    // This should never happen, as this should never be sent by Ratchet
                                     console.log("No need to refresh");
                                 } else {
                                     location.reload(true);

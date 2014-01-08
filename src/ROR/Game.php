@@ -143,7 +143,7 @@ class Game
         for ($i=1 ; $i<=4 ; $i++) {
             $this->legion[$i]->location = 'Rome';
         }
-        array_push($messages , array('Rome starts with 4 Legions') ) ;
+        array_push($messages , array(_('Rome starts with 4 Legions')) ) ;
         $this->steppedDown = array() ;
         $this->proposals = array() ;
         $this->laws = array() ;
@@ -160,8 +160,8 @@ class Game
          * Then create 4 legions in Rome, the rest of the legions and all the fleets are non-existent (Legions and Fleet objects should never be created during a game)
          */
         $this->inactiveWars->putOnTop($this->earlyRepublic->drawCardWithValue('name', '1ST PUNIC WAR'));
-        array_push($messages , array('SETUP PHASE' , 'alert') ) ;
-        array_push($messages , array('The First Punic war is now an inactive war') ) ;
+        array_push($messages , array(_('SETUP PHASE') , 'alert') ) ;
+        array_push($messages , array(_('The First Punic war is now an inactive war')) ) ;
         $this->discard->putOnTop($this->earlyRepublic->drawCardWithValue('name', 'ERA ENDS')) ;
         /* 
          * Give initial senators to parties
@@ -179,7 +179,7 @@ class Game
             for ($j=0 ; $j<3 ; $j++)
             {
                 $party->senators->putOnTop($tempDeck->drawTopCard());
-                array_push($messages , array($party->fullName().' receives Senator '.$party->senators->cards[0]->name) ) ;
+                array_push( $messages, array ( sprintf(_('{%s} receives senator %s') , $party->user_id , $party->senators->cards[0]->name) ) ) ;
             }
         }
         while (count($tempDeck->cards)>0) {
@@ -2970,7 +2970,8 @@ class Game
         // Check parameters based on proposal type, and if everything checks out, put the proposal forward
         if ($type=='Consuls') {
             $validation = $this->senate_validateConsulsProposal($typeKey , $parameters , $user_id) ;
-            if ($validation[1]=='error') {
+            // Proposal couldn't be validated
+            if (isset($validation[1]) && $validation[1]=='error') {
                 return array($validation);
             } else {
                 $proposal = new Proposal ;
@@ -2978,7 +2979,11 @@ class Game
                 if ( isset($result[2]) && $result[2]=='error' ) {
                     return array(array('Error with proposal type.' , 'error')) ;
                 } else {
-                    array_push($this->proposals , $proposal) ;
+                    // The proposal is correct, put it in the proposals array and if a tribune was used, flag it
+                    if ($result===TRUE) {
+                        
+                        array_push($this->proposals , $proposal) ;
+                    }
                 }
             }
         }
@@ -2990,7 +2995,7 @@ class Game
      * Validate a 'Consuls' proposal - function taken out of senate_proposal for readability's sake
      * @param int $typeKey The key of the type in the Proposal::$VALID_PROPOSAL_TYPES array
      * @param array $parameters An array of parameters to be validated
-     * @return array A message array
+     * @return array A message array 
      */
     private function senate_validateConsulsProposal($typeKey , $parameters , $user_id) {
         // Sorts the 2 Senators lexicographically
@@ -3034,6 +3039,7 @@ class Game
             if (($senator1->office == 'Pontifex Maximus') || ($senator2->office == 'Pontifex Maximus')) {
                 return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.' , 'error'  , $user_id);
             }
+            return TRUE;
         } else {
             return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : You must propose 2 senators' , 'error' , $user_id);
         }
@@ -3092,6 +3098,7 @@ class Game
                     $output['state'] = 'Proposal impossible';
                 }
             } else {
+                // TO DO : All the rest...
                 $output['state'] = 'Error';
             }
         }

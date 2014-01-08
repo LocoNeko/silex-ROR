@@ -11,6 +11,14 @@ use Symfony\Component\HttpKernel\Debug\ExceptionHandler;
 use Symfony\Component\HttpFoundation\Request;
 use Silex\Provider;
 
+// i18n
+$lang = 'en_US.utf8';
+putenv('LC_ALL=$lang');
+setlocale(LC_ALL, $lang);
+bindtextdomain("messages", "locale");
+bind_textdomain_codeset('messages', 'UTF-8');
+textdomain("messages");
+
 ExceptionHandler::register();
 
 $app = new Silex\Application();

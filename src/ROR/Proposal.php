@@ -40,10 +40,10 @@ class Proposal {
     public function init ($type , $description , $parties) {
         $key = array_search($type, self::$VALID_PROPOSAL_TYPES) ;
         if ($key===FALSE) {
-            return array('Error with proposal type.' , 'error') ;
+            return array(_('Error with proposal type.') , 'error') ;
         }
         if ($type=='Minor' && !is_string($description)) {
-            return array('Minor proposal must have a valid description.' , 'error') ;
+            return array(_('Minor proposal must have a valid description.') , 'error') ;
         }
         $this->type = $type ;
         // Default descriptions
@@ -71,7 +71,7 @@ class Proposal {
     public function castVote ($type , $id , $ballot) {
         $ballot = (int)$ballot ;
         if ($ballot<-1 || $ballot>1) {
-            return array('Error with ballot, it should be for(1), against(-1) or abstain(0), not "'.$ballot.'"' , 'error');
+            return array(sprintf(_('Error with ballot, it should be for(1), against(-1) or abstain(0), not %d') , $ballot) , 'error');
         }
         if ($type=='Senator') {
             foreach ($this->voting as $key => $vote) {
@@ -86,7 +86,7 @@ class Proposal {
                 }
             }
         } else {
-            return array('Error with type of voting, only Senators or Parties can vote, not "'.$type.'"' , 'error');
+            return array(sprintf(_('Error with type of voting, only Senators or Parties can vote, not %s') , $type) , 'error');
         }
     }
 }
