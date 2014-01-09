@@ -204,7 +204,7 @@ class Game
                         $this->earlyRepublic->putOnTop($card);
                 }
             }
-            array_push($messages , array($party->fullName().' receives 3 cards.')) ;
+            array_push($messages , array( sprintf(_('{%s} receives 3 cards') , $party->user_id)) ) ;
         }
         /*
          * Put all remaining cards of the Early Republic in the draw deck
@@ -226,7 +226,7 @@ class Game
         $temporaryRomeConsul->priorConsul = true ;
         $temporaryRomeConsul->INF += 5 ;
         $party = $this->getPartyOfSenator($temporaryRomeConsul);
-        array_push($messages , array($temporaryRomeConsul->name.' '.$party->fullName().' becomes temporary Rome consul.','alert'));
+        array_push($messages , array(sprintf(_('%s ({%s}) becomes temporary Rome consul') , $temporaryRomeConsul->name , $party->user_id) , 'alert'));
         return $messages ;
     }
     
@@ -248,7 +248,7 @@ class Game
         fclose($eventsFilePointer);
         $eventTableFilePointer = fopen(dirname(__FILE__).'/../../data/eventTable.csv', 'r');
         if (!$eventTableFilePointer) {
-            throw new Exception("Could not open the event table file");
+            throw new Exception(_('Could not open the event table file'));
         }
         $i=3;
         while (($data = fgetcsv($eventTableFilePointer, 0, ";")) !== FALSE) {
@@ -268,7 +268,7 @@ class Game
     public function createPopulationTable() {
         $filePointer = fopen(dirname(__FILE__).'/../../data/populationTable.csv', 'r');
         if (!$filePointer) {
-            throw new Exception("Could not open the Population table file");
+            throw new Exception(_('Could not open the Population table file'));
         }
         while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
             $this->populationTable[$data[0]] = array();
@@ -287,7 +287,7 @@ class Game
     public function createAppealTable() {
         $filePointer = fopen(dirname(__FILE__).'/../../data/appealTable.csv', 'r');
         if (!$filePointer) {
-            throw new Exception("Could not open the Appeal table file");
+            throw new Exception(_('Could not open the Appeal table file'));
         }
         while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
             $this->appealTable[$data[0]] = array();
@@ -300,7 +300,7 @@ class Game
     public function createLandBillsTable() {
         $filePointer = fopen(dirname(__FILE__).'/../../data/landBills.csv', 'r');
         if (!$filePointer) {
-            throw new Exception("Could not open the Land Bills table file");
+            throw new Exception(_('Could not open the Land Bills table file'));
         }
         while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
             if (substr($data[0],0,1)!='#') {

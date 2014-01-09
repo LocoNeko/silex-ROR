@@ -7,108 +7,120 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Silex-ROR\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-01-09 15:03+0900\n"
-"PO-Revision-Date: 2014-01-09 15:06+0900\n"
+"POT-Creation-Date: 2014-01-09 16:35+0900\n"
+"PO-Revision-Date: 2014-01-09 16:35+0900\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Team France <loconeko73@gmail.com>\n"
+"Language: fr_FR.utf8\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.5.4\n"
-"Language: fr_FR.utf8\n"
 "X-Poedit-SourceCharset: UTF-8\n"
+"X-Poedit-Basepath: .\n"
+"X-Poedit-SearchPath-0: ../../../../src/ROR\n"
 
-#: src/ROR/Game.php:146
+#: ../../../../src/ROR/RORControllerProvider.php:47
+msgid "You have joined this game"
+msgstr ""
+
+#: ../../../../src/ROR/RORControllerProvider.php:64
+msgid "You have set your party's name"
+msgstr ""
+
+#: ../../../../src/ROR/RORControllerProvider.php:66
+msgid "Party name cannot be blank or the same as an existing party."
+msgstr ""
+
+#: ../../../../src/ROR/RORControllerProvider.php:70
+msgid "The game has just started."
+msgstr ""
+
+#: ../../../../src/ROR/RORControllerProvider.php:91
+#, php-format
+msgid "You have created game %s"
+msgstr ""
+
+#: ../../../../src/ROR/RORControllerProvider.php:93
+#, php-format
+msgid "There was an error. Game %s was not created."
+msgstr ""
+
+#: ../../../../src/ROR/RORControllerProvider.php:136
+msgid "Game loaded"
+msgstr "Partie chargée"
+
+#: ../../../../src/ROR/RORControllerProvider.php:154
+msgid "Game deleted"
+msgstr "Partie effacée"
+
+#: ../../../../src/ROR/RORControllerProvider.php:203
+msgid "This game is full"
+msgstr "Cette partie est complète"
+
+#: ../../../../src/ROR/RORControllerProvider.php:208
+msgid "You have already joined this game."
+msgstr "Vous avez déja rejoint cette partie"
+
+#: ../../../../src/ROR/RORControllerProvider.php:261
+msgid "The game can't start with less than 3 players."
+msgstr ""
+
+#: ../../../../src/ROR/RORControllerProvider.php:266
+#, php-format
+msgid "The game can't start as party name of %s cannot be blank."
+msgstr ""
+
+#: ../../../../src/ROR/RORControllerProvider.php:272
+msgid "The game can't start as the scenario is invalid."
+msgstr ""
+
+#: ../../../../src/ROR/RORControllerProvider.php:276
+msgid "The game can't start as the game status is invalid."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:146
 msgid "Rome starts with 4 Legions"
 msgstr "Rome commence avec 4 légions"
 
-#: src/ROR/Game.php:163
+#: ../../../../src/ROR/Game.php:163
 msgid "SETUP PHASE"
 msgstr "PHASE INITIALE"
 
-#: src/ROR/Game.php:164
+#: ../../../../src/ROR/Game.php:164
 msgid "The First Punic war is now an inactive war"
 msgstr ""
 
-#: src/ROR/Game.php:182
+#: ../../../../src/ROR/Game.php:182
 #, php-format
 msgid "{%s} receives senator %s"
 msgstr ""
 
-#: src/ROR/Proposal.php:43
+#: ../../../../src/ROR/Game.php:207
+#, php-format
+msgid "{%s} receives 3 cards"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:229
+#, php-format
+msgid "%s ({%s}) becomes temporary Rome consul"
+msgstr ""
+
+#: ../../../../src/ROR/Proposal.php:43
 msgid "Error with proposal type."
 msgstr ""
 
-#: src/ROR/Proposal.php:46
+#: ../../../../src/ROR/Proposal.php:46
 msgid "Minor proposal must have a valid description."
 msgstr ""
 
-#: src/ROR/Proposal.php:74
+#: ../../../../src/ROR/Proposal.php:74
 #, php-format
 msgid ""
 "Error with ballot, it should be for(1), against(-1) or abstain(0), not %d"
 msgstr ""
 
-#: src/ROR/Proposal.php:89
+#: ../../../../src/ROR/Proposal.php:89
 #, php-format
 msgid "Error with type of voting, only Senators or Parties can vote, not %s"
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:47
-msgid "You have joined this game"
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:64
-msgid "You have set your party's name"
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:66
-msgid "Party name cannot be blank or the same as an existing party."
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:70
-msgid "The game has just started."
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:91
-#, php-format
-msgid "You have created game %s"
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:93
-#, php-format
-msgid "There was an error. Game %s was not created."
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:136
-msgid "Game loaded"
-msgstr "Partie chargée"
-
-#: src/ROR/RORControllerProvider.php:154
-msgid "Game deleted"
-msgstr "Partie effacée"
-
-#: src/ROR/RORControllerProvider.php:206
-msgid "This game is full"
-msgstr "Cette partie est complète"
-
-#: src/ROR/RORControllerProvider.php:211
-msgid "You have already joined this game."
-msgstr "Vous avez déja rejoint cette partie"
-
-#: src/ROR/RORControllerProvider.php:264
-msgid "The game can't start with less than 3 players."
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:269
-#, php-format
-msgid "The game can't start as party name of %s cannot be blank."
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:275
-msgid "The game can't start as the scenario is invalid."
-msgstr ""
-
-#: src/ROR/RORControllerProvider.php:279
-msgid "The game can't start as the game status is invalid."
 msgstr ""

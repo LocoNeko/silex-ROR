@@ -161,9 +161,6 @@ class RORControllerProvider implements ControllerProviderInterface
          * The log iframe
          */
         $controllers->match('/Log/{game_id}/{user_id}' , function($game_id , $user_id) use ($app) {
-            //$logs = $app['db']->fetchAll("SELECT * FROM logs WHERE game_id='".$game_id."' AND (recipients IS NULL OR recipients='".$user_id."' OR recipients LIKE '%".$user_id.";%')");
-            //return "Et hop :<br>".print_r($logs,TRUE);
-            //return iframeContent($game_id , $user_id);
             return $app['twig']->render('log.twig', Array(
                 'game_id' => $game_id,
                 'user_id' => $user_id

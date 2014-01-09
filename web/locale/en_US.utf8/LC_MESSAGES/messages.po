@@ -7,52 +7,18 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Silex-ROR\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-01-08 16:50+0900\n"
-"PO-Revision-Date: 2014-01-08 17:08+0900\n"
+"POT-Creation-Date: 2014-01-09 16:30+0900\n"
+"PO-Revision-Date: 2014-01-09 16:32+0900\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: The silex ROR team of 1 <loconeko73@gmail.com>\n"
+"Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "X-Generator: Poedit 1.5.4\n"
-"Language: en\n"
 "X-Poedit-SourceCharset: UTF-8\n"
-
-#: ../../../../src/ROR/Game.php:146
-msgid "Rome starts with 4 Legions"
-msgstr ""
-
-#: ../../../../src/ROR/Game.php:163
-msgid "SETUP PHASE"
-msgstr ""
-
-#: ../../../../src/ROR/Game.php:164
-msgid "The First Punic war is now an inactive war"
-msgstr ""
-
-#: ../../../../src/ROR/Game.php:182
-#, php-format
-msgid "{%s} receives senator %s"
-msgstr ""
-
-#: ../../../../src/ROR/Proposal.php:43
-msgid "Error with proposal type."
-msgstr ""
-
-#: ../../../../src/ROR/Proposal.php:46
-msgid "Minor proposal must have a valid description."
-msgstr ""
-
-#: ../../../../src/ROR/Proposal.php:74
-#, php-format
-msgid ""
-"Error with ballot, it should be for(1), against(-1) or abstain(0), not %d"
-msgstr ""
-
-#: ../../../../src/ROR/Proposal.php:89
-#, php-format
-msgid "Error with type of voting, only Senators or Parties can vote, not %s"
-msgstr ""
+"X-Poedit-Basepath: .\n"
+"X-Poedit-SearchPath-0: ../../../../src/ROR\n"
 
 #: ../../../../src/ROR/RORControllerProvider.php:47
 msgid "You have joined this game"
@@ -88,27 +54,68 @@ msgstr ""
 msgid "Game deleted"
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:206
+#: ../../../../src/ROR/RORControllerProvider.php:203
 msgid "This game is full"
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:211
+#: ../../../../src/ROR/RORControllerProvider.php:208
 msgid "You have already joined this game."
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:264
+#: ../../../../src/ROR/RORControllerProvider.php:261
 msgid "The game can't start with less than 3 players."
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:269
+#: ../../../../src/ROR/RORControllerProvider.php:266
 #, php-format
 msgid "The game can't start as party name of %s cannot be blank."
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:275
+#: ../../../../src/ROR/RORControllerProvider.php:272
 msgid "The game can't start as the scenario is invalid."
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:279
+#: ../../../../src/ROR/RORControllerProvider.php:276
 msgid "The game can't start as the game status is invalid."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:146
+msgid "Rome starts with 4 Legions"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:163
+msgid "SETUP PHASE"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:164
+msgid "The First Punic war is now an inactive war"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:182
+#, php-format
+msgid "{%s} receives senator %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:207
+#, php-format
+msgid "{%s} receives 3 cards"
+msgstr ""
+
+#: ../../../../src/ROR/Proposal.php:43
+msgid "Error with proposal type."
+msgstr ""
+
+#: ../../../../src/ROR/Proposal.php:46
+msgid "Minor proposal must have a valid description."
+msgstr ""
+
+#: ../../../../src/ROR/Proposal.php:74
+#, php-format
+msgid ""
+"Error with ballot, it should be for(1), against(-1) or abstain(0), not %d"
+msgstr ""
+
+#: ../../../../src/ROR/Proposal.php:89
+#, php-format
+msgid "Error with type of voting, only Senators or Parties can vote, not %s"
 msgstr ""
