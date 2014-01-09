@@ -7,6 +7,7 @@
  */
 
 require __DIR__.'/../vendor/autoload.php';
+
 use Symfony\Component\HttpKernel\Debug\ExceptionHandler;
 use Symfony\Component\HttpFoundation\Request;
 use Silex\Provider;
@@ -15,9 +16,9 @@ use Silex\Provider;
 $lang = 'en_US.utf8';
 putenv('LC_ALL=$lang');
 setlocale(LC_ALL, $lang);
-bindtextdomain("messages", "locale");
+bindtextdomain('messages', 'locale');
 bind_textdomain_codeset('messages', 'UTF-8');
-textdomain("messages");
+textdomain('messages');
 
 ExceptionHandler::register();
 
@@ -70,6 +71,11 @@ $app->register(new Provider\UrlGeneratorServiceProvider());
 $app->register(new Silex\Provider\TwigServiceProvider(), array(
     'twig.path' => __DIR__ . '/../src/views',
 ));
+
+$app['twig'] = $app->share($app->extend('twig', function($twig, $app) {
+    $twig->addExtension(new Twig_Extensions_Extension_I18n());
+    return $twig;
+}));
 
 // User Controller Service Provider for SimpleUser
 $app->register($u = new SimpleUser\UserServiceProvider());
