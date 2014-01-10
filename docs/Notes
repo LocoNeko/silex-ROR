@@ -86,26 +86,4 @@ Bidding has meaning in two different situations : Initiative & Persuasion
 - Once back to persuader, give opportunity to spend more money and start again.
 - This going around the table, and any further such cycle can be easily identified by the fact that $game->persuasionTarget is already set.
 
-********
-*Senate*
-********
 
-Sub phases :
-Consuls,Pontifex Maximus,Dictator,Censor,Prosecutions,Governors,Concessions,Land Bills,Forces,Garrison,Deploy,Recall Proconsul,Recall Pontifex,Priests,Consul for life,Minor
-
-Details :
-
-- Consuls :
-*Propose a pair
-*Once a pair is accepted, the 2 senators agrees between themselves who will be what, or roll dice if can't agree (This is not a proposal)
-
-- Dictator :
-* Both consuls agree to appoint (This is not a proposal)
-* OR President calls for an election
-
-> Dictator appoints MoH (This is not a proposal)
-
-- Censor :
-* Is elected automatically if there is no choice left
-
-- Prosecutions :
