@@ -14,7 +14,9 @@ use Silex\Provider;
 
 // i18n
 $lang = 'en_US.utf8';
-putenv('LC_ALL=$lang');
+// Those 2 lines below are needed on some systems, so better safe than sorry
+putenv('LC_ALL=$lang'); 
+putenv('LANGUAGE=$lang');
 setlocale(LC_ALL, $lang);
 bindtextdomain('messages', 'locale');
 bind_textdomain_codeset('messages', 'UTF-8');
@@ -68,14 +70,12 @@ $app->register(new Provider\ServiceControllerServiceProvider());
 $app->register(new Provider\UrlGeneratorServiceProvider()); 
 
 // Twig
+$app->register(new Silex\Provider\TranslationServiceProvider(), array(
+    'locale_fallbacks' => array('en'),
+));
 $app->register(new Silex\Provider\TwigServiceProvider(), array(
     'twig.path' => __DIR__ . '/../src/views',
 ));
-
-$app['twig'] = $app->share($app->extend('twig', function($twig, $app) {
-    $twig->addExtension(new Twig_Extensions_Extension_I18n());
-    return $twig;
-}));
 
 // User Controller Service Provider for SimpleUser
 $app->register($u = new SimpleUser\UserServiceProvider());

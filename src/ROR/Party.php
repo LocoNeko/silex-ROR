@@ -35,9 +35,9 @@ class Party
         $this->name = (is_string($name) ? $name : NULL );
         $this->user_name = (is_string($user_name) ? $user_name : '' );
         $this->hand = new Deck ;
-        $this->hand->name = $this->name.'\'s cards.';
+        $this->hand->name = sprintf(_('%s \'s cards') , $this->name) ;
         $this->senators = new Deck() ;
-        $this->senators->name = $this->name.'\'s senators.';
+        $this->senators->name = sprintf(_('%s \'s senators') , $this->name) ;
         $this->leader = NULL ;
         $this->treasury = 0 ;
         $this->phase_done = FALSE ;

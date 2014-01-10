@@ -71,7 +71,7 @@ class Deck
     public function createFromFile($scenarioName) {
         $filePointer = fopen(dirname(__FILE__).'/../../data/scenarios/'.$scenarioName.'.csv', 'r');
         if (!$filePointer) {
-            throw new Exception("Could not open the file");
+            throw new Exception(_('Could not open the file'));
         }
         while (($data = fgetcsv($filePointer, 0, ";")) !== FALSE) {
             if ($data[0]!='') {

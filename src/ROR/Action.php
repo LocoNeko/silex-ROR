@@ -53,7 +53,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     if ($request->getMethod()=='POST') {
         $session = $request->getSession();
         if ($session->get('POST') == $request->request->all() ) {
-            $app['session']->getFlashBag()->add('error' , 'Your feeble attempts at re-posting the same data have been thwarted by the shrewdness of the creator of this program.');
+            $app['session']->getFlashBag()->add('error' , _('Your feeble attempts at re-posting the same data have been thwarted by the shrewdness of the creator of this program.'));
         } else {
             $session->set('POST' , $request->request->all()) ;
             $currentSubPhase = $game->subPhase ;

@@ -8,11 +8,12 @@
         <h1>{% trans %}List users{% endtrans %}</h1>
     </div>
 
-    {% trans %}
-        <strong>{{ numResults }}</strong> user found.
-    {% plural numResults%}
-        <strong>{{ numResults }}</strong> users found.
-    {% endtrans %}
+    {% if numResults <=1 %}
+        <strong>{{ numResults }}</strong> {% trans %}user found.{% endtrans %}
+    {% else %}
+        <strong>{{ numResults }}</strong> {% trans %}users found.{% endtrans %}
+    {% endif %}
+    
 
     Showing <strong>{{ firstResult }} - {{ lastResult }}</strong>
 

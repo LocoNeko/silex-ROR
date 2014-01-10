@@ -240,7 +240,7 @@ class Game
     public function createEvents() {
         $eventsFilePointer = fopen(dirname(__FILE__).'/../../data/events.csv', 'r');
         if (!$eventsFilePointer) {
-            throw new Exception("Could not open the events file");
+            throw new Exception(_('Could not open the events file'));
         }
         while (($data = fgetcsv($eventsFilePointer, 0, ";")) !== FALSE) {
             $this->events[(int)$data[0]] = array( 'name' => $data[1] , 'increased_name' => $data[2] , 'description' => $data[3] , 'increased_description' => $data[4] , 'max_level' => $data[5] , 'level' => 0);
@@ -554,35 +554,35 @@ class Game
      */
     public function statesmanPlayable ($user_id , Senator $statesman) {
         if ($statesman->type != 'Statesman') {
-            return array('flag' => FALSE, 'message' => '***ERROR***');
+            return array('flag' => FALSE, 'message' => _('ERROR'));
         }
         foreach ($this->party as $otherUser_id=>$party) {
             foreach ($party->senators->cards as $senator) {
                 // Check if the family is already in play
                 if ( ($senator->type == 'Family') && ($senator->senatorID == $statesman->statesmanFamily()) ) {
                     if ($otherUser_id != $user_id) {
-                        return array('flag' => FALSE , 'message' => 'The Family is already in party '.$party->name);
+                        return array('flag' => FALSE , 'message' => sprintf(_('The Family is already in party %s') , $party->name) );
                     } else {
-                        return array('flag' => TRUE , 'message' => 'You have the family');
+                        return array('flag' => TRUE , 'message' => _('You have the family'));
                     }
                 }
                 // Check if a related Statesman is already in play
                 if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $statesman->statesmanFamily()) ) {
                     if ( ($statesman->statesmanFamily()!=25) && ($statesman->statesmanFamily()!=29) ) {
-                        return array('flag' => FALSE , 'message' => 'The related statesman '.$senator->name.' is already in play.');
+                        return array('flag' => FALSE , 'message' => sprintf(_('The related statesman %s is already in play.' , $senator->name)));
                     } else {
                         // The other brother is in play : this is valid
-                        return array('flag' => TRUE , 'message' => $statesman->name.' playable, but the other brother '.$senator->name.' is in play.');
+                        return array('flag' => TRUE , 'message' => sprintf(_('%s playable, but the other brother %s is in play.') , $statesman->name , $senator->name));
                     }
                 }
             }
         }
         foreach ($this->forum->cards as $card) {
             if ($card->type=='Senator' && ($card->senatorID == $statesman->statesmanFamily()) ) {
-                return array('flag' => TRUE , 'message' => 'The corresponding family card is in the forum');
+                return array('flag' => TRUE , 'message' => _('The corresponding family card is in the forum'));
             }
         }
-        return array('flag' => TRUE , 'message' => 'The corresponding family card is not in play');
+        return array('flag' => TRUE , 'message' => _('The corresponding family card is not in play') );
     }
     
     /**
@@ -620,7 +620,7 @@ class Game
             while ($orderOfPlay[0] != $firstPlayer && $this->forum_whoseInitiative()==FALSE) {
                 $richestSenator = $this->party[$orderOfPlay[0]]->getRichestSenator();
                 if ($richestSenator['amount']<=$highestBid['bid']) {
-                    array_push($result['messages'] , array('Skipping '.$this->party[$orderOfPlay[0]]->fullName().' : not enough talents to bid.'));
+                    array_push($result['messages'] , array( sptrinf(_('Skipping %s : not enough talents to bid.') , $this->party[$orderOfPlay[0]]->user_id)) );
                     $this->party[$orderOfPlay[0]]->bidDone=TRUE;
                     array_push($orderOfPlay , array_shift($orderOfPlay) );
                 } else {
@@ -631,8 +631,8 @@ class Game
             // Skip all parties who have no money in their party treasury
             do {
                 if ($this->party[$orderOfPlay[0]]->treasury == 0) {
-                    array_push($result['messages'] , array('Skipping '.$this->party[$orderOfPlay[0]]->fullName().' : no talents in the party treasury to counter-bribe.'));
-                    array_push($orderOfPlay , array_shift($orderOfPlay) );
+                    array_push( $result['messages'], array(sptrinf(_('Skipping %s : no talents in the party treasury to counter-bribe.'),$this->party[$orderOfPlay[0]]->user_id)) );
+                    array_push( $orderOfPlay, array_shift($orderOfPlay) );
                 } else {
                     break ;
                 }
@@ -868,10 +868,10 @@ class Game
                         $this->subPhase = 'PlayCards' ;
                         $this->resetPhaseDone() ;
                     }
-                    return array(array($senator->name.' is the new leader of party '.$this->party[$user_id]->name , 'alert'));
+                    return array(array(sprintf(_(' %s is the new leader of party %s') , $senator->name , $this->party[$user_id]->name , 'alert')) );
                 }
             }
-            return array(array('Undocumented error - party leader not set.', 'error', $user_id));
+            return array(array(_('Undocumented error - party leader not set.'), 'error', $user_id));
         }
     }
     
@@ -989,13 +989,13 @@ class Game
     public function mortality_base() {
         if ( ($this->whoseTurn() === FALSE) && ($this->phase=='Setup') )  {
             $messages = array() ;
-            array_push($messages , array('Setup phase is finished. Starting Mortality phase.'));
+            array_push($messages , array(_('Setup phase is finished. Starting Mortality phase.')));
             $this->phase = 'Mortality';
-            array_push($messages , array('MORTALITY PHASE','alert'));
+            array_push($messages , array(_('MORTALITY PHASE'),'alert'));
             
             // Activate imminent wars
             if (count($this->imminentWars->cards)==0) {
-               array_push($messages , array('There is no imminent conflict to activate.')); 
+               array_push($messages , array(_('There is no imminent conflict to activate.'))); 
             } else {
                 // More 'usort' magic
                 // This orders the imminent wars deck by conflict id
@@ -1009,7 +1009,7 @@ class Game
                     $conflict = $this->imminentWars->drawTopCard() ;
                     $matchingName = $conflict->matches ;
                     $this->activeWars->putOnTop($conflict) ;
-                    array_push($messages , array('Imminent conflict '.$conflict->name.' has been activated.','alert'));
+                    array_push($messages , array(sprintf(_('Imminent conflict %s has been activated.') , $conflict->name),'alert') );
                     foreach ($this->imminentWars->cards as $matchingConflict) {
                         if ($matchingConflict->matches == $matchingName) {
                             $temp->putOnTop($matchingConflict) ;
@@ -1027,14 +1027,14 @@ class Game
             foreach ($chits as $chit) {
                 if ($chit!='NONE' && $chit!='DRAW 2') {
                     $returnedMessage= $this->mortality_killSenator((string)$chit) ;
-                    array_push($messages , array('Chit drawn : '.$chit.'. '.$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
+                    array_push($messages , array(sprintf(_('Chit drawn : %s. %s'), $chit , $returnedMessage[0]) , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
                 } else {
-                    array_push($messages , array('Chit drawn : '.$chit));
+                    array_push($messages , array(sprintf(_('Chit drawn : %s'),$chit)));
                 }
             }
-            array_push($messages , array('Mortality phase is finished. Starting revenue phase.'));
+            array_push($messages , array(_('Mortality phase is finished. Starting revenue phase.')));
             $this->phase = 'Revenue';
-            array_push($messages , array('REVENUE PHASE','alert'));
+            array_push($messages , array(_('REVENUE PHASE'),'alert'));
             $moreMessages = $this->revenue_init();
             foreach($moreMessages as $message) {
                 array_push($messages , $message) ;
@@ -1101,25 +1101,25 @@ class Game
         }
         // Returns either no dead (Senator not in play), 1 dead (found just 1 senator matching the chit), or pick 1 of two brothers if they are both legally in play
         if (count($deadSenators)==0) {
-            return array('This senator is not in Play, nobody dies.') ;
+            return array(_('This senator is not in Play, nobody dies.')) ;
         } elseif (count($deadSenators)>1) {
             // Pick one of two brothers
             $deadSenator = array_rand($deadSenators) ;
             $senatorID=$deadSenator->senatorID ;
-            $message.=' The two brothers are in play. ' ;
+            $message.=_(' The two brothers are in play. ') ;
         } else {
             $deadSenator = $deadSenators[0];
         }
         $party = $this->getPartyOfSenator($deadSenator) ;
         if ($party === FALSE) {
-            return array('ERROR retrieving the party of the dead Senator','error');
+            return array(_('ERROR retrieving the party of the dead Senator'),'error');
         }
         if ($deadSenator->type == 'Statesman') {
             // Death of a Statesman
             $deadStatesman = $party->senators->drawCardWithValue('senatorID',$deadSenator->senatorID) ;
             $deadStatesman->resetSenator();
             $this->discard->putOnTop($deadStatesman);
-            $message.=$deadStatesman->name.' ('.$party->fullName().') dies. The card is discarded. ' ;
+            $message.=sprintf(_('%s of party {%s} dies. The card is discarded. ') , $deadStatesman->name , $party->user_id) ;
         } else {
             // Death of a normal Senator
             $deadSenator->resetSenator() ;
