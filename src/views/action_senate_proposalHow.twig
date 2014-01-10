@@ -1,0 +1,9 @@
+{% for how in output['proposalHow']%}
+    <label class="radio">
+        {% if how|length == 2 %}
+            <input type="radio" name="proposalHow" {{ loop.first ? 'checked="checked"' : '' }} value="{{how['senatorID']}}">{{how['name']}}
+        {% else %}
+            <input type="radio" name="proposalHow" {{ loop.first ? 'checked="checked"' : '' }} value="{{how}}">{{how}}
+        {% endif %}
+    </label>
+{% endfor %}    

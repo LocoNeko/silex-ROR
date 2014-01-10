@@ -22,6 +22,7 @@ bindtextdomain('messages', 'locale');
 bind_textdomain_codeset('messages', 'UTF-8');
 textdomain('messages');
 
+// TO DO : http_negotiate_language(array('en') , $result);
 ExceptionHandler::register();
 
 $app = new Silex\Application();

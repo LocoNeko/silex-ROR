@@ -6,34 +6,41 @@
 #}
 {% if output['state']=='Proposal' %}
     You can make a Proposal<br>
-
-    {# Consuls proposal #}
-    {% if output['type']=='Consuls' %}
-    Nominate :<br>
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_proposal'} ) }}">
-        <input type="hidden" name="type" value="Consuls">
-        <select name="parameters[0]" style="width:500px;">
-            {%for senator in output['senators']%}
-            <option value="{{senator['senatorID']}}">
-                 {{senator['name']}} ({{senator['partyName']}})
-            </option>
-            {% endfor %}
-        </select><br>
-        AND<br>
-        <select name="parameters[1]" style="width:500px;">
-            {%for senator in output['senators']%}
-            <option value="{{senator['senatorID']}}">
-                 {{senator['name']}} ({{senator['partyName']}})
-            </option>
-            {% endfor %}
-        </select>
-        <br><br>
+
+        {# Consuls proposal #}
+        {% if output['type']=='Consuls' %}
+        Nominate :<br>
+            <input type="hidden" name="type" value="Consuls">
+            <select name="parameters[0]" style="width:500px;">
+                {%for senator in output['senators']%}
+                <option value="{{senator['senatorID']}}">
+                     {{senator['name']}} ({{senator['partyName']}})
+                </option>
+                {% endfor %}
+            </select><br>
+            AND<br>
+            <select name="parameters[1]" style="width:500px;">
+                {%for senator in output['senators']%}
+                <option value="{{senator['senatorID']}}">
+                     {{senator['name']}} ({{senator['partyName']}})
+                </option>
+                {% endfor %}
+            </select>
+            <br><br>
+        {% elseif output['type']=='Dictator' %}
+        {#
+        TO DO : 15 other types of proposals
+        #}
+        {% endif %}
+
         <button type="submit" class="btn-danger">MAKE PROPOSAL</button><br>Using :<br>
         {% embed 'action_senate_proposalHow.twig' %}
         {% endembed %}
-        
+        Choose voting order :<br>
+        {% embed 'action_senate_votingOrder.twig' %}
+        {% endembed %}
     </form>
-    {% endif %}
 
 {#
     Proposal impossible
@@ -47,6 +54,11 @@ You cannot make a proposal at the moment
 {% elseif output['state']=='Vote'%}
 Vote
 
+{#
+    A Decision has to be made (e.g. who is Consul of Rome in a Pair, Dictator appoints a MoH, etc)
+#}
+{% elseif output['state']=='Decision' %}
+Decision
 {#
     Error
 #}

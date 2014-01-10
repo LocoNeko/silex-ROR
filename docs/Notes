@@ -6,12 +6,14 @@ The goal is to provide all the parameters to a twig template from a controller a
 
 Done for :
 - action_setup.twig
+- action_revenue.twig
+
+Not needed :
+- action_population.twig
 
 TO DO :
-- action_revenue.twig
 - action_forum.twig
 - action_forumPersuasion.twig
-- action_population.twig
 
 *********
 *Revenue*
@@ -95,7 +97,7 @@ Details :
 
 - Consuls :
 *Propose a pair
-*Pair agrees between themselves who will be what, or roll dice if can't agree (This is not a proposal)
+*Once a pair is accepted, the 2 senators agrees between themselves who will be what, or roll dice if can't agree (This is not a proposal)
 
 - Dictator :
 * Both consuls agree to appoint (This is not a proposal)

@@ -18,6 +18,10 @@ class Proposal {
      * 0 votes means no right to vote (e.g. not in Rome)
      */
     public $voting = array() ;
+    /*
+     * An array of user_id, which holds the voting order 
+     */
+    public $votingOrder = array() ;
     /**
      * The parameters array is validated by the type of proposal (e.g. 'Consuls' expects the senatorIDs of 2 Senators present in Rome)
      * @var type 
@@ -30,24 +34,33 @@ class Proposal {
     public $outcome = NULL ;
     
     /**
-     * 
+     * Returns TRUE if successfully initiated or a message array with an error otherwise.
      * @param string $type A valid proposal type, as in self::$VALID_PROPOSAL_TYPES
      * @param string $description A proposal's description
      * @param array $parties an array of the parties in this game
      * @param array $parameters an array of parameters
      * @return type
      */
-    public function init ($type , $description , $parties) {
+    public function init ($type , $description , $parties , $parameters) {
+        //type
         $key = array_search($type, self::$VALID_PROPOSAL_TYPES) ;
         if ($key===FALSE) {
             return array(_('Error with proposal type.') , 'error') ;
         }
-        if ($type=='Minor' && !is_string($description)) {
-            return array(_('Minor proposal must have a valid description.') , 'error') ;
-        }
         $this->type = $type ;
-        // Default descriptions
-        $this->description = self::$DEFAULT_PROPOSAL_DESCRIPTION[$key] ;
+        
+        // Description
+        if ($type=='Minor') {
+            if (is_string($description)) {
+                $this->description = $description ;
+            } else {
+                return array(_('Minor proposals must have a valid description.') , 'error') ;
+            }
+        } else {
+            // Default descriptions
+            $this->description = self::$DEFAULT_PROPOSAL_DESCRIPTION[$key] ;
+        }
+
         // Initialise voting array
         foreach ($parties as $party) {
             foreach ($party->senators->cards as $senator) {
@@ -57,7 +70,11 @@ class Proposal {
                 $this->voting[] = array ('senatorID' => $senator->senatorID , 'user_id' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes) ;
             }
         }
+        
         $this->outcome = NULL ;
+        $this->parameters = $parameters ;
+
+        return TRUE;
     }
     
     /**
@@ -88,5 +105,6 @@ class Proposal {
         } else {
             return array(sprintf(_('Error with type of voting, only Senators or Parties can vote, not %s') , $type) , 'error');
         }
+        // TO DO : Test if this was the last vote, and if it was, set outcome to TRUE
     }
 }

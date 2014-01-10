@@ -7,13 +7,9 @@
     <div class="page-header">
         <h1>{% trans %}List users{% endtrans %}</h1>
     </div>
-
-    {% if numResults <=1 %}
-        <strong>{{ numResults }}</strong> {% trans %}user found.{% endtrans %}
-    {% else %}
-        <strong>{{ numResults }}</strong> {% trans %}users found.{% endtrans %}
-    {% endif %}
-    
+    {% transchoice numResults %}
+        {0} No user|{1} One user|]1,Inf] %numResults% users found.
+    {% endtranschoice %}
 
     Showing <strong>{{ firstResult }} - {{ lastResult }}</strong>
 

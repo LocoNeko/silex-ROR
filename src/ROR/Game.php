@@ -2313,13 +2313,13 @@ class Game
                                 if (($currentPersuasion['target']['card']!==FALSE)) {
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
                                 }
-                                array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
+                                array_push ($messages , array('Attracting Knight : FAILURE - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
                             // Success
                             } else {
                                 if (($currentPersuasion['target']['card']!==FALSE)) {
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'SUCCESS') );
                                 }
-                                array_push ($messages , array('SUCCESS - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is lower than the target number of '.$currentPersuasion['odds']['total'].'.'));
+                                array_push ($messages , array('Attracting Knight : SUCCESS - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is lower than the target number of '.$currentPersuasion['odds']['total'].'.'));
                                 if ($currentPersuasion['target']['party'] == 'forum') {
                                     $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
@@ -2939,6 +2939,7 @@ class Game
         $latestProposal = $this->senate_getLatestProposal() ;
         
         // Check that no voting is underway already
+        // TO DO : A tribune can interrupt the current proposal
         if ($latestProposal!==FALSE && $latestProposal->outcome===NULL) {
             return array(array('Error - Another proposal is underway.' , 'error' , $user_id)) ;
         }
@@ -2968,36 +2969,39 @@ class Game
         }
         
         // Check parameters based on proposal type, and if everything checks out, put the proposal forward
+        // Consuls
         if ($type=='Consuls') {
-            $validation = $this->senate_validateConsulsProposal($typeKey , $parameters , $user_id) ;
-            // Proposal couldn't be validated
-            if (isset($validation[1]) && $validation[1]=='error') {
-                return array($validation);
-            } else {
-                $proposal = new Proposal ;
-                $result = $proposal->init($type,$description,$this->party) ;
-                if ( isset($result[2]) && $result[2]=='error' ) {
-                    return array(array('Error with proposal type.' , 'error')) ;
-                } else {
-                    // The proposal is correct, put it in the proposals array and if a tribune was used, flag it
-                    if ($result===TRUE) {
-                        
-                        array_push($this->proposals , $proposal) ;
-                    }
-                }
-            }
+            $proposalMessages = $this->senate_proposalConsuls($type , $typeKey , $description , $parameters , $user_id , $proposalHow) ;
+        //Dictator
+        } elseif ($type=='Dictator') {
+            // TO DO : 15 other types of proposals... 
+        } else {
+            return array(array('Error with proposal type.' , 'error' , $user_id)) ;
         }
-        // TO DO : Other proposals types
+        // Go through all the messages returned by the specific proposal function
+        foreach($proposalMessages as $message) {
+            array_push($messages , $message) ;
+        }
         return $messages;
     }
     
     /**
-     * Validate a 'Consuls' proposal - function taken out of senate_proposal for readability's sake
+     * Validates & pushes forward a 'Consuls' proposal - function taken out of senate_proposal for readability's sake
+     * @param type $type The type of the proposal
      * @param int $typeKey The key of the type in the Proposal::$VALID_PROPOSAL_TYPES array
      * @param array $parameters An array of parameters to be validated
+     * @param type $description
+     * @param array $parameters
+     * @param string  $user_id
+     * @param mixed $proposalHow
      * @return array A message array 
      */
-    private function senate_validateConsulsProposal($typeKey , $parameters , $user_id) {
+    private function senate_proposalConsuls($type , $typeKey , $description , $parameters , $user_id , $proposalHow) {
+        $messages = array() ;
+        /*
+         * First part : validation
+         */
+        $validation = FALSE ;
         // Sorts the 2 Senators lexicographically
         usort ($parameters, function($a, $b) {
             return strcmp($a, $b);
@@ -3006,20 +3010,20 @@ class Game
         $senator1 = $this->getSenatorWithID($parameters[0]) ;
         $senator2 = $this->getSenatorWithID($parameters[1]) ;
         if ($senator1===FALSE || $senator2===FALSE) {
-            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Error retrieving Senators data.','error' , $user_id);
+            $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Error retrieving Senators data.','error' , $user_id);
         }
         if ($senator1->senatorID == $senator2->senatorID) {
-            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This is a pair of one. Please stop drinking.','error' , $user_id);
+            $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This is a pair of one. Please stop drinking.','error' , $user_id);
         }
         if ( count($parameters)==2 ) {
             // Check if they are in Rome (where they must do as Romans do)
             if ((!$senator1->inRome()) || (!$senator2->inRome())) {
-                return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Both Senators must be in Rome to be proposed.','error' , $user_id);
+                $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Both Senators must be in Rome to be proposed.','error' , $user_id);
             }
             // Check if they already have been rejected
             foreach ($this->proposals as $proposal) {
                 if ($proposal->type=='Consuls' && $proposal->outcome=='Rejected' && $proposal->parameters[0]==$senator1->senatorID && $proposal->parameters[1]==$senator2->senatorID) {
-                    return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This pair has already been rejected' , 'error' , $user_id);
+                    $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This pair has already been rejected' , 'error' , $user_id);
                 }
             }
             // Check that they are not already Consuls or Dictator Except if 'Tradition Erodes' law is in play
@@ -3032,17 +3036,42 @@ class Game
                     ($senator2->office == 'Rome Consul') ||
                     ($senator2->office == 'Field Consul')
                 ) {
-                    return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Before the \'Tradition Erodes\' law is in place, Senators cannot be proposed if they are already Dictator or Consul.' , 'error' , $user_id);
+                    $validation =array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Before the \'Tradition Erodes\' law is in place, Senators cannot be proposed if they are already Dictator or Consul.' , 'error' , $user_id);
                 }
             }
             // Check if they are not Pontifex
             if (($senator1->office == 'Pontifex Maximus') || ($senator2->office == 'Pontifex Maximus')) {
-                return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.' , 'error'  , $user_id);
+                $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.' , 'error'  , $user_id);
             }
-            return TRUE;
+            $validation = TRUE;
         } else {
-            return array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : You must propose 2 senators' , 'error' , $user_id);
+            $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : You must propose 2 senators' , 'error' , $user_id);
         }
+        // Proposal couldn't be validated
+        if (isset($validation[1]) && $validation[1]=='error') {
+            return array($validation);
+        /*
+        * Second part : put the proposal forward
+        */
+        } else {
+            $parameters[3] = NULL ;
+            $parameters[4] = NULL ;
+            $proposal = new Proposal ;
+            $result = $proposal->init($type , $description , $this->party , $parameters) ;
+            if ( isset($result[2]) && $result[2]=='error' ) {
+                return array(array('Error with proposal type.' , 'error')) ;
+            } else {
+                // The proposal is correct, put it in the proposals array and if a tribune was used, flag it
+                if ($result===TRUE) {
+                    $senator1 = $this->getSenatorWithID($parameters[0]) ;
+                    $senator2 = $this->getSenatorWithID($parameters[1]) ;
+                    $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
+                    array_push($messages , array(sprintf(_('%s, {%s} proposes %s and %s as consuls.') , $using , $user_id , $senator1->name , $senator2->name)) );
+                    array_push($this->proposals , $proposal) ;
+                }
+            }
+        }
+        return $messages ;
     }
     
      /*
@@ -3065,12 +3094,31 @@ class Game
          */
         $latestProposal = $this->senate_getLatestProposal() ;
         
-        // There is a vote underway, the layout should be a voting layout
-        if ($latestProposal!==FALSE && $latestProposal->outcome===NULL) {
-            $output['state'] = 'Vote' ;
-        
-        // There is no vote underway, give the possibility to make proposals
+        /*
+         *  There is a proposal underway : Either a decision has to be made (before or after a vote), or a vote is underway
+         */
+        if ($latestProposal!==FALSE) {
+            // Consuls : The outcome is TRUE (the proposal was voted), but Consuls have yet to decide who will be Consul of Rome / Field Consul
+            if (($this->phase=='Senate') && ($this->subPhase=='Consuls') && $latestProposal->outcome===TRUE && ($latestProposal->parameters[3]===NULL || $latestProposal->parameters[3]===NULL) ) {
+                $output['state'] = 'Decision' ;
+                $output['type'] = 'Consuls';
+            // A proposal without an outcome : Make Vote possible
+            } elseif ($latestProposal->outcome===NULL) {
+                // TO DO : Vote layout
+                $output['state'] = 'Vote' ;
+            }
+
+        /*
+         * There is no proposal underway, give the possibility to make proposals
+         */
         } else {
+            $output['votingOrder']=array();
+            foreach($this->party as $party) {
+                array_push($output['votingOrder'],array('user_id' => $party->user_id , 'name' => $party->fullname()));
+            }
+            /*
+             * Consuls
+             */
             if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
                 $possiblePairs = $this->senate_consulsPairs() ;
                 // Only one pair is available
@@ -3097,6 +3145,9 @@ class Game
                 } else {
                     $output['state'] = 'Proposal impossible';
                 }
+            /*
+             * Dictator
+             */
             } else {
                 // TO DO : All the rest...
                 $output['state'] = 'Error';
@@ -3107,7 +3158,7 @@ class Game
     
     /**
      * This function returns an array indicating all the ways user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune')
-     * or FALSE if he can't
+     * or empty array if he can't
      * @param type $user_id
      */
     public function senate_canMakeProposal($user_id) {
@@ -3126,6 +3177,27 @@ class Game
         }
         return $result ;
     }
+    
+    /**
+     * Reports on how a proposal was made : President, tribune card, or free tribune
+     * Uses up the tribune card or the free tribune ability if appropriate
+     * @param 'President','Tribune card', or an array ('SenatorID','name') $proposalHow
+     * @return message
+     */
+    private function senate_useProposalHow($user_id , $proposalHow) {
+        if (strcmp($proposalHow ,'President')==0) {
+            return _('Using the Presiding magistrate\'s ability');
+        } elseif (strcmp($proposalHow ,'Tribune card')==0) {
+            // TO DO : remove the card
+            return _('Using a Tribune card');
+        } elseif (is_array ($proposalHow)) {
+            // TO DO : remove free tribune of this Senator for the turn
+            return sprintf(_('Using the Tribune ability of %s'),$proposalHow['name']);
+        } else {
+            return _('Using an ERROR in the program') ;
+        }
+    }
+    
     
     /**
      * Returns a list of all possible consul pairs :
