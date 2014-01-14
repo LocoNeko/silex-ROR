@@ -33,13 +33,14 @@
         TO DO : 15 other types of proposals
         #}
         {% endif %}
-
-        <button type="submit" class="btn-danger">MAKE PROPOSAL</button><br>Using :<br>
+            Choose how to make proposal :<br>
         {% embed 'action_senate_proposalHow.twig' %}
         {% endembed %}
         Choose voting order :<br>
         {% embed 'action_senate_votingOrder.twig' %}
         {% endembed %}
+        <br>
+        <button type="submit" class="btn-danger">MAKE PROPOSAL</button>
     </form>
 
 {#

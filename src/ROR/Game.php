@@ -2926,7 +2926,7 @@ class Game
      * @param type $parameters an array of parameters
      * @return type
      */
-    public function senate_proposal($user_id , $type , $description , $proposalHow , $parameters) {
+    public function senate_proposal($user_id , $type , $description , $proposalHow , $parameters , $votingOrderRaw) {
         $messages = array() ;
         
         if ($this->phase!='Senate') {
@@ -2964,7 +2964,9 @@ class Game
         if (!$canMakeProposal) {
             return array(array('Cannot make proposals using '.$proposalHow , 'error')) ;
         }
-        
+        // Voting Order
+        // TO DO : Check its correctness
+        $votingOrder = explode(',', $votingOrderRaw) ;
         // Check parameters based on proposal type, and if everything checks out, put the proposal forward
         // Consuls
         if ($type=='Consuls') {

@@ -115,7 +115,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                     log ($app , $game_id , $user_id , $game->population_speech ($user_id) );
                     break ;
                 case 'senate_proposal' :
-                    log ($app , $game_id , $user_id , $game->senate_proposal($user_id , $request->request->get('type') , $request->request->get('description')  , $request->request->get('proposalHow')  , $request->request->get('parameters') ) );
+                    log ($app , $game_id , $user_id , $game->senate_proposal($user_id , $request->request->get('type') , $request->request->get('description') , $request->request->get('proposalHow') , $request->request->get('parameters')  , $request->request->get('votingOrder') ) );
                     break ;
                 case 'chat' :
                     $recipients = implode(';', $request->request->get('recipients')).';';

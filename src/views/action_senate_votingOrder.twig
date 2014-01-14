@@ -1,3 +1,24 @@
+<script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+<script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+<style>
+#sortable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
+#sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.5em; font-size: 1.4em; height: 18px; }
+#sortable li span { position: absolute; margin-left: -1.3em; }
+</style>
+<script>
+$(function() {
+    $( "#sortable" ).sortable();
+    $( "#sortable" ).disableSelection();
+    $( "form").submit(function(){
+        $('#votingOrder').val($( "#sortable" ).sortable("toArray" , { attribute: "user_id" }));
+        $( "form").submit();
+        return false;
+    }); 
+});
+</script>
+<ul id="sortable">
 {% for order in output['votingOrder']%}
-    {{order['name']}}<br>
-{% endfor %}    
+    <li user_id="{{order['user_id']}}">{{order['name']}}</li>
+{% endfor %}
+</ul>
+<input type="hidden" name="votingOrder" id="votingOrder">
