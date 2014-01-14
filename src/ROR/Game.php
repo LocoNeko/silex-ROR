@@ -1124,11 +1124,11 @@ class Game
             // Death of a normal Senator
             $deadSenator->resetSenator() ;
             if ($party->leader->senatorID == $senatorID) {
-                $message.=$deadSenator->name.' ('.$party->fullName().') dies. This senator was party leader, the family stays in the party. ' ;
+                $message.=sprintf(_('%s of party {%s} dies. This senator was party leader, the family stays in the party. ') , $deadSenator->name , $party->user_id);
             } else {
                 $deadSenator = $party->senators->drawCardWithValue('senatorID',$senatorID) ;
                 $this->curia->putOnTop($deadSenator);
-                $message.=$deadSenator->name.' ('.$party->fullName().') dies. The family goes to the curia. ' ;
+                $message.=sprintf(_('%s of party {%s} dies. The family goes to the curia. ') , $deadSenator->name , $party->user_id);
             }
         }
         // Handle dead senators' controlled cards, including Families
@@ -1136,20 +1136,20 @@ class Game
             $card = $deadSenator->controls->drawTopCard() ;
             if ($card->type=='Concession') {
                 $this->curia->putOnTop($card);
-                $message.=$card->name.' goes to the curia. ';
+                $message.=sprintf(_('%s goes to the curia. ') , $card->name);
             } elseif ($card->type=='Province') {
                 $this->forum->putOnTop($card);
-                $message.=$card->name.' goes to the forum. ';
+                $message.=sprintf(_('%s goes to the forum. ') , $card->name);
             } elseif ($card->type=='Family') {
                 if ($party->leader->senatorID == $deadStatesman->senatorID) {
                     $party->senators->putOnTop($card);
-                    $message.=$card->name.' stays in the party. ';
+                    $message.=sprintf(_('%s stays in the party. ') , $card->name);
                 } else {
                     $this->curia->putOnTop($card);
-                    $message.=$card->name.' goes to the curia. ';
+                    $message.=sprintf(_('%s goes to the curia. ') , $card->name);
                 }
             } else {
-                return array('A card controlled by the dead Senator was neither a Family nor a Concession.','error');
+                return array(_('Error - A card controlled by the dead Senator was not a Family, a Concession nor a Province.'),'error');
             }
         }
         return array($message) ;
@@ -1215,26 +1215,22 @@ class Game
         $governorMIL = $senator->MIL ;
         $roll = $this->rollDice(2, -1) ;
         $total = $writtenForce + 2 * $garrisons + $governorMIL + $roll['total'];
-        $message =   'Province '.$provinceName.
-                     ' is attacked by '.($barbarianRaids==2 ? 'increased ' : '').
-                     'Barbarian raids. Military force is '.$writtenForce.' (written force) + '.
-                     (2*$garrisons).' (for '.$garrisons.' legions) + '.
-                     $governorMIL.' ('.$governorName.'\'s MIL) '.
-                     ', a '.$roll['total'].' (white die: '.$roll[0].', black die: '.$roll[0].') is rolled for a total of '.
-                     $total.' ';
+        $message = sprintf(_('Province %s is attacked by %s Barabarian raids. Military force is %d (written force) + %d (for %d legions) + %d (%s\'s MIL), a %d (white die %d, black die %d) is rolled for a total of %d ') ,
+                $provinceName , ($barbarianRaids==2 ? 'increased ' : '') , $writtenForce , 2*$garrisons , $garrisons , $governorMIL , $governorName , $roll['total'] , $roll[0] , $roll[1] , $total
+                );
         if ($total>( $barbarianRaids==1 ? 15 : 17)) {
-            $message.= ' which is greater than '.( $barbarianRaids==1 ? 15 : 17).', the province is safe.' ;
+            $message.= sprintf(_(' which is greater than %d, the province is safe.') , ($barbarianRaids==1 ? 15 : 17)) ;
             array_push($messages , array($message));
         } else {
             $province->overrun = TRUE ;
-            $message.= ' which is not greater than '.( $barbarianRaids==1 ? 15 : 17).', the province is overrun.' ;
+            $message.= sprintf(_(' which is not greater than %d, the province is overrun.') , ($barbarianRaids==1 ? 15 : 17)) ;
             array_push($messages , array($message,'alert'));
             if ($province->developed) {
                 $province->developed = FALSE ;
-                array_push($messages , array('The Province reverts to undeveloped status','alert'));
+                array_push($messages , array(_('The Province reverts to undeveloped status'),'alert'));
             }
             $mortalityChits = $this->mortality_chits($roll[1]) ;
-            $message = 'The black die was a '.$roll[1].', so '.$roll[1].' mortality chits are drawn : ';
+            $message = sprintf(_('The black die was a %d, so %d mortality chits are drawn : ') , $roll[1]);
             $outcome = 'safe' ;
             $i=1 ;
             foreach($mortalityChits as $chit) {
@@ -1243,7 +1239,7 @@ class Game
                     ||  ($senator->type=='Statesman' && $senator->statesmanFamily()==$chit)
                     ) {
                     // The outcome is based on whether or not the chit drawn was the last (which means capture)
-                    $outcome = ($i++==$roll[1] ? 'captured' : 'killed') ;
+                    $outcome = ($i++==$roll[1] ? _('captured') : _('killed')) ;
                 }
             }
             $message=substr($message, 0, -2);
@@ -1251,14 +1247,14 @@ class Game
             switch($outcome) {
                 case 'killed' :
                     $this->mortality_killSenator($senator->senatorID);
-                    array_push($messages , array($senator->name.' is killed by the barbaric barbarians.','alert'));
+                    array_push($messages , array(sprintf(_('%s is killed by the barbaric barbarians.') , $senator->name) , 'alert'));
                     break ;
                 case 'captured' :
                     $senator->captive='barbarians';
-                    array_push($messages , array($senator->name.' is captured by the barbaric barbarians. Ransom must be paid before next Forum phase or he\'s BBQ.','alert'));
+                    array_push($messages , array(sprintf(_('%s is captured by the barbaric barbarians. Ransom must be paid before next Forum phase or he\'s BBQ.') , $senator->name) , 'alert'));
                     break ; 
                 default :
-                    array_push($messages , array($senator->name.' is safe.'));
+                    array_push($messages , array(sprintf(_('%s is safe.') , $senator->name) ));
             }
         }
         return $messages ;
@@ -1275,19 +1271,19 @@ class Game
         $messages = array() ;
         $garrisons = $this->getProvinceGarrisons($province) ;
         $roll = $this->rollOneDie(-1);
-        $message = 'Province '.$province->name.' faces internal disorder, '.$senator->name.' rolls a '.$roll.' + '.$garrisons.' garrisons for a total of '.($roll+$garrisons);
+        $message = sprintf(_('Province %s faces internal disorder, %s rolls a %d + %d garrisons for a total of %d' , $province->name , $senator->name , $roll , $garrisons , ($roll+$garrisons) ));
         if (($roll+$garrisons) > ($internalDisorder == 1 ? 4 : 5)) {
-            array_push($messages , array($message.' which is greater than '.($internalDisorder == 1 ? '4' : '5').'. The province will not generate revenue and cannot be improved this turn.'));
+            $message.sprintf(_(' which is greater than %d. The province will not generate revenue and cannot be improved this turn.') , ($internalDisorder == 1 ? '4' : '5'));
             // Using the overrun property both for Barbarian raids & Internal Disorder
             $province->overrun = TRUE ;
         } else {
             // Revolt : Kill Senator, garrisons, and move Province to the Active War deck
-            array_push($messages , array($message.' which is not greater than '.($internalDisorder == 1 ? '4' : '5') , 'alert'));
+            array_push($messages , array($message.sprintf(_(' which is not greater than %d') , ($internalDisorder == 1 ? '4' : '5')) , 'alert'));
             $this->mortality_killSenator($senator->senatorID);
             // Note : The war is now in the forum, because of the mortality_killSenator function, so $revoltedProvince['deck'] should be $this->forum
             $revoltedProvince = $this->getSpecificCard('id', $province->id);
             $this->activeWars->putOnTop($this->$revoltedProvince['deck']->drawCardWithValue('id', $province->id));
-            array_push($message , array($senator->name.' is killed'.($garrisons>0 ? ' with all '.$garrisons.' garrisons, ' : '').' and '.$province->name.' becomes an active war.','alert'));
+            array_push($message , array(sprintf(_('%s is killed %s and %s becomes an active war' , $senator->name , ($garrisons>0 ? _(' with all ').$garrisons._(' garrisons, ') : '') , $province->name )) , 'alert'));
         }
         return $messages ;
     }
@@ -1359,15 +1355,16 @@ class Game
                             $earnedFromDrought+=$droughtLevel*$concession['income'] ;
                             $senator = $this->getSenatorWithID($concession['senatorID']) ;
                             $senator->changePOP(-1-$droughtLevel) ;
-                            array_push ( $droughtSpecificMessage , 'This includes an extra '.$droughtLevel*$concession['income'].'T from '.$concession['name'].', earned by '.$senator->name.', causing him a loss a '.(-1-$droughtLevel).' POP.' ) ;
+                            array_push ( $droughtSpecificMessage , sprintf(_('This includes an extra %dT from %s, earned by %s during the drought, causing him a loss a %d POP.' , $droughtLevel*$concession['income'] , $concession['name'] , $senator->name , (-1-$droughtLevel))) ) ;
                         } else {
-                            array_push ( $droughtSpecificMessage , $senator->name.' decided not to earn more from '.$concession['name'].' during the drought.' ) ;
+                            array_push ( $droughtSpecificMessage , sprintf(_(' %s decided not to earn more from %s during the drought.') , $senator->name , $concession['name']) ) ;
                         }
                     }
                 }
             }
             $this->party[$user_id]->treasury+=$base['total'] + $earnedFromDrought ;
-            array_push ($messages , array($this->party[$user_id]->fullName().' gains '.$base['total'].' T : '.($base['leader']!=NULL ? 3 : 0).'T from leader, '.$base['senators'].'T from senators, '.$base['knights'].'T from knights and '.($base['total']-($base['leader']!=NULL ? 3 : 0)-$base['senators']-$base['knights']).'T from Concessions.')) ;
+            $concessionsTotal = $base['total']-($base['leader']!=NULL ? 3 : 0)-$base['senators']-$base['knights'] ;
+            array_push ($messages , array(sprintf(_('{%s} gains %dT : %dT from leader, %dT from senators, %dT from knights and %dT from Concessions.') , $user_id , $base['total'] , ($base['leader']!=NULL ? 3 : 0) , $base['senators'] , $concessionsTotal))) ;
             foreach ($droughtSpecificMessage as $droughtMessage) {
                 array_push ($messages , $droughtMessage);
             }
@@ -1378,7 +1375,7 @@ class Game
                 $province = $data['province'];
                 $senator = $data['senator'];
                 if (is_null($request[$province->id])) {
-                    return array('Undefined province.','error');
+                    return array(_('Undefined province.'),'error');
                 }
                 // Check if province was overrun by barbarians / internal disorder
                 if (!$province->overrun) {
@@ -1387,45 +1384,45 @@ class Game
                     // Spoils
                     if ($request[$province->id] == 'YES') {
                         $senator->corrupt = TRUE ;
-                        $message .= $senator->name.' takes provincial spoils for '.$revenue.'T .';
+                        $message .= sprintf(_('%s takes provincial spoils for %dT.') , $senator->name , $revenue );
                         if ($revenue>0) {
                             $senator->treasury+=$revenue;
                         } else {
                             if ($request[$province->id.'_LET_ROME_PAY'] == 'YES') {
                                 // The Senator decided to let Rome pay for it
-                                $message .= ' He decides to let the negative amount be paid by Rome. ' ;
+                                $message .= _(' He decides to let the negative amount be paid by Rome. ') ;
                                 $this->treasury+=$revenue;
                             } else {
                                 if ($senator->treasury<$revenue) {
                                     // The senator is forced to let Rome pay because of his treasury
-                                    $message .= ' He has to let the negative amount be paid by Rome. ' ;
+                                    $message .= _(' He has to let the negative amount be paid by Rome. ') ;
                                     $this->treasury+=$revenue;
                                 } else {
                                     // The Senator decided to pay for it
-                                    $message .= ' He decides to pay the negative amount. ' ;
+                                    $message .= _(' He decides to pay the negative amount. ') ;
                                     $senator->treasury+=$revenue;
                                 }
                             }
                         }
-                        $message .= ' He is now corrupt.';
+                        $message .= _(' He is now corrupt.');
                     } else {
                     // No spoils
-                        $message.=$senator->name.' doesn\'t take Provincial spoils.';
+                        $message.= sprintf(_('%s doesn\'t take Provincial spoils.') , $senator->name);
                     }
                     // Develop province
                     if ( !($province->developed)) {
                         $roll = $this->rollOneDie(-1) ;
                         $modifier = ( ($senator->corrupt) ? 0 : 1) ;
                         if ( ($roll+$modifier) >= 6 ) {
-                            $message.=' A '.$roll.' is rolled'.($modifier==1 ? ' (modified by +1 since senator is not corrupt)' : '').', the province is developed. '.$senator->name.' gains 3 INFLUENCE.';
+                            $message.= sprintf(_(' A %d is rolled%s, the province is developed. %s gains 3 INFLUENCE.') , $roll , ($modifier==1 ? _(' (modified by +1 since the governor is not corrupt)') : '') , $senator->name);
                             $province->developed = TRUE ;
                             $senator->INF+=3;
                         } else {
-                            $message.=' A '.$roll.' is rolled'.($modifier==1 ? ' (modified by +1 since senator is not corrupt)' : '').', the province is not developed.';
+                            $message.=sprintf(_(' A %d is rolled%s, the province is not developed.') , $roll , ($modifier==1 ? _(' (modified by +1 since senator is not corrupt)') : ''));
                         }
                     }
                 } else {
-                    $message = $province->name.' was overrun by Barbarians and/or internal disorder. No revenue nor development this turn.';
+                    $message = sprintf(_('%s was overrun by Barbarians and/or internal disorder. No revenue nor development this turn.') , $province->name);
                 }
                 array_push ($messages , array($message)) ;
             }
@@ -1434,7 +1431,7 @@ class Game
             if ($this->whoseTurn() === FALSE ) {
                 $this->resetPhaseDone() ;
                 $this->subPhase='Redistribution' ;
-                array_push ($messages , array('All revenues collected, parties can now redistribute money.')) ;
+                array_push ($messages , array(_('All revenues collected, parties can now redistribute money.'))) ;
             }
             return $messages ;
         }
@@ -1481,27 +1478,27 @@ class Game
             } else {
                 $to = $this->party[$toTI[1]] ;
             }
-            if ($amount<=0) { return array(array('You have no talent. ','error',$user_id)); }
-            if ($from===FALSE) { return array(array('Giving from wrong Senator','error',$user_id)); }
-            if ($to===FALSE) { return array(array('Giving to wrong Senator','error',$user_id)); }
-            if (!isset($from)) { return array(array('Giving from wrong Party','error',$user_id)); }
-            if (!isset($to)) { return array(array('Giving to wrong Party','error',$user_id)); }
-            if ($from->treasury < $amount) { return array(array('Not enough money','error',$user_id)); }
-            if ($toTI[0]== 'senator' && $fromTI[0]=='senator' && $toTI[1]==$fromTI[1] ) { return array(array('Stop drinking','error',$user_id)); }
+            if ($amount<=0) { return array(array(_('You have no talent. '),'error',$user_id)); }
+            if ($from===FALSE) { return array(array(_('Giving from wrong Senator'),'error',$user_id)); }
+            if ($to===FALSE) { return array(array(_('Giving to wrong Senator'),'error',$user_id)); }
+            if (!isset($from)) { return array(array(_('Giving from wrong Party'),'error',$user_id)); }
+            if (!isset($to)) { return array(array(_('Giving to wrong Party'),'error',$user_id)); }
+            if ($from->treasury < $amount) { return array(array(_('Not enough money'),'error',$user_id)); }
+            if ($toTI[0]== 'senator' && $fromTI[0]=='senator' && $toTI[1]==$fromTI[1] ) { return array(array(_('Stop drinking'),'error',$user_id)); }
             $from->treasury-=$amount ;
             $to->treasury+=$amount ;
 
             if ($toTI[0]== 'senator') {
-                // This is a different message for public and private use
+                // There is a different message for public and private use
                 return array(
-                    array(($fromTI[0]=='senator' ? ($from->name) : 'The party ' ).' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ) ,
-                    array($this->party[$user_id]->fullName().' moves some money around'  , 'message' , $this->getAllButOneUserID($user_id) )
+                    array( sprintf(_('%s gives %dT to %s.') , ($fromTI[0]=='senator' ? ($from->name) : _('The party ') ) , $amount , ( ($toTI[0]=='party' && $toTI[1]==$user_id) ? _('Party treasury. ') : $to->name) )  , 'message' , $user_id ) ,
+                    array( sprintf(_('{%s} moves some money around') , $user_id) , 'message' , $this->getAllButOneUserID($user_id) ) ,
                     ) ;
             } else {
-                return array(array($from->name.' gives '.$amount.'T to '.(($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')  , 'message' , $user_id ));
+                return array(array(sprintf(_('%s give %dT to %s') , $from->name , $amount , (($toTI[0]=='party' && $toTI[1]==$user_id) ? 'Party treasury. ' : $to->name.'.')) , 'message' , $user_id ));
             }
         }
-        return array(array('Undocumented Redistribution error','error',$user_id));
+        return array(array(_('Undocumented Redistribution error'), 'error' , $user_id));
     }
 
     /**
