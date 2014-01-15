@@ -41,7 +41,7 @@ class Proposal {
      * @param array $parameters an array of parameters
      * @return type
      */
-    public function init ($type , $description , $parties , $parameters) {
+    public function init ($type , $description , $parties , $parameters , $votingOrder) {
         //type
         $key = array_search($type, self::$VALID_PROPOSAL_TYPES) ;
         if ($key===FALSE) {
@@ -71,6 +71,8 @@ class Proposal {
             }
         }
         
+        // Set voting order, outcome, and parameters
+        $this->votingOrder = $votingOrder ;
         $this->outcome = NULL ;
         $this->parameters = $parameters ;
 

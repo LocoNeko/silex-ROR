@@ -1514,13 +1514,13 @@ class Game
         $messages = array () ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $this->party[$user_id]->phase_done=TRUE ;
-            array_push($messages , array($this->party[$user_id]->fullName().' has finished redistributing wealth.')) ;
+            array_push($messages , array(sprintf(_('{%s} has finished redistributing wealth.' , $user_id)))) ;
             if ($this->whoseTurn()===FALSE) {
-                array_push($messages , array('The redistribution sub phase is finished.')) ;
-                array_push($messages , array('State revenues.')) ;
+                array_push($messages , array(_('The redistribution sub phase is finished.'))) ;
+                array_push($messages , array(_('State revenues.'))) ;
                 // Rome gets 100T.
                 $this->treasury+=100 ;
-                array_push($messages , array('Rome collects 100 T.'));
+                array_push($messages , array(_('Rome collects 100 T.')));
                 // Event '162;Allied Enthusiasm;Extreme Allied Enthusiasm'
                 $alliedEnthusiasm = $this->getEventLevel('number',162) ;
                 if ($alliedEnthusiasm>0) {
@@ -1536,7 +1536,7 @@ class Game
                         foreach ($senator->controls->cards as $province) {
                             if ($province->type=='Province') {
                                 $revenue = $province->rollRevenues('rome' , -$this->getEventLevel('name' , 'Evil Omens'));
-                                array_push($messages , array($province->name.' : Rome\'s revenue is '.$revenue.'T . ') );
+                                array_push($messages , array(sprintf(_('%s : Rome\'s revenue is %dT . ') , $province->name , $revenue)) );
                                 $this->treasury+=$revenue;
                             }
                         }
@@ -1548,14 +1548,14 @@ class Game
                         foreach ($senator->controls->cards as $province) {
                             if ($province->type=='Province') {
                                 $revenue = $province->rollRevenues('rome' , -$this->getEventLevel('name' , 'Evil Omens'));
-                                array_push($messages , array($province->name.' : Rome\'s revenue is '.$revenue.'T . ') );
+                                array_push($messages , array(sprintf(_('%s : Rome\'s revenue is %dT . ') , $province->name , $revenue)) );
                                 $this->treasury+=$revenue;
                             }
                         }
                     }
                 }
-                array_push($messages , array('The state revenue sub phase is finished.')) ;
-                array_push($messages , array('Contributions.')) ;
+                array_push($messages , array(_('The state revenue sub phase is finished.')) ) ;
+                array_push($messages , array(_('Contributions.')) ) ;
                 $this->subPhase='Contributions';
                 $this->resetPhaseDone();
             }
@@ -1595,18 +1595,18 @@ class Game
             $senator = $this->getSenatorWithID($senatorID) ;
             if ($senator!==FALSE) {
                 if ($senator->treasury < $amount) {
-                    return array(array('This senator doesn\'t have enough money','error',$user_id));
+                    return array(array(_('This senator doesn\'t have enough money'),'error',$user_id));
                 } elseif ($amount<1) {
-                    return array(array('Wrong amount','error',$user_id));
+                    return array(array(_('Wrong amount'),'error',$user_id));
                 } else {
                     if ($amount>=50) { $INFgain = 7 ; } elseif ($amount>=25) { $INFgain = 3 ; } elseif ($amount>=10) { $INFgain = 1 ; } else { $INFgain = 0 ; }
                     $senator->INF+=$INFgain ;
                     $senator->treasury-=$amount ;
                     $this->treasury+=$amount ;
-                    return array(array($senator->name.' gives '.$amount.'T to Rome.'.( ($INFgain!=0) ? ' He gains '.$INFgain.' Influence.' : '') ));
+                    return array(array(sprintf(_('%s gives %dT to Rome') , $senator->name , $amount).( ($INFgain!=0) ? sprintf(_(' He gains %d influence.') , $INFgain) : '') ));
                 }
             }
-            return array('Error retrieving Senator','error',$user_id);
+            return array(_('Error retrieving Senator'),'error',$user_id);
         }
     }
     
@@ -2850,7 +2850,7 @@ class Game
                     }
                 }
             } else {
-                array_push($messages , array('People revolt - Game over.' , 'error'));
+                array_push($messages , array(_('People revolt - Game over.') , 'error'));
             }
             array_push($messages , array('SENATE PHASE','alert'));
             $this->senate_init();
@@ -2864,14 +2864,14 @@ class Game
      */
     public function population_mob() {
         $messages = array() ;
-        array_push($messages , array('The Senate is attacked by an angry mob !','alert')) ;
+        array_push($messages , array(_('The Senate is attacked by an angry mob !'),'alert')) ;
         $chits = $this->mortality_chits(6);
         foreach ($chits as $chit) {
             if ($chit!='NONE' && $chit!='DRAW 2') {
                 $returnedMessage= $this->mortality_killSenator((string)$chit) ;
-                array_push($messages , array('Chit drawn : '.$chit.'. '.$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
+                array_push( $messages , array(sprintf(_('Chit drawn : %s. ') , $chit).$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
             } else {
-                array_push($messages , array('Chit drawn : '.$chit));
+                array_push( $messages , array(sprintf(_('Chit drawn : %s') , $chit)) );
             }
         }
         return $messages ;
@@ -2930,7 +2930,7 @@ class Game
         $messages = array() ;
         
         if ($this->phase!='Senate') {
-            return array(array('Wrong phase.' , 'error' , $user_id)) ;
+            return array(array(_('Wrong phase.') , 'error' , $user_id)) ;
         }
         
         $latestProposal = $this->senate_getLatestProposal() ;
@@ -2938,13 +2938,13 @@ class Game
         // Check that no voting is underway already
         // TO DO : A tribune can interrupt the current proposal
         if ($latestProposal!==FALSE && $latestProposal->outcome===NULL) {
-            return array(array('Error - Another proposal is underway.' , 'error' , $user_id)) ;
+            return array(array(_('Error - Another proposal is underway.') , 'error' , $user_id)) ;
         }
         
         // Check $type
         $typeKey = array_search($type, Proposal::$VALID_PROPOSAL_TYPES) ;
         if ($typeKey===FALSE) {
-            return array(array('Error with proposal type.' , 'error' , $user_id)) ;
+            return array(array(_('Error with proposal type.') , 'error' , $user_id)) ;
         }
 
         // Check if the returned $proposalHow value is valid for this user_id
@@ -2962,20 +2962,22 @@ class Game
             }
         }
         if (!$canMakeProposal) {
-            return array(array('Cannot make proposals using '.$proposalHow , 'error')) ;
+            return array(array(sprintf(_('Cannot make proposals using %s') , $proposalHow) , 'error')) ;
         }
         // Voting Order
-        // TO DO : Check its correctness
         $votingOrder = explode(',', $votingOrderRaw) ;
+        if ($this->senate_validateVotingOrder($votingOrder) !== TRUE) {
+            return array(array(_('Invalid voting order.') , 'error')) ;
+        }
         // Check parameters based on proposal type, and if everything checks out, put the proposal forward
         // Consuls
         if ($type=='Consuls') {
-            $proposalMessages = $this->senate_proposalConsuls($type , $typeKey , $description , $parameters , $user_id , $proposalHow) ;
+            $proposalMessages = $this->senate_proposalConsuls($type , $typeKey , $description , $parameters , $user_id , $proposalHow , $votingOrder) ;
         //Dictator
         } elseif ($type=='Dictator') {
             // TO DO : 15 other types of proposals... 
         } else {
-            return array(array('Error with proposal type.' , 'error' , $user_id)) ;
+            return array(array(_('Error with proposal type.') , 'error' , $user_id)) ;
         }
         // Go through all the messages returned by the specific proposal function
         foreach($proposalMessages as $message) {
@@ -2995,7 +2997,7 @@ class Game
      * @param mixed $proposalHow
      * @return array A message array 
      */
-    private function senate_proposalConsuls($type , $typeKey , $description , $parameters , $user_id , $proposalHow) {
+    private function senate_proposalConsuls($type , $typeKey , $description , $parameters , $user_id , $proposalHow , $votingOrder) {
         $messages = array() ;
         /*
          * First part : validation
@@ -3056,9 +3058,9 @@ class Game
             $parameters[3] = NULL ;
             $parameters[4] = NULL ;
             $proposal = new Proposal ;
-            $result = $proposal->init($type , $description , $this->party , $parameters) ;
+            $result = $proposal->init($type , $description , $this->party , $parameters , $votingOrder) ;
             if ( isset($result[2]) && $result[2]=='error' ) {
-                return array(array('Error with proposal type.' , 'error')) ;
+                return array(array(_('Error with proposal type.') , 'error')) ;
             } else {
                 // The proposal is correct, put it in the proposals array and if a tribune was used, flag it
                 if ($result===TRUE) {
@@ -3071,6 +3073,24 @@ class Game
             }
         }
         return $messages ;
+    }
+    
+    /**
+     * Goes through all the elements of the $votingOrder array and check if they are all exactly the same as the keys in $this->party
+     * @param array $votingOrder The voting order array
+     * @return boolean
+     */
+    private function senate_validateVotingOrder($votingOrder) {
+        if (count($votingOrder)!=count($this->party)) {
+            return FALSE ;
+        }
+        while (count($votingOrder)>0) {
+            $currentElement = array_shift($votingOrder) ;
+            if (!array_key_exists($currentElement , $this->party)) {
+                return FALSE ;
+            }
+        }
+        return TRUE ;
     }
     
      /*
