@@ -1625,7 +1625,7 @@ class Game
         $messages = array () ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Contributions') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $this->party[$user_id]->phase_done=TRUE ;
-            array_push($messages , array($this->party[$user_id]->fullName().' has finished contributions to Rome.')) ;
+            array_push($messages , array(sprintf(_('{%s} has finished contributions to Rome.') , $user_id))) ;
             if ($this->whoseTurn()===FALSE) {
                 // Finish revenue Phase
                 // Pay for active (including unprosecuted) wars
@@ -1642,13 +1642,15 @@ class Game
                 if ($nbWars>0) {
                     $this->treasury-=$nbWars*20 ;
                     $textWars = substr($textWars, 0 , -3) ;
-                    array_push($messages , array('Rome pays '.($nbWars*20).'T for '.$nbWars.' active Conflicts : '.$textWars.'.'));
+                    array_push($messages , array(sprintf(_('Rome pays %dT for %d active Conflicts : ') , ($nbWars*20) , $nbWars) . $textWars.'.'));
                 }
                 // Land bills
                 $totalLandBills =  $this->landBill[1]*10 + $this->landBill[2]*5 + $this->landBill[3]*10 ;
                 if ($totalLandBills>0) {
                     $this->treasury-=$totalLandBills;
-                    array_push($messages , array('Rome pays '.$totalLandBills.' talents for land bills (I , II & III): '.($this->landBill[1]*10).'T for '.$this->landBill[1].' (I) which are then discarded, '.($this->landBill[2]*5).'T for (II) and '.($this->landBill[3]*10).'T for (III).'));
+                    array_push($messages , array(sprintf(_('Rome pays %dT for land bills (I , II & III): %dT for %d (I) which are then discarded, %dT for (II) and %dT for (III).') , $totalLandBills , ($this->landBill[1]*10) , $this->landBill[1] , ($this->landBill[2]*5) , ($this->landBill[3]*10))));
+                    // Remove level I land bills
+                    $this->landBill[1] = 0 ;
                 }
                 // Forces maintenance
                 $nbLegions = $this->getNbOfLegions();
@@ -1656,7 +1658,7 @@ class Game
                 $totalCostForces=2*($nbLegions + $nbFleets) ;
                 if ($totalCostForces>0) {
                     $this->treasury-=$totalCostForces ;
-                    array_push($messages , array('Rome pays '.$totalCostForces.'T for the maintenance of '.$nbLegions.' legions and '.$nbFleets.' fleets. '));
+                    array_push($messages , array(sprintf(_('Rome pays %dT for the maintenance of %d legions and %d fleets. ') , $totalCostForces , $nbLegions , $nbFleets)));
                 }
                 // Return of provinces governors
                 foreach($this->party as $party) {
@@ -1665,11 +1667,11 @@ class Game
                             if ($card->type=='province') {
                                 $card->mandate++;
                                 if ($card->mandate == 3) {
-                                    array_push($messages , array($senator->name.' returns from '.$card->name.' which is placed in the Forum.'));
+                                    array_push($messages , array(sprintf(_('%s returns from %s which is placed in the Forum.') , $senator->name , $card->name)));
                                     $card->mandate=0;
                                     $this->forum->putOnTop($senator->controls->drawCardWithValue('id',$card->id));
                                 } else {
-                                    array_push($messages , array($senator->name.' spends '.( ($card->mandate==1) ? 'First' : 'Second' ).' game turn in '.$card->name.'.'));
+                                    array_push( $messages , array(sprintf(_('%s spends %s game turn in %s') , $senator->name , ( ($card->mandate==1) ? _('First') : _('Second') ) , $card->name)) );
                                 }
                             }
                         }
@@ -1682,25 +1684,25 @@ class Game
                             if ($card->type=='Province') {
                                 $card->mandate++;
                                 if ($card->mandate == 3) {
-                                    array_push($messages , array($senator->name.' (unaligned) returns from '.$card->name.' which is placed in the Forum.'));
+                                    array_push( $messages , array(sprintf(_('%s (unaligned) returns from %s which is placed in the Forum.') , $senator->name , $card->name)) );
                                     $card->mandate=0;
                                     $this->forum->putOnTop($senator->controls->drawCardWithValue('id',$card->id));
                                 } else {
-                                    array_push($messages , array($senator->name.' (unaligned) spends '.( ($card->mandate==1) ? 'First' : 'Second' ).' game turn in '.$card->name.'.'));
+                                    array_push( $messages , array(sprintf(_('%s (unaligned) spends %s game turn in %s.') , $senator->name , ( ($card->mandate==1) ? _('First') : _('Second') ) , $card->name)) );
                                 }
                             }
                         }
                     }
                 }
                 // Done, move to Forum phase.
-                array_push($messages , array('Revenue phase is finished. Rome now has '.$this->treasury.'T. Starting Forum phase.'));
+                array_push($messages , array(sprintf(_('Revenue phase is finished. Rome now has %dT. Starting Forum phase.') , $this->treasury)));
                 $this->resetPhaseDone();
                 $this->phase='Forum';
-                array_push($messages , array('FORUM PHASE','alert'));
+                array_push($messages , array(_('FORUM PHASE'),'alert'));
                 // TO DO : remove events that expire at the beginning of the forum phase
                 $this->subPhase='RollEvent';
                 $this->initiative=1;
-                array_push($messages , array('Initiative #1','alert'));
+                array_push($messages , array(_('Initiative #1'),'alert'));
             }
         }
         return $messages ;
@@ -3002,7 +3004,7 @@ class Game
         /*
          * First part : validation
          */
-        $validation = FALSE ;
+        $validation = TRUE ;
         // Sorts the 2 Senators lexicographically
         usort ($parameters, function($a, $b) {
             return strcmp($a, $b);
@@ -3044,7 +3046,6 @@ class Game
             if (($senator1->office == 'Pontifex Maximus') || ($senator2->office == 'Pontifex Maximus')) {
                 $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.' , 'error'  , $user_id);
             }
-            $validation = TRUE;
         } else {
             $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : You must propose 2 senators' , 'error' , $user_id);
         }
@@ -3058,7 +3059,7 @@ class Game
             $parameters[3] = NULL ;
             $parameters[4] = NULL ;
             $proposal = new Proposal ;
-            $result = $proposal->init($type , $description , $this->party , $parameters , $votingOrder) ;
+            $result = $proposal->init($type , $user_id , $description , $this->party , $parameters , $votingOrder) ;
             if ( isset($result[2]) && $result[2]=='error' ) {
                 return array(array(_('Error with proposal type.') , 'error')) ;
             } else {
@@ -3117,20 +3118,40 @@ class Game
          *  There is a proposal underway : Either a decision has to be made (before or after a vote), or a vote is underway
          */
         if ($latestProposal!==FALSE) {
+            $output['type'] = $latestProposal->type ;
+            // The proposal's long description
+            // TO DO : Put that in a sub function to re-use it ?
+            $output['longDescription'] = sprintf(_('%s is proposing : ') , $this->party[$latestProposal->proposedBy]->fullName());
+            switch ($latestProposal->type) {
+                case 'Consuls' :
+                    $senator1 = $this->getSenatorWithID($latestProposal->parameters[0]) ;
+                    $senator2 = $this->getSenatorWithID($latestProposal->parameters[1]) ;
+                    $output['longDescription'].= sprintf(_('%s and %s as consuls.') , $senator1->name , $senator2->name);
+                    break ;
+                // TO DO : 15 more types of proposals
+            }
             // Consuls : The outcome is TRUE (the proposal was voted), but Consuls have yet to decide who will be Consul of Rome / Field Consul
             if (($this->phase=='Senate') && ($this->subPhase=='Consuls') && $latestProposal->outcome===TRUE && ($latestProposal->parameters[3]===NULL || $latestProposal->parameters[3]===NULL) ) {
                 $output['state'] = 'Decision' ;
-                $output['type'] = 'Consuls';
             // A proposal without an outcome : Make Vote possible
             } elseif ($latestProposal->outcome===NULL) {
-                // TO DO : Vote layout
                 $output['state'] = 'Vote' ;
+                $output['voting'] = $latestProposal->voting ;
+                $output['votingOrder'] = $latestProposal->votingOrder ;
+                // This is not your turn to vote
+                if ($output['votingOrder'][0]!=$user_id) {
+                    $output['canVote'] = FALSE ;
+                // This is your turn to vote
+                } else {
+                    $output['canVote'] = TRUE ;
+                }
             }
 
         /*
          * There is no proposal underway, give the possibility to make proposals
          */
         } else {
+            // This 'votingOrder' parameter is simply a list to of user_ids, it's provided to be re-ordered by the player making the proposal.
             $output['votingOrder']=array();
             foreach($this->party as $party) {
                 array_push($output['votingOrder'],array('user_id' => $party->user_id , 'name' => $party->fullname()));

@@ -8,6 +8,7 @@ class Proposal {
     
     public $type ;
     public $description ;
+    public $proposedBy;
     /*
      * An array in the form :
      * ('senatorID' , 'party' , 'ballot' , 'votes')
@@ -41,7 +42,7 @@ class Proposal {
      * @param array $parameters an array of parameters
      * @return type
      */
-    public function init ($type , $description , $parties , $parameters , $votingOrder) {
+    public function init ($type , $proposedBy , $description , $parties , $parameters , $votingOrder) {
         //type
         $key = array_search($type, self::$VALID_PROPOSAL_TYPES) ;
         if ($key===FALSE) {
@@ -67,13 +68,14 @@ class Proposal {
                 // Always 0 for senators not in Rome
                 $thisSenatorsVotes = ($senator->inRome() ? $senator->ORA + $senator->knights : 0) ;
                 // TO DO : compute the votes the senator has for this specific type of proposal, as some senators earn more votes for certain proposals (consul for life, war, etc)
-                $this->voting[] = array ('senatorID' => $senator->senatorID , 'user_id' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes) ;
+                $this->voting[] = array ('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes) ;
             }
         }
         
-        // Set voting order, outcome, and parameters
+        // Set voting order, outcome, proposedBy and parameters
         $this->votingOrder = $votingOrder ;
         $this->outcome = NULL ;
+        $this->proposedBy = $proposedBy ;
         $this->parameters = $parameters ;
 
         return TRUE;
@@ -109,4 +111,5 @@ class Proposal {
         }
         // TO DO : Test if this was the last vote, and if it was, set outcome to TRUE
     }
+    
 }

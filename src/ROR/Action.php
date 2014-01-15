@@ -52,8 +52,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     // We have POST DATA
     if ($request->getMethod()=='POST') {
         $session = $request->getSession();
-        //if ($session->get('POST') == $request->request->all() ) {
-        if (FALSE) {
+        if ($session->get('POST') == $request->request->all() ) {
             $app['session']->getFlashBag()->add('error' , _('Your feeble attempts at re-posting the same data have been thwarted by the shrewdness of the creator of this program.'));
         } else {
             $session->set('POST' , $request->request->all()) ;
