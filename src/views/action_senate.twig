@@ -79,6 +79,13 @@ You cannot make a proposal at the moment
                         <option value="-1">AGAINST</option>
                         <option value="0" selected>ABSTAIN</option>
                     </select>
+                    {% if output['treasury'][voter['senatorID']] > 0 %}
+                    <select name="{{voter['senatorID']}}_talents">
+                        {% for i in 0..output['treasury'][voter['senatorID']]%}
+                            <option>{{i}}</option>
+                        {% endfor %}
+                    </select>
+                    {% endif %}
                     <br>
                 {% endif %}
             {% endif %}

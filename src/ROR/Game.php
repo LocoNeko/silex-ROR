@@ -3025,7 +3025,7 @@ class Game
             }
             // Check if they already have been rejected
             foreach ($this->proposals as $proposal) {
-                if ($proposal->type=='Consuls' && $proposal->outcome=='Rejected' && $proposal->parameters[0]==$senator1->senatorID && $proposal->parameters[1]==$senator2->senatorID) {
+                if ($proposal->type=='Consuls' && $proposal->outcome==FALSE && $proposal->parameters[0]==$senator1->senatorID && $proposal->parameters[1]==$senator2->senatorID) {
                     $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This pair has already been rejected' , 'error' , $user_id);
                 }
             }
@@ -3112,18 +3112,34 @@ class Game
         if ($latestProposal->votingOrder[0]!=$user_id) {
             return array(array(_('This is not your turn to vote.') , 'error' , $user_id));
         }
+        if ($latestProposal->outcome!==NULL) {
+            return array(array(_('The vote on this proposal is already over.') , 'error' , $user_id));
+        }
         $votingMessage = '';
-        foreach ($latestProposal->voting as $voting) {
+        foreach ($latestProposal->voting as $key => $voting) {
             if ($voting['user_id']==$user_id) {
                 // Whole party vote : set all the senators of this party to vote the same way
                 if (isset($request['wholeParty'])) {
-                    $voting['ballot']=$request['wholeParty'] ;
+                    $latestProposal->voting[$key]['ballot'] = (int)$request['wholeParty'] ;
                     $votingMessage = sprintf(_('{%s} %s') , $user_id , $ballotMessage[$request['wholeParty']]);
-                // Per senator vote : set the senator's ballot to the value given through POST
+                // Per senator vote : set the senator's ballot to the value given through POST & handle talents spent
                 } else {
-                    if (isset($request[$voting['senatorID']])) {
-                        $voting['ballot']=$request[$voting['senatorID']] ;
-                        $votingMessage = sprintf(_('%s of party {%s} %s') , $voting['name'] , $user_id , $ballotMessage[$request['wholeParty']]);
+                    // Ignore senators with 0 votes (not in Rome)
+                    if (isset($request[$voting['senatorID']]) && $latestProposal->voting[$key]['votes']>0) {
+                        $latestProposal->voting[$key]['ballot'] = (int)$request[$voting['senatorID']] ;
+                        // The Senator has spent talents to increase his votes
+                        if (isset($request[$voting['senatorID'].'_talents'])) {
+                            $amount = (int)$request[$voting['senatorID'].'_talents'];
+                            $senator = $this->getSenatorWithID($voting['senatorID']) ;
+                            if ($senator->treasury < $amount) {
+                                return array(array(sprintf(_('%s tried to spent talents he doesn\'t have.') , $voting['name']) , 'error' , $user_id));
+                            } else {
+                                $senator->treasury -= $amount ;
+                                $latestProposal->voting[$key]['talents'] = $amount ;
+                            }
+                        }
+                        $votingMessage = sprintf(_('%s of party {%s} %s') , $voting['name'] , $user_id , $ballotMessage[$request[$voting['senatorID']]]) ;
+                        $votingMessage.= ($latestProposal->voting[$key]['talents']==0 ? '' : sprintf(_(' and spends %dT to increase his votes') , $latestProposal->voting[$key]['talents'])) ;
                     } else {
                         return array(array(sprintf(_('On a per senator vote, %s\'s vote was not set.') , $voting['name']) , 'error' , $user_id));
                     }
@@ -3136,7 +3152,35 @@ class Game
         
         // Vote is finished
         if (count($latestProposal->votingOrder)==0) {
-            
+            $total = 0 ; $for = 0 ; $against = 0 ; $abstention = 0 ;
+            $unanimous = TRUE ;
+            $HRAO = $this->getHRAO(TRUE) ;
+            foreach ($latestProposal->voting as $voting) {
+                // The $unanimous flag is set to FALSE as soon as we find ONE Senator not from the Presiding magistrate party, with non-0 votes, who voted For or Abstained
+                if ($voting['user_id']!=$HRAO['user_id'] && $voting['votes']>0 && $voting['ballot']!=-1) {
+                    $unanimous = FALSE ;
+                }
+                $total += $voting['ballot'] * ($voting['votes'] + $voting['talents']) ;
+                switch($voting['ballot']) {
+                    case -1 :
+                        $against+=($voting['votes'] + $voting['talents']) ;
+                        break ;
+                    case 0 :
+                        $abstention+=($voting['votes'] + $voting['talents']) ;
+                        break ;
+                    case 1 :
+                        $for+=($voting['votes'] + $voting['talents']) ;
+                        break ;
+                }
+            }
+            $latestProposal->outcome = ( $total > 0 ) ;
+            $votingMessage = ($latestProposal->outcome ? _('The proposal is adopted') : _('The proposal is rejected')) ;
+            $votingMessage .= sprintf(_(' by %d votes for, %d against, and %d abstentions.') , $for , $against , $abstention);
+            array_push($messages , array($votingMessage)) ;
+            if ($unanimous && $latestProposal->proposedBy==$HRAO['user_id']) {
+                array_push($messages , array(sprintf(_('The presiding magistrate %s has been unanimously defeated.') , $HRAO['senator']->name))) ;
+                // TO DO : President unanimously defeated
+            }
         }
         return $messages ;
     }
@@ -3164,7 +3208,7 @@ class Game
         /*
          *  There is a proposal underway : Either a decision has to be made (before or after a vote), or a vote is underway
          */
-        if ($latestProposal!==FALSE) {
+        if ($latestProposal!==FALSE && !$latestProposal->resolved()) {
             $output['type'] = $latestProposal->type ;
             // The proposal's long description
             // TO DO : Put that in a sub function to re-use it ?
@@ -3184,6 +3228,10 @@ class Game
             } elseif ($latestProposal->outcome===NULL) {
                 $output['state'] = 'Vote' ;
                 $output['voting'] = $latestProposal->voting ;
+                $output['treasury'] = array() ;
+                foreach($this->party[$user_id]->senators->cards as $senator) {
+                    $output['treasury'][$senator->senatorID] = $senator->treasury ;
+                }
                 $output['votingOrder'] = $latestProposal->votingOrder ;
                 // This is not your turn to vote
                 if ($output['votingOrder'][0]!=$user_id) {
@@ -3198,7 +3246,7 @@ class Game
          * There is no proposal underway, give the possibility to make proposals
          */
         } else {
-            // This 'votingOrder' parameter is simply a list to of user_ids, it's provided to be re-ordered by the player making the proposal.
+            // This 'votingOrder' parameter is simply a list of user_ids, it's provided to be re-ordered by the player making the proposal.
             $output['votingOrder']=array();
             foreach($this->party as $party) {
                 array_push($output['votingOrder'],array('user_id' => $party->user_id , 'name' => $party->fullname()));
@@ -3314,8 +3362,8 @@ class Game
                     $rejected = FALSE ;
                     foreach ($this->proposals as $proposal) {
                         if ($proposal->type=='Consuls') {
-                            if ($proposal->outcome=='Rejected') {
-                                if ($proposal->parameters[0]->senatorID==$senator1 && $proposal->parameters[1]->senatorID==$senator2) {
+                            if ($proposal->outcome==FALSE) {
+                                if ($proposal->parameters[0]==$senator1 && $proposal->parameters[1]==$senator2) {
                                     $rejected=TRUE;
                                 }
                             }

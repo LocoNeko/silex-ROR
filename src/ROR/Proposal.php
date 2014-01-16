@@ -30,7 +30,7 @@ class Proposal {
     public $parameters = array() ;
     /**
      *
-     * @var string 'Adopted'|'Rejected'|NULL (default : not yet voted on) 
+     * @var string TRUE|FALSE|NULL (default : not yet voted on) 
      */
     public $outcome = NULL ;
     
@@ -68,7 +68,7 @@ class Proposal {
                 // Always 0 for senators not in Rome
                 $thisSenatorsVotes = ($senator->inRome() ? $senator->ORA + $senator->knights : 0) ;
                 // TO DO : compute the votes the senator has for this specific type of proposal, as some senators earn more votes for certain proposals (consul for life, war, etc)
-                $this->voting[] = array ('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes) ;
+                $this->voting[] = array ('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes , 'talents' => 0) ;
             }
         }
         
@@ -112,4 +112,22 @@ class Proposal {
         // TO DO : Test if this was the last vote, and if it was, set outcome to TRUE
     }
     
+    /**
+     * Returns TRUE if everything that needs to be done with this proposal has been dealt with. Which means either:
+     * - The proposal has been rejected
+     * - The proposal has been adopted and all parameters are known
+     * @return boolean
+     */
+    public function resolved() {
+        $result = TRUE ;
+        if ($this->outcome===FALSE) {
+            return TRUE ;
+        }
+        foreach ($this->parameters as $parameter) {
+            if ($parameter===NULL) {
+                $result = FALSE ;
+            }
+        }
+        return $result ;
+    }
 }

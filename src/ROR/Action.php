@@ -200,6 +200,13 @@ function log ( Application $app , $game_id , $user_id , $logs) {
     $socket->send(json_encode($entryData));
 }
 
+/**
+ * Returns a properly formatted log array : user_id are replaced by full names, chat recipients are properly displayd, etc
+ * @param \Silex\Application $app
+ * @param string $game_id
+ * @param string  $user_id
+ * @return boolean|array
+ */
 function getLogs ( Application $app , $game_id , $user_id) {
     $game_data = $app['db']->fetchColumn("SELECT game_data FROM games WHERE game_id= ? " , Array($game_id));
     if (!is_null($game_data)) {
@@ -209,7 +216,7 @@ function getLogs ( Application $app , $game_id , $user_id) {
     }
     $playerNames = array() ;
     foreach ($game->party as $key=>$party) {
-        $playerNames[$key] = ($party->user_id==$user_id ? _('You') : $party->fullName()) ;
+        $playerNames[$key] = ($party->user_id==$user_id ? $party->name._(' [you]') : $party->fullName()) ;
     }
     $logs = array() ;
     $rawLogs = $app['db']->fetchAll("SELECT * FROM logs WHERE game_id='".$game_id."' AND (recipients IS NULL OR recipients='".$user_id."' OR recipients LIKE '%".$user_id.";%' OR recipients LIKE '%".$user_id.":%') ORDER BY time_created DESC");
@@ -221,10 +228,10 @@ function getLogs ( Application $app , $game_id , $user_id) {
             $recipients = str_replace($key, $playerName, $recipients) ;
         }
         if ($log['type'] == 'chat') {
-            $recipients = str_replace(':', ' message to ', $recipients) ;
+            $recipients = str_replace(':', ' says to ', $recipients) ;
             $recipients = str_replace(';', ' , ', $recipients) ;
             $recipients = substr($recipients, 0 , -3);
-            $text = $recipients.' : '.$text ;
+            $text = $recipients.' : "'.$text.'"' ;
         }
         array_push($logs , array('type' => $log['type'] , 'time_created' => $log['time_created'] , 'message' => $text));
     }

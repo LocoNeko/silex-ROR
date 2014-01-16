@@ -20,7 +20,7 @@
                                     // This should never happen, as this should never be sent by Ratchet
                                     console.log("No need to refresh");
                                 } else {
-                                    location.reload(true);
+                                    window.location.href = window.location.href;
                                 }
                             } else {
                                 alert("Undefined From");
