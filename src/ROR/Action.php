@@ -52,7 +52,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     // We have POST DATA
     if ($request->getMethod()=='POST') {
         $session = $request->getSession();
-        if ($session->get('POST') == $request->request->all() ) {
+        if (($session->get('POST')!==NULL) && ($session->get('POST') == $request->request->all()) ) {
             $app['session']->getFlashBag()->add('error' , _('Your feeble attempts at re-posting the same data have been thwarted by the shrewdness of the creator of this program.'));
         } else {
             $session->set('POST' , $request->request->all()) ;
@@ -115,6 +115,9 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                     break ;
                 case 'senate_proposal' :
                     log ($app , $game_id , $user_id , $game->senate_proposal($user_id , $request->request->get('type') , $request->request->get('description') , $request->request->get('proposalHow') , $request->request->get('parameters')  , $request->request->get('votingOrder') ) );
+                    break ;
+                case 'senate_vote' :
+                    log ($app , $game_id , $user_id , $game->senate_vote($user_id , $request->request->all() ) );
                     break ;
                 case 'chat' :
                     $recipients = implode(';', $request->request->get('recipients')).';';
@@ -195,4 +198,35 @@ function log ( Application $app , $game_id , $user_id , $logs) {
     $socket = $context->getSocket(\ZMQ::SOCKET_PUSH, 'my pusher');
     $socket->connect("tcp://localhost:5555");
     $socket->send(json_encode($entryData));
+}
+
+function getLogs ( Application $app , $game_id , $user_id) {
+    $game_data = $app['db']->fetchColumn("SELECT game_data FROM games WHERE game_id= ? " , Array($game_id));
+    if (!is_null($game_data)) {
+        $game = unserialize($game_data);
+    } else {
+        return FALSE ;
+    }
+    $playerNames = array() ;
+    foreach ($game->party as $key=>$party) {
+        $playerNames[$key] = ($party->user_id==$user_id ? _('You') : $party->fullName()) ;
+    }
+    $logs = array() ;
+    $rawLogs = $app['db']->fetchAll("SELECT * FROM logs WHERE game_id='".$game_id."' AND (recipients IS NULL OR recipients='".$user_id."' OR recipients LIKE '%".$user_id.";%' OR recipients LIKE '%".$user_id.":%') ORDER BY time_created DESC");
+    foreach ($rawLogs as $log) {
+        $text = $log['message'] ;
+        $recipients = $log['recipients'] ;
+        foreach ($playerNames as $key => $playerName) {
+            $text = str_replace('{'.$key.'}', $playerName, $text) ;
+            $recipients = str_replace($key, $playerName, $recipients) ;
+        }
+        if ($log['type'] == 'chat') {
+            $recipients = str_replace(':', ' message to ', $recipients) ;
+            $recipients = str_replace(';', ' , ', $recipients) ;
+            $recipients = substr($recipients, 0 , -3);
+            $text = $recipients.' : '.$text ;
+        }
+        array_push($logs , array('type' => $log['type'] , 'time_created' => $log['time_created'] , 'message' => $text));
+    }
+    return $logs ;
 }

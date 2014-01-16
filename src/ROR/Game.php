@@ -3094,6 +3094,53 @@ class Game
         return TRUE ;
     }
     
+    /**
+     * Cast vote on current proposal
+     * @param string $user_id
+     * @param array $request
+     */
+    public function senate_vote($user_id , $request) {
+        $messages = array() ;
+        $ballotMessage = array();
+        $ballotMessage[-1] = _('votes AGAINST the proposal');
+        $ballotMessage[0] = _('ABSTAINS');
+        $ballotMessage[1] = _('votes FOR the proposal');
+        if ($this->phase!='Senate') {
+            return array(array(_('Wrong phase.') , 'error' , $user_id));
+        }
+        $latestProposal = $this->senate_getLatestProposal() ;
+        if ($latestProposal->votingOrder[0]!=$user_id) {
+            return array(array(_('This is not your turn to vote.') , 'error' , $user_id));
+        }
+        $votingMessage = '';
+        foreach ($latestProposal->voting as $voting) {
+            if ($voting['user_id']==$user_id) {
+                // Whole party vote : set all the senators of this party to vote the same way
+                if (isset($request['wholeParty'])) {
+                    $voting['ballot']=$request['wholeParty'] ;
+                    $votingMessage = sprintf(_('{%s} %s') , $user_id , $ballotMessage[$request['wholeParty']]);
+                // Per senator vote : set the senator's ballot to the value given through POST
+                } else {
+                    if (isset($request[$voting['senatorID']])) {
+                        $voting['ballot']=$request[$voting['senatorID']] ;
+                        $votingMessage = sprintf(_('%s of party {%s} %s') , $voting['name'] , $user_id , $ballotMessage[$request['wholeParty']]);
+                    } else {
+                        return array(array(sprintf(_('On a per senator vote, %s\'s vote was not set.') , $voting['name']) , 'error' , $user_id));
+                    }
+                }
+            }
+        }
+        array_push($messages , array($votingMessage)) ;
+        // Remove the voting party from the voting order, as they have now voted.
+        array_shift($latestProposal->votingOrder);
+        
+        // Vote is finished
+        if (count($latestProposal->votingOrder)==0) {
+            
+        }
+        return $messages ;
+    }
+    
      /*
      * setup_view returns all the data needed to render setup templates. The function returns an array $output :
      * $output['state'] (Mandatory) gives the name of the current state to be rendered :

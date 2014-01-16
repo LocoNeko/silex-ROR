@@ -55,16 +55,21 @@ You cannot make a proposal at the moment
 {% elseif output['state']=='Vote'%}
     Vote - {{output['type']}}<br>
     {{output['longDescription']}}<br>
-    Currently voting : {{output['votingOrder'][0]}}<br>
     {# Can vote #}
     {% if output['canVote']%}
+    Please cast your vote:<br>
+    <hr>
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_vote'} ) }}">
-        Have the whole party vote 
+        Whole party vote :<br>
         <select name="wholeParty" id="wholeParty">
             <option value="1">FOR</option>
             <option value="-1">AGAINST</option>
             <option value="0" selected>ABSTAIN</option>
         </select><br>
+        <button type="submit" class="btn-danger">CAST VOTE FOR WHOLE PARTY</button>
+    </form>
+    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_vote'} ) }}">
+        Vote by Senator :<br>
         {% for voter in output['voting']%}
             {% if voter['user_id'] == user_id%}
                 {{voter['name']}} ( {{voter['votes']}} votes)
@@ -78,12 +83,13 @@ You cannot make a proposal at the moment
                 {% endif %}
             {% endif %}
         {% endfor%}
-        <button type="submit" class="btn-danger">CAST VOTE</button>
+        <button type="submit" class="btn-danger">CAST VOTE BY SENATORS</button>
     </form>
     {% else %}
-    
+    Currently voting : {{output['votingOrder'][0]}}<br>
     {# Cannot vote #}
     {% endif %}
+
 {#
     A Decision has to be made (e.g. who is Consul of Rome in a Pair, Dictator appoints a MoH, etc)
 #}

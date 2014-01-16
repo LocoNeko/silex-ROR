@@ -161,9 +161,9 @@ class RORControllerProvider implements ControllerProviderInterface
          * The log iframe
          */
         $controllers->match('/Log/{game_id}/{user_id}' , function($game_id , $user_id) use ($app) {
+            $logs = getLogs ( $app , $game_id , $user_id) ;
             return $app['twig']->render('log.twig', Array(
-                'game_id' => $game_id,
-                'user_id' => $user_id
+                'logs' => $logs
             ));
         })
         ->bind('Log');
