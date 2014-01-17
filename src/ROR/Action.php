@@ -119,6 +119,9 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                 case 'senate_vote' :
                     log ($app , $game_id , $user_id , $game->senate_vote($user_id , $request->request->all() ) );
                     break ;
+                case 'senate_stepDown' :
+                    log ($app , $game_id , $user_id , $game->senate_stepDown($user_id , $request->request->get('stepDown') ) );
+                    break ;
                 case 'chat' :
                     $recipients = implode(';', $request->request->get('recipients')).';';
                     log ($app , $game_id , $user_id , array(array($request->request->get('message') , 'chat' , $user_id.':'.$recipients))) ;

@@ -162,6 +162,7 @@ class Game
         $this->inactiveWars->putOnTop($this->earlyRepublic->drawCardWithValue('name', '1ST PUNIC WAR'));
         array_push($messages , array(_('SETUP PHASE') , 'alert') ) ;
         array_push($messages , array(_('The First Punic war is now an inactive war')) ) ;
+        // TO DO : handle Era Ends properly
         $this->discard->putOnTop($this->earlyRepublic->drawCardWithValue('name', 'ERA ENDS')) ;
         /* 
          * Give initial senators to parties
@@ -1737,30 +1738,30 @@ class Game
             } else {
                 $output['state'] = 'Base - Playing' ;
                 $revenueBase = $this->revenue_Base($user_id) ;
-                $output['text']['senators'] = ($revenueBase['senators']>0 ? 'Revenue collected from '.$revenueBase['senators'].' senators : '.$revenueBase['senators'].'T.' : 'Currently no Senators in the party : no revenue collected from senators.');
-                $output['text']['leader'] = ($revenueBase['leader']!='' ? 'Revenue collected from Leader '.$revenueBase['leader'].' : 3T.' : 'Currently no leader : no revenue collected from leader.');
-                $output['text']['knights'] = ($revenueBase['knights']>0 ? 'Revenue collected from '.$revenueBase['knights'].' knights : '.$revenueBase['knights'] : 'Currently no knight : no revenue collected from knights.');
+                $output['text']['senators'] = ($revenueBase['senators']>0 ? sprintf(_('Revenue collected from %d senators : %dT.') , $revenueBase['senators'] , $revenueBase['senators']) : _('Currently no Senators in the party : no revenue collected from senators.') );
+                $output['text']['leader'] = ($revenueBase['leader']!='' ? sprintf(_('Revenue collected from Leader %s : 3T.') , $revenueBase['leader']) : _('Currently no leader : no revenue collected from leader.'));
+                $output['text']['knights'] = ($revenueBase['knights']>0 ? sprintf(_('Revenue collected from %d knights : %dT.') , $revenueBase['knights'] , $revenueBase['knights']) : _('Currently no knights : no revenue collected from knights.'));
                 // Concessions
                 $output['concessions'] = array() ;
                 $output['concession_drought'] = array();
                 if (count($revenueBase['concessions'])>0) {
-                    $output['text']['concessions'] = 'Revenue collected from concessions :';
+                    $output['text']['concessions'] = _('Revenue collected from concessions : ');
                     $droughtLevel = $this->getTotalDroughtLevel() ;
                     foreach ($revenueBase['concessions'] as $concession) {
-                        array_push($output['concessions'] , $concession['income'].'T from '.$concession['name'].' ('.$concession['senator_name'].')');
+                        array_push($output['concessions'] , sprintf(_('%dT from %s (%s)') , $concession['income'] , $concession['name'] , $concession['senator_name']) );
                         // Populates the $output['concession_drought'] array to show the interface allowing senators to profit from drought-affected concessions
                         if ($concession['special'] == 'drought' && $droughtLevel>0) {
-                            array_push($output['concession_drought'] , array('id' => $concession['id'], 'text' => 'Do you want '.$concession['senator_name'].' to be a sick bastard and earn more money from '.$concession['name'].' because of the drought'));
+                            array_push($output['concession_drought'] , array('id' => $concession['id'], 'text' => sprintf(_('Do you want %s to be a sick bastard and earn more money from %s because of the drought') , $concession['senator_name'] , $concession['name']) ));
                         }
                     }
                 } else {
-                    $output['text']['concessions'] = 'Currently no concessions : no revenue collected from concessions.' ;
+                    $output['text']['concessions'] = _('Currently no concessions : no revenue collected from concessions.') ;
                 }
-                $output['text']['total'] = 'Total base revenue : '.$revenueBase['total'];
+                $output['text']['total'] = sprintf(_('Total base revenue : %d') , $revenueBase['total']);
                 // Provinces
                 $output['provinces'] = array () ;
                 if (count($revenueBase['provinces'])>0) {
-                    $output['text']['provinces'] = 'Revenue from Provincial spoils :';
+                    $output['text']['provinces'] = _('Revenue from Provincial spoils :');
                     foreach ($revenueBase['provinces'] as $province) {
                         array_push  ($output['provinces'] , array (
                                 'province_name' => $province['province']->name
@@ -1771,7 +1772,7 @@ class Game
                         );
                     }
                 } else {
-                    $output['text']['provinces'] = 'Currently no provinces : no revenue collected from provinces.' ;
+                    $output['text']['provinces'] = _('Currently no provinces : no revenue collected from provinces.') ;
                 }
             }
 
@@ -1830,14 +1831,14 @@ class Game
         foreach ($this->party as $party) {
             if ($party->bid>$result['bid']) {
                 $result['bid']=$party->bid ;
-                $result['user_id']=$party->user_id;
-                $result['message']=$party->fullName().' with a bid of '.$result['bid'].'T.' ;
+                $result['user_id'] = $party->user_id;
+                $result['message'] = sprintf(_(' {%s} with a bid of %dT.') , $party['user_id'] , $result['bid']) ;
             }
         }
         if ($result['bid']==0) {
             $HRAO = $this->getHRAO() ;
-            $result['message']='The HRAO '.$HRAO['party']->fullName().' as all bets are 0.';
-            $result['user_id']=$HRAO['user_id'];
+            $result['message'] = sprintf(_('The HRAO {%s} as all bets are 0.') , $HRAO['party']->user_id);
+            $result['user_id'] = $HRAO['user_id'];
         }
         return $result ;
     }
@@ -1883,7 +1884,7 @@ class Game
         $this->currentBidder = $HRAO['user_id'];
         $richestSenator = $HRAO['party']->getRichestSenator() ;
         if ($richestSenator['amount']==0) {
-            array_push($messages , array('Skipping the HRAO ('.$HRAO['party']->fullName().'): not enough talents to bid.'));
+            array_push($messages , array( sprintf(_('Skipping the HRAO ({%s}): not enough talents to bid.') , $HRAO['party']->user_id) )) ;
             $nextPlayer = $this->whoIsAfter($HRAO['user_id']);
             $this->currentBidder = $nextPlayer['user_id'];
             foreach ($nextPlayer['messages'] as $message) {
@@ -1908,7 +1909,7 @@ class Game
             if ($this->forum_whoseInitiative()===FALSE) {
                 // There was no bid
                 if ($senatorRaw=='NONE' || $amount<=0 ) {
-                    array_push($messages , array($this->party[$user_id]->fullName().' cannot or will not bid for this initiative.'));
+                    array_push($messages , array( sprintf(_('{%s} cannot or will not bid for this initiative.') , $user_id) ));
                 // There was a bid
                 } else {
                     $senatorData = explode('|' , $senatorRaw) ;
@@ -1918,12 +1919,12 @@ class Game
                         if ($senator->treasury>=$amount) {
                             $this->party[$user_id]->bidWith = $senator ;
                             $this->party[$user_id]->bid = $amount ;
-                            array_push($messages , array($this->party[$user_id]->fullName().' bids '.$amount.'T with '.$senator->name.' for this initiative.'));
+                            array_push($messages , array( sprintf(_('{%s} bids %dT with %s for this initiative.') , $user_id , $amount , $senator->name) ));
                         } else {
-                            array_push($messages , array('Not enough money' , 'error' , $user_id));
+                            array_push($messages , array(_('Not enough money') , 'error' , $user_id));
                         }
                     } else {
-                        array_push($messages , array('Wrong party' , 'error' , $user_id));
+                        array_push($messages , array(_('Wrong party') , 'error' , $user_id));
                     }
                 }
                 // There was a bid or pass, we need to move on to the next bidder and check if the bids are over
@@ -1947,13 +1948,13 @@ class Game
                         }
                     }
                     if ($highestBidder['bid']>0) {
-                        array_push($messages , array($this->party[$highestBidder['user_id']]->fullName().' wins this initiative. '.$this->party[$highestBidder['user_id']]->bidWith->name.' spends '.$highestBidder['bid'].'T from his personal treasury.'));
+                        array_push($messages , array( sprintf(_(' {%s} wins this initiative. %s spends %dT from his personal treasury.') , $highestBidder['user_id'] , $this->party[$highestBidder['user_id']]->bidWith->name , $highestBidder['bid']) ));
                     } else {
-                        array_push($messages , array($this->party[$highestBidder['user_id']]->fullName().' wins this initiative since he is the HRAO and no one bid.'));
+                        array_push($messages , array( sprintf(_(' {%s} wins this initiative since he is the HRAO and no one bid.') , $highestBidder['user_id']) ));
                     }
                 }
             } elseif ($user_id!=$this->forum_whoseInitiative()) {
-                array_push($messages , array('Cannot bid as this initiative already belongs to another player' , 'error' , $user_id));
+                array_push($messages , array(_('Cannot bid as this initiative already belongs to another player') , 'error' , $user_id));
             }
         }
         return $messages ;
@@ -3179,8 +3180,34 @@ class Game
             array_push($messages , array($votingMessage)) ;
             if ($unanimous && $latestProposal->proposedBy==$HRAO['user_id']) {
                 array_push($messages , array(sprintf(_('The presiding magistrate %s has been unanimously defeated.') , $HRAO['senator']->name))) ;
+                $this->subPhase = 'Unanimous defeat' ;
                 // TO DO : President unanimously defeated
             }
+        }
+        return $messages ;
+    }
+    
+    /**
+     * Handles the Presiding Magistrate decision to stepdown or not following an unanimous defeat, then sets the subPhase back to the latest proposal type
+     * @param string $user_id
+     * @param int $stepDown 0|1
+     * @return array
+     */
+    public function senate_stepDown($user_id , $stepDown) {
+        $messages = array() ;
+        $HRAO = $this->getHRAO(TRUE) ;
+        if ($HRAO['user_id']==$user_id) {
+            if ($stepDown==0 && ($HRAO['senator']->INF > 0) ) {
+                $HRAO['senator']->INF -= 1 ;
+                array_push($messages , array(sprintf(_('%s stays presiding magistrate after his unanimous defeat, losing 1 Influence.') , $HRAO['senator']->name )) );
+            } else {
+                array_push ($this->steppedDown ,  $HRAO['senator']->senatorID ) ;
+                array_push($messages , array(sprintf(_('%s steps down as presiding magistrate after his unanimous defeat.') , $HRAO['senator']->name )) );
+            }
+            $latestProposal = $this->senate_getLatestProposal() ;
+            $this->subPhase = $latestProposal->type ;
+        } else {
+            return array(array(_('You are not presiding magistrate, hence cannot step down.') , 'error' , $user_id));
         }
         return $messages ;
     }
@@ -3205,6 +3232,27 @@ class Game
          */
         $latestProposal = $this->senate_getLatestProposal() ;
         
+        /*
+         * Short-circuit the normal view if the sate is 'Unanimous defeat'
+         */
+        if (($this->phase=='Senate') && ($this->subPhase=='Unanimous defeat') ) {
+            $output['state'] = 'Unanimous defeat' ;
+            $HRAO = $this->getHRAO(TRUE) ;
+            if ($HRAO['user_id']==$user_id) {
+                $output['presiding'] = TRUE ;
+                $output['name'] = $HRAO['senator']->name ;
+                // INF at 0 : no choice but to resign
+                if ($HRAO['senator']->INF == 0) {
+                // INF greater than 0 : choice to resign
+                    $output['choice'] = FALSE ;
+                } else {
+                    $output['choice'] = TRUE ;
+                }
+            } else {
+                $output['presiding'] = FALSE ;
+            }
+            return $output ;
+        }
         /*
          *  There is a proposal underway : Either a decision has to be made (before or after a vote), or a vote is underway
          */
@@ -3323,11 +3371,17 @@ class Game
         if (strcmp($proposalHow ,'President')==0) {
             return _('Using the Presiding magistrate\'s ability');
         } elseif (strcmp($proposalHow ,'Tribune card')==0) {
-            // TO DO : remove the card
+            $this->discard->putOnTop($this->party[$user_id]->hand->drawCardWithValue('name' , 'TRIBUNE'));
             return _('Using a Tribune card');
         } elseif (is_array ($proposalHow)) {
-            // TO DO : remove free tribune of this Senator for the turn
-            return sprintf(_('Using the Tribune ability of %s'),$proposalHow['name']);
+            foreach ($this->party[$user_id]->freeTribunes as $key=>$value) {
+                if ($value['senatorID'] == $proposalHow['senatorID']) {
+                    unset ($this->party[$user_id]->freeTribunes[$key]) ;
+                    return sprintf(_('Using the Tribune ability of %s'),$proposalHow['name']);
+                }
+            }
+            // If we reach this, it means the free tribune couldn't be found, this is an error
+            return _('Using an ERROR in the program') ;
         } else {
             return _('Using an ERROR in the program') ;
         }

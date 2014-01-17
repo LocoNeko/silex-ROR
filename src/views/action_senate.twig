@@ -102,6 +102,29 @@ You cannot make a proposal at the moment
 #}
 {% elseif output['state']=='Decision' %}
 Decision
+
+{#
+    Unanimous defeat of the Presiding magistrate
+#}
+{% elseif output['state']=='Unanimous defeat' %}
+    The presiding magistrate has been unanimously defeated<br>
+    {% if output['presiding'] %}
+        You are presiding and must decide how to handle your unanimous defeat :<br>
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_stepDown'} ) }}">
+        {% if output['choice']%}
+            <select name="stepDown" id="stepDown" style="width:250px;">
+                <option value="0">Stay president, lose 1 Influence</option>
+                <option value="1">Step down</option>
+            </select>
+        {% else %}
+            Since {{output['name']}} has 0 Influence, he must step down<br>
+            <input type="hidden" name="stepDown" id="stepDown" value="1">
+        {% endif %}
+            <button type="submit" class="btn-danger">OK</button>
+        </form>
+    {% else %}
+        Waiting for the him to decide how to handle the unanimous defeat.<br>
+    {% endif %}
 {#
     Error
 #}
