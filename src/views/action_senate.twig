@@ -101,7 +101,30 @@ You cannot make a proposal at the moment
     A Decision has to be made (e.g. who is Consul of Rome in a Pair, Dictator appoints a MoH, etc)
 #}
 {% elseif output['state']=='Decision' %}
-Decision
+    Decision<br>
+    {% if output['type'] =='Consuls'%}
+        {% if output['canDecide']%}
+            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_decision'} ) }}">
+                <input type="hidden" name="type" id="type" value="consuls">
+                {% for senator in output['senator']%}
+                    {% if senator!='notYou' %}
+                        The choice is not yours.<br>
+                    {% elseif senator!='alreadyDecided'%}
+                        You have made your choice.<br>
+                    {% else %}
+                        You want {{senator.name}} to be 
+                        <select name="{{senator.senatorID}}">
+                            <option value="ROME CONSUL">ROME CONSUL</option>
+                            <option value="FIELD CONSUL">FIELD CONSUL</option>
+                        </select>
+                    {% endif %}
+                {% endfor %}
+            </form>
+        {% else %}
+            Waiting for the elected consuls to decide between themselves
+        {% endif %}
+    {% else %}
+    {% endif %}
 
 {#
     Unanimous defeat of the Presiding magistrate

@@ -3269,10 +3269,44 @@ class Game
                     break ;
                 // TO DO : 15 more types of proposals
             }
+            /*
+             * Decisions
+             */
             // Consuls : The outcome is TRUE (the proposal was voted), but Consuls have yet to decide who will be Consul of Rome / Field Consul
-            if (($this->phase=='Senate') && ($this->subPhase=='Consuls') && $latestProposal->outcome===TRUE && ($latestProposal->parameters[3]===NULL || $latestProposal->parameters[3]===NULL) ) {
+            if (($this->phase=='Senate') && ($this->subPhase=='Consuls') && $latestProposal->outcome===TRUE && ($latestProposal->parameters[2]===NULL || $latestProposal->parameters[3]===NULL) ) {
                 $output['state'] = 'Decision' ;
-            // A proposal without an outcome : Make Vote possible
+                $output['type'] = 'Consuls' ;
+                $senator = array() ; $party = array() ;
+                for ($i=0 ; $i++ ; $i<2) {
+                    $senator[$i] = $this->getSenatorWithID($latestProposal->parameters[$i]) ;
+                    $party[$i] = $this->getPartyOfSenator($senator[$i]);
+                }
+                if ($party[0]->user_id!=$user_id && $party[1]->user_id!=$user_id) {
+                    $output['canDecide'] = FALSE ;
+                } else {
+                    $output['canDecide'] = TRUE ;
+                    for ($i=0 ; $i++ ; $i<2) {
+                        if ($party[$i]->user_id == $user_id) {
+                            if ( ($latestProposal->parameters[2]===NULL || $latestProposal->parameters[2]!=$senator[$i]->senatorID) && ($latestProposal->parameters[3]===NULL || $latestProposal->parameters[3]!=$senator[$i]->senatorID) ) {
+                                $output['senator'][$i] = $senator[$i] ;
+                            } else {
+                                $output['senator'][$i] = 'alreadyDecided' ;
+                            }
+                        } else {
+                            $output['senator'][$i] = 'notYou' ;
+                        }
+                    }
+                }
+                /*
+                 *  TO DO - other decisions :
+                 * - Dictator appoints Master of horse
+                 * - Appointed Prosecutor accepts/rejects appointment
+                 * - Accused calls Popular Appeal
+                 */
+                
+            /*
+             * Vote (The proposal has no outcome : make vote possible)
+             */
             } elseif ($latestProposal->outcome===NULL) {
                 $output['state'] = 'Vote' ;
                 $output['voting'] = $latestProposal->voting ;
@@ -3338,7 +3372,16 @@ class Game
         }
         return $output ;
     }
-    
+
+    /**
+     * A decision (not a vote) has to be made on a proposal : consuls deciding who will do what, Dictator appointing MoH, prosecutor accepting/refusing nomination, etc...
+     * @param string $user_id
+     * @param array $request
+     */
+    public function senate_decision($user_id , $request) {
+        // TO DO
+    }
+
     /**
      * This function returns an array indicating all the ways user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune')
      * or empty array if he can't
