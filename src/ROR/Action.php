@@ -52,79 +52,87 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
     // We have POST DATA
     if ($request->getMethod()=='POST') {
         $session = $request->getSession();
-        if (($session->get('POST')!==NULL) && ($session->get('POST') == $request->request->all()) ) {
+        if (($session->get('POST')!==NULL) && (count($session->get('POST'))>0) && ($session->get('POST') == $request->request->all()) ) {
+            var_dump($session->get('POST'));
             $app['session']->getFlashBag()->add('error' , _('Your feeble attempts at re-posting the same data have been thwarted by the shrewdness of the creator of this program.'));
         } else {
             $session->set('POST' , $request->request->all()) ;
             $currentSubPhase = $game->subPhase ;
             $nbOfProposals = count($game->proposals) ;
+
+            // Initialise the $playerNames array, so we can pass it to the log function to properly display logs.
+            $playerNames = array() ;
+            foreach ($game->party as $key=>$party) {
+                $playerNames[$key] = ($party->user_id==$user_id ? $party->name._(' [you]') : $party->fullName()) ;
+            }
+
             switch ($action) {
                 case 'setup_PickLeader' :
-                    log ($app , $game_id , $user_id , $game->setup_setPartyLeader( $user_id , $request->request->get('senatorID') ));
+                    log ($app , $game_id , $user_id , $game->setup_setPartyLeader( $user_id , $request->request->get('senatorID') ) , $playerNames);
                     break ;
                 case 'revolution_playStatesman' :
-                    log ($app , $game_id , $user_id , $game->revolution_playStatesman ( $user_id , $request->request->get('card_id') ) ) ;
+                    log ($app , $game_id , $user_id , $game->revolution_playStatesman ( $user_id , $request->request->get('card_id') )  , $playerNames) ;
                     break ;
                 case 'revolution_playConcession' :
-                    log ($app , $game_id , $user_id , $game->revolution_playConcession ( $user_id , $request->request->get('card_id') , $request->request->get('senator_id') ) ) ;
+                    log ($app , $game_id , $user_id , $game->revolution_playConcession ( $user_id , $request->request->get('card_id') , $request->request->get('senator_id') )  , $playerNames) ;
                     break ;
                 case 'setup_Finished' :
-                    log ($app , $game_id , $user_id , $game->setup_Finished($user_id));
+                    log ($app , $game_id , $user_id , $game->setup_Finished($user_id) , $playerNames);
                     break ;
                 case 'revenue_ProvincialSPoils' :
-                    log ($app , $game_id , $user_id , $game->revenue_ProvincialSpoils( $user_id , $request->request->all() ));
+                    log ($app , $game_id , $user_id , $game->revenue_ProvincialSpoils( $user_id , $request->request->all() ) , $playerNames);
                     break ;
                 case 'revenue_Redistribution' :
-                    log ($app , $game_id , $user_id , $game->revenue_Redistribution ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
+                    log ($app , $game_id , $user_id , $game->revenue_Redistribution ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) , $playerNames ) ;
                     break ;
                 case 'revenue_RedistributionFinished' :
-                    log ($app , $game_id , $user_id , $game->revenue_RedistributionFinished ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) ) ;
+                    log ($app , $game_id , $user_id , $game->revenue_RedistributionFinished ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) , $playerNames ) ;
                     break ;
                 case 'revenue_Contributions' :
-                    log ($app , $game_id , $user_id , $game->revenue_Contributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) ) ;
+                    log ($app , $game_id , $user_id , $game->revenue_Contributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) , $playerNames ) ;
                     break ;
                 case 'revenue_Finished' :
-                    log ($app , $game_id , $user_id , $game->revenue_Finished ($user_id) );
+                    log ($app , $game_id , $user_id , $game->revenue_Finished ($user_id)  , $playerNames);
                     break ;
                 case 'forum_bid' :
-                    log ($app , $game_id , $user_id , $game->forum_bid ($user_id , $request->request->get('senator') , $request->request->get('amount') ) );
+                    log ($app , $game_id , $user_id , $game->forum_bid ($user_id , $request->request->get('senator') , $request->request->get('amount') ) , $playerNames );
                     break ;
                 case 'forum_rollEvent' :
-                    log ($app , $game_id , $user_id , $game->forum_rollEvent ($user_id) );
+                    log ($app , $game_id , $user_id , $game->forum_rollEvent ($user_id) , $playerNames );
                     break ;
                 case 'forum_persuasion' :
-                    log ($app , $game_id , $user_id , $game->forum_persuasion ($user_id , $request->request->get('persuader') , $request->request->get('target') , $request->request->get('amount') , $request->request->get('card') ) );
+                    log ($app , $game_id , $user_id , $game->forum_persuasion ($user_id , $request->request->get('persuader') , $request->request->get('target') , $request->request->get('amount') , $request->request->get('card') )  , $playerNames);
                     break ;
                 case 'forum_noPersuasion' :
-                    log ($app , $game_id , $user_id , $game->forum_noPersuasion ($user_id) );
+                    log ($app , $game_id , $user_id , $game->forum_noPersuasion ($user_id)  , $playerNames);
                     break ;
                 case 'forum_knights' :
-                    log ($app , $game_id , $user_id , $game->forum_knights ($user_id , $request->request->get('senator') , $request->request->get('amount') ) );
+                    log ($app , $game_id , $user_id , $game->forum_knights ($user_id , $request->request->get('senator') , $request->request->get('amount') ) , $playerNames );
                     break ;
                 case 'forum_pressureKnights' :
-                    log ($app , $game_id , $user_id , $game->forum_pressureKnights ($user_id , $request->request->all()) );
+                    log ($app , $game_id , $user_id , $game->forum_pressureKnights ($user_id , $request->request->all()) , $playerNames );
                     break ;
                 case 'forum_sponsorGames' :
-                    log ($app , $game_id , $user_id , $game->forum_sponsorGames ($user_id , $request->request->get('senator') , $request->request->get('type') ) );
+                    log ($app , $game_id , $user_id , $game->forum_sponsorGames ($user_id , $request->request->get('senator') , $request->request->get('type') ) , $playerNames );
                     break ;
                 case 'forum_changeLeader' :
-                    log ($app , $game_id , $user_id , $game->forum_changeLeader ($user_id , $request->request->get('senatorID') ) );
+                    log ($app , $game_id , $user_id , $game->forum_changeLeader ($user_id , $request->request->get('senatorID') ) , $playerNames );
                     break ;
                 case 'population_speech' :
-                    log ($app , $game_id , $user_id , $game->population_speech ($user_id) );
+                    log ($app , $game_id , $user_id , $game->population_speech ($user_id) , $playerNames );
                     break ;
                 case 'senate_proposal' :
-                    log ($app , $game_id , $user_id , $game->senate_proposal($user_id , $request->request->get('type') , $request->request->get('description') , $request->request->get('proposalHow') , $request->request->get('parameters')  , $request->request->get('votingOrder') ) );
+                    log ($app , $game_id , $user_id , $game->senate_proposal($user_id , $request->request->get('type') , $request->request->get('description') , $request->request->get('proposalHow') , $request->request->get('parameters')  , $request->request->get('votingOrder') ) , $playerNames );
                     break ;
                 case 'senate_vote' :
-                    log ($app , $game_id , $user_id , $game->senate_vote($user_id , $request->request->all() ) );
+                    log ($app , $game_id , $user_id , $game->senate_vote($user_id , $request->request->all() )  , $playerNames);
                     break ;
                 case 'senate_stepDown' :
-                    log ($app , $game_id , $user_id , $game->senate_stepDown($user_id , $request->request->get('stepDown') ) );
+                    log ($app , $game_id , $user_id , $game->senate_stepDown($user_id , $request->request->get('stepDown') ) , $playerNames );
                     break ;
                 case 'chat' :
                     $recipients = implode(';', $request->request->get('recipients')).';';
-                    log ($app , $game_id , $user_id , array(array($request->request->get('message') , 'chat' , $user_id.':'.$recipients))) ;
+                    log ($app , $game_id , $user_id , array(array($request->request->get('message') , 'chat' , $user_id.':'.$recipients)) , $playerNames) ;
                     break ;
             }
 
@@ -151,8 +159,9 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
  * @param ($app) - The current Silex Application (used to get accees to the database)
  * @param ($game_id) - the game id
  * @param ($logs) - An array of logs which are an array of 'message'[0] , 'type'[1] and 'recipients'[2]
+ * @param ($playerNames) - An array with the full names of parties & players
  */
-function log ( Application $app , $game_id , $user_id , $logs) {
+function log ( Application $app , $game_id , $user_id , $logs , $playerNames) {
     // Do nothing here if $logs is empty. That can happen if an action function returns nothing
     $listOfRecipients = array();
     if (count($logs)>0) {
@@ -173,7 +182,20 @@ function log ( Application $app , $game_id , $user_id , $logs) {
              * - user_id1:user_id2;user_id3;... the ":" means this is a message from a player to a list of other players.
              */
             if ( ($log[2]==NULL) || ($log[2]==$user_id) || (strstr($log[2],$user_id.';')!==FALSE) || (strstr($log[2],$user_id.':')!==FALSE) ) {
-                $app['session']->getFlashBag()->add($flashType,$log[0]);
+                $text = $log[0] ;
+                $recipients = $log[2] ;
+                foreach ($playerNames as $key => $playerName) {
+                    $text = str_replace('{'.$key.'}', $playerName, $text) ;
+                    $recipients = str_replace($key, $playerName, $recipients) ;
+                }
+                if ($log[1] == 'chat') {
+                    $recipients = str_replace(':', ' says to ', $recipients) ;
+                    $recipients = str_replace(';', ' , ', $recipients) ;
+                    $recipients = substr($recipients, 0 , -3);
+                    $text = $recipients.' : "'.$text.'"' ;
+                }
+
+                $app['session']->getFlashBag()->add($flashType,$text);
             }
             $app['db']->insert('logs' , Array ('game_id' => $game_id , 'message' => $log[0] , 'type' => $log[1] , 'recipients' => $log[2] , 'time_created' => microtime(TRUE) ) );
             // If a message is aimed at all players, set the listOfRecipients to NULL (which means everyone)

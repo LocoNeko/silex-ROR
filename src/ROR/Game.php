@@ -1365,7 +1365,7 @@ class Game
             }
             $this->party[$user_id]->treasury+=$base['total'] + $earnedFromDrought ;
             $concessionsTotal = $base['total']-($base['leader']!=NULL ? 3 : 0)-$base['senators']-$base['knights'] ;
-            array_push ($messages , array(sprintf(_('{%s} gains %dT : %dT from leader, %dT from senators, %dT from knights and %dT from Concessions.') , $user_id , $base['total'] , ($base['leader']!=NULL ? 3 : 0) , $base['senators'] , $concessionsTotal))) ;
+            array_push ($messages , array(sprintf(_('{%s} gains %dT : %dT from leader, %dT from senators, %dT from knights and %dT from Concessions.') , $user_id , $base['total'] , ($base['leader']!=NULL ? 3 : 0) , $base['senators'] , $base['knights'] , $concessionsTotal))) ;
             foreach ($droughtSpecificMessage as $droughtMessage) {
                 array_push ($messages , $droughtMessage);
             }
