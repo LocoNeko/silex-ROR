@@ -621,7 +621,7 @@ class Game
             while ($orderOfPlay[0] != $firstPlayer && $this->forum_whoseInitiative()==FALSE) {
                 $richestSenator = $this->party[$orderOfPlay[0]]->getRichestSenator();
                 if ($richestSenator['amount']<=$highestBid['bid']) {
-                    array_push($result['messages'] , array( sptrinf(_('Skipping %s : not enough talents to bid.') , $this->party[$orderOfPlay[0]]->user_id)) );
+                    array_push($result['messages'] , array( sprintf(_('Skipping {%s} : not enough talents to bid.') , $this->party[$orderOfPlay[0]]->user_id)) );
                     $this->party[$orderOfPlay[0]]->bidDone=TRUE;
                     array_push($orderOfPlay , array_shift($orderOfPlay) );
                 } else {
@@ -632,7 +632,7 @@ class Game
             // Skip all parties who have no money in their party treasury
             do {
                 if ($this->party[$orderOfPlay[0]]->treasury == 0) {
-                    array_push( $result['messages'], array(sptrinf(_('Skipping %s : no talents in the party treasury to counter-bribe.'),$this->party[$orderOfPlay[0]]->user_id)) );
+                    array_push( $result['messages'], array(sprintf(_('Skipping {%s} : no talents in the party treasury to counter-bribe.'),$this->party[$orderOfPlay[0]]->user_id)) );
                     array_push( $orderOfPlay, array_shift($orderOfPlay) );
                 } else {
                     break ;
@@ -1515,7 +1515,7 @@ class Game
         $messages = array () ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $this->party[$user_id]->phase_done=TRUE ;
-            array_push($messages , array(sprintf(_('{%s} has finished redistributing wealth.' , $user_id)))) ;
+            array_push($messages , array(sprintf(_('{%s} has finished redistributing wealth.') , $user_id))) ;
             if ($this->whoseTurn()===FALSE) {
                 array_push($messages , array(_('The redistribution sub phase is finished.'))) ;
                 array_push($messages , array(_('State revenues.'))) ;
@@ -1832,12 +1832,12 @@ class Game
             if ($party->bid>$result['bid']) {
                 $result['bid']=$party->bid ;
                 $result['user_id'] = $party->user_id;
-                $result['message'] = sprintf(_(' {%s} with a bid of %dT.') , $party['user_id'] , $result['bid']) ;
+                $result['message'] = sprintf(_(' %s with a bid of %dT.') , $party->fullName() , $result['bid']) ;
             }
         }
         if ($result['bid']==0) {
             $HRAO = $this->getHRAO() ;
-            $result['message'] = sprintf(_('The HRAO {%s} as all bets are 0.') , $HRAO['party']->user_id);
+            $result['message'] = sprintf(_('The HRAO (%s) as all bets are 0.') , $HRAO['party']->fullName());
             $result['user_id'] = $HRAO['user_id'];
         }
         return $result ;
@@ -2313,13 +2313,13 @@ class Game
                                 if (($currentPersuasion['target']['card']!==FALSE)) {
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
                                 }
-                                array_push ($messages , array('Attracting Knight : FAILURE - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
+                                array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
                             // Success
                             } else {
                                 if (($currentPersuasion['target']['card']!==FALSE)) {
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'SUCCESS') );
                                 }
-                                array_push ($messages , array('Attracting Knight : SUCCESS - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is lower than the target number of '.$currentPersuasion['odds']['total'].'.'));
+                                array_push ($messages , array('SUCCESS - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is not greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
                                 if ($currentPersuasion['target']['party'] == 'forum') {
                                     $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
@@ -2458,9 +2458,9 @@ class Game
                         $roll = $this->rollOneDie(-1);
                         if (($roll+$amount) >= 6) {
                             $senator->knights++;
-                            array_push($messages , array('SUCCESS - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is >= 6.')) ;
+                            array_push($messages , array('Attracting Knight : SUCCESS - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is >= 6.')) ;
                         } else {
-                            array_push($messages , array('FAILURE - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is < 6.')) ;
+                            array_push($messages , array('Attracting Knight : FAILURE - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is < 6.')) ;
                         }
                         $this->subPhase = 'SponsorGames';
                         array_push ($messages , array('Sponsor Games Sub Phase'));
