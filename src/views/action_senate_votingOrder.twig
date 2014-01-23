@@ -1,8 +1,30 @@
 <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
 <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
 <style>
-#sortable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
-#sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.5em; font-size: 1.4em; height: 18px; }
+#sortable { list-style-type: none; margin: 10px; padding: 0; display: inline-block; background-color: #bbb;}
+#sortable li {
+    margin: 0;
+    height: 45px;  
+    line-height: 48px;  
+    font-size: 1.4em;   
+    color: #fff;  
+    outline: 0;  
+    padding: 0;  
+    text-indent: 15px;  
+    background: rgb(78,82,91);  
+    background: -moz-linear-gradient(top,  rgb(78,82,91) 0%, rgb(57,61,68) 100%);  
+    background: -webkit-gradient(linear, left top, left bottombottom, color-stop(0%,rgb(78,82,91)), color-stop(100%,rgb(57,61,68)));  
+    background: -webkit-linear-gradient(top,  rgb(78,82,91) 0%,rgb(57,61,68) 100%);  
+    background: -o-linear-gradient(top,  rgb(78,82,91) 0%,rgb(57,61,68) 100%);  
+    background: -ms-linear-gradient(top,  rgb(78,82,91) 0%,rgb(57,61,68) 100%);  
+    background: linear-gradient(to bottombottom,  rgb(78,82,91) 0%,rgb(57,61,68) 100%);  
+    border-top: 1px solid rgba(255,255,255,.2);  
+    border-bottom: 1px solid rgba(0,0,0,.5);  
+    text-shadow: -1px -1px 0px rgba(0,0,0,.5);  
+    font-size: 1.1em;  
+    position: relative;  
+    cursor: pointer ;
+}
 #sortable li span { position: absolute; margin-left: -1.3em; }
 </style>
 <script>
