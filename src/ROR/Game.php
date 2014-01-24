@@ -3277,7 +3277,7 @@ class Game
                 $output['state'] = 'Decision' ;
                 $output['type'] = 'Consuls' ;
                 $senator = array() ; $party = array() ;
-                for ($i=0 ; $i++ ; $i<2) {
+                for ($i=0 ; $i<2 ; $i++) {
                     $senator[$i] = $this->getSenatorWithID($latestProposal->parameters[$i]) ;
                     $party[$i] = $this->getPartyOfSenator($senator[$i]);
                 }
@@ -3285,7 +3285,7 @@ class Game
                     $output['canDecide'] = FALSE ;
                 } else {
                     $output['canDecide'] = TRUE ;
-                    for ($i=0 ; $i++ ; $i<2) {
+                    for ($i=0 ; $i<2 ; $i++) {
                         if ($party[$i]->user_id == $user_id) {
                             if ( ($latestProposal->parameters[2]===NULL || $latestProposal->parameters[2]!=$senator[$i]->senatorID) && ($latestProposal->parameters[3]===NULL || $latestProposal->parameters[3]!=$senator[$i]->senatorID) ) {
                                 $output['senator'][$i] = $senator[$i] ;
@@ -3302,6 +3302,7 @@ class Game
                  * - Dictator appoints Master of horse
                  * - Appointed Prosecutor accepts/rejects appointment
                  * - Accused calls Popular Appeal
+                 * etc
                  */
                 
             /*
@@ -3315,6 +3316,10 @@ class Game
                     $output['treasury'][$senator->senatorID] = $senator->treasury ;
                 }
                 $output['votingOrder'] = $latestProposal->votingOrder ;
+                $output['votingOrderNames'] = array() ;
+                foreach ($output['votingOrder'] as $key=>$value) {
+                    $output['votingOrderNames'][$key] = $this->party[$value]->fullName();
+                }
                 // This is not your turn to vote
                 if ($output['votingOrder'][0]!=$user_id) {
                     $output['canVote'] = FALSE ;
@@ -3390,26 +3395,26 @@ class Game
          * Consuls decision
          */
         if (($this->phase=='Senate') && ($this->subPhase=='Consuls') && $latestProposal->outcome===TRUE && $request['type']=='consuls') {
-            for ($i=0 ; $i++ ; $i<2) {
+            for ($i=0 ; $i<2 ; $i++) {
                 $senator[$i] = $this->getSenatorWithID($latestProposal->parameters[$i]) ;
-                $party[$i] = $this->getPartyOfSenator($senator[$i]);
+                $party[$i] = $this->getPartyOfSenator($senator[$i])->user_id;
                 $choice[$i] = (isset($request[$latestProposal->parameters[$i]]) ? $request[$latestProposal->parameters[$i]] : FALSE) ;
             }
-            if ($party[0]->user_id!=$user_id && $party[1]->user_id!=$user_id) {
+            if ($party[0]!=$user_id && $party[1]!=$user_id) {
                 return array(array(_('You cannot take such a decision at this moment.')  , 'error' , $user_id));
             }
             $disagreement = FALSE ;
-            for ($i=0 ; $i++ ; $i<2) {
+            for ($i=0 ; $i<2 ; $i++) {
                 // The player has made a choice for this senator
                 if ($party[$i]==$user_id && $choice[$i]!==FALSE) {
                     if ( ($choice[$i]=='ROME' && $latestProposal->parameters[2]!==NULL) || ($choice[$i]=='FIELD' && $latestProposal->parameters[3]!==NULL) ) {
                         $disagreement = TRUE ;
                     } elseif ($choice[$i]=='ROME') {
                         array_push($messages , array(sprintf(_('You picked %s to be Rome Consul.') , $senator[$i]->name) , 'message' , $user_id )) ;
-                        $latestProposal->parameters[2] = $senator[$i]->senatorID ;
+                        $this->proposals[count($this->proposals)-1]->parameters[2] = $senator[$i]->senatorID ;
                     } elseif ($choice[$i]=='FIELD') {
                         array_push($messages , array(sprintf(_('You picked %s to be Field Consul.') , $senator[$i]->name) , 'message' , $user_id )) ;
-                        $latestProposal->parameters[3] = $senator[$i]->senatorID ;
+                        $this->proposals[count($this->proposals)-1]->parameters[3] = $senator[$i]->senatorID ;
                     } 
                 }
             }
@@ -3419,12 +3424,14 @@ class Game
                 $latestProposal->parameters[($roll<=3 ? 2 : 3)] = $latestProposal->parameters[0];
                 $latestProposal->parameters[($roll<=3 ? 3 : 2)] = $latestProposal->parameters[1];
                 array_push($messages , array(_('As the newly elected pair couldn\'t agree, the senators are randomely appointed.')));
-                array_push($messages , array(sprintf(_('%s becomes Rome Consul, and %s becomes Field Consul') , $senator[($roll<=3 ? 0 : 1)]->name , $senator[($roll<=3 ? 1 : 0)]->name)));
+                $romeConsul = $this->senate_appointConsul('Rome Consul' , $latestProposal->parameters[2]);
+                $fieldConsul = $this->senate_appointConsul('Field Consul' , $latestProposal->parameters[3]);
+                array_push($messages , array(sprintf(_('%s becomes Rome Consul, and %s becomes Field Consul') , $romeConsul->name , $fieldConsul->name)));
             // Both consuls picked
             } elseif ($latestProposal->parameters[2]!==NULL && $latestProposal->parameters[3]!==NULL) {
-                // TO DO : adjust senators INF and Office
-                $sameOrder = ($latestProposal->parameters[0]==$latestProposal->parameters[2]) ;
-                array_push($messages , array(sprintf(_('%s becomes Rome Consul, and %s becomes Field Consul') , $senator[($sameOrder ? 0 : 1)]->name , $senator[($sameOrder ? 1 : 0)]->name)));
+                $romeConsul = $this->senate_appointConsul('Rome Consul' , $latestProposal->parameters[2]);
+                $fieldConsul = $this->senate_appointConsul('Field Consul' , $latestProposal->parameters[3]);
+                array_push($messages , array(sprintf(_('%s becomes Rome Consul, and %s becomes Field Consul') , $romeConsul->name , $fieldConsul->name)));
             // One consul hasn't been picked yet
             } else {
                 array_push($messages , array(_('Now waiting for the other elected consul to pick a position.') , 'message' , $user_id ));
@@ -3438,6 +3445,26 @@ class Game
         return $messages ;
     }
 
+    /**
+     * Convenience function to appoint consuls
+     * @param string $type 'Rome Consul' | 'Field Consul'
+     * @param string $senatorID The senatorID of the senator to appoint
+     * @return mixed senator object if successful, FALSE if $type was wrong
+     */
+    private function senate_appointConsul($type , $senatorID) {
+        if ($type=='Rome Consul' || $type=='Field Consul') {
+            $currentConsul = $this->senate_findOfficial($type);
+            if ($currentConsul!==FALSE) {
+                $currentConsul['senator']->office = NULL ;
+            }
+            $consul = $this->getSenatorWithID($senatorID) ;
+            $consul->office = $type ;
+            $consul->changeINF(5) ;
+            return $consul ;
+        } else {
+            return FALSE ;
+        }
+    }
     /**
      * This function returns an array indicating all the ways user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune')
      * or empty array if he can't

@@ -93,7 +93,7 @@ You cannot make a proposal at the moment
         <button type="submit" class="btn-danger">CAST VOTE BY SENATORS</button>
     </form>
     {% else %}
-    Currently voting : {{output['votingOrder'][0]}}<br>
+    Currently voting : {{output['votingOrderNames'][0]}}<br>
     {# Cannot vote #}
     {% endif %}
 
@@ -107,18 +107,18 @@ You cannot make a proposal at the moment
             <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_decision'} ) }}">
                 <input type="hidden" name="type" id="type" value="consuls">
                 {% for senator in output['senator']%}
-                    {% if senator!='notYou' %}
-                        The choice is not yours.<br>
-                    {% elseif senator!='alreadyDecided'%}
+                    {% if senator=='notYou' %}
+                    {% elseif senator=='alreadyDecided'%}
                         You have made your choice.<br>
                     {% else %}
                         You want {{senator.name}} to be 
                         <select name="{{senator.senatorID}}">
                             <option value="ROME">ROME CONSUL</option>
                             <option value="FIELD">FIELD CONSUL</option>
-                        </select>
+                        </select><br>
                     {% endif %}
                 {% endfor %}
+                <button type="submit" class="btn-danger">OK</button>
             </form>
         {% else %}
             Waiting for the elected consuls to decide between themselves

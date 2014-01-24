@@ -133,6 +133,7 @@ class RORControllerProvider implements ControllerProviderInterface
                 $app['db']->query("DELETE FROM logs WHERE game_id = '".$game_id."' AND time_created > ".$time);
                 $app['db']->query("DELETE FROM saved_games WHERE game_id = '".$game_id."' AND time_saved > ".$time);
                 $app['db']->update("games" , Array("game_data" => $game_data) , Array ("game_id" => $game_id) );
+                $app['session']->set('POST' , NULL) ;
                 $app['session']->getFlashBag()->add('alert',_('Game loaded'));
                 return $app->redirect($app['url_generator']->generate('Action' , Array('game_id' => $game_id) ) );
             } else {
