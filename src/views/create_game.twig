@@ -17,6 +17,14 @@
                         </label>
                     {% endfor %}
                     </div>
+                <label class="control-label">Variants:</label>
+                    <div class="controls">
+                    {% for valid_variant in valid_variants %}
+                        <label class="checkbox">
+                            <input type="checkbox" name="variants[]" value="{{valid_variant}}">{{valid_variant}}
+                        </label>
+                    {% endfor %}
+                    </div>
                 <label class="control-label">Name:</label>
                     <div class="controls">
                         <input name="name" type="text" id="name">

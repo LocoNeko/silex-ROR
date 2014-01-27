@@ -95,8 +95,9 @@ class RORControllerProvider implements ControllerProviderInterface
                 return $app->redirect($app['url_generator']->generate('ListGames'));
             } else {
                 return $app['twig']->render('create_game.twig', array(
-                       'layout_template' => 'layout.twig',
+                        'layout_template' => 'layout.twig',
                         'valid_scenarios' => Game::$VALID_SCENARIOS,
+                        'valid_variants' => Game::$VALID_VARIANTS,
                     ));
             }
         })
@@ -249,7 +250,14 @@ class RORControllerProvider implements ControllerProviderInterface
             } else {
                 return FALSE ;
             }
-            $app['db']->insert('games', Array( 'game_id' => $id , 'name' => $name , 'time_created' => time() , 'status' => 'Pre-game' , 'scenario' => $scenario ));
+            $variantsArray = $request->request->get('variants[]') ;
+            $variantList='';
+            foreach ($variantsArray as $variant) {
+                if (in_array($variant, Game::$VALID_VARIANTS)) {
+                    $variantList.=$variant.',';
+                }
+            }
+            $app['db']->insert('games', Array( 'game_id' => $id , 'name' => $name , 'time_created' => time() , 'status' => 'Pre-game' , 'scenario' => $scenario , 'variants' => $variantList));
             return TRUE ;
     }
 	

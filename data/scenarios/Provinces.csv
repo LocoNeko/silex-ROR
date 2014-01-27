@@ -1,16 +1,16 @@
-;;"Province";"RevUnSenVar";"RevUnSenFix";"RevUnRomeVar";"RevUnRomeFix";"RevDevSenVar";"RevDevSenFix";"RevDevRomeVar";"RevDevRomeFix";;;;;;;;;
-160;"SICILIA";"Province";1;0;1;-2;1;4;1;2;;;;;;;;;
-161;"SARDINIA & CORSICA";"Province";1;-5;-1;-1;1;-1;-1;1;;;;;;;;;
-162;"HISPANIA CITERIOR";"Province";1;-2;-1;1;1;2;1;1;;;;;;;;;
-163;"HISPANIA ULTERIOR";"Province";1;-3;-1;-1;1;1;1;-1;;;;;;;;;
-164;"ILLYRICUM";"Province";1;-3;-1;-1;1;0;1;0;;;;;;;;;
-165;"GALLIA CISALPINA";"Province";1;-1;1;-1;1;3;2;-1;;;;;;;;;
-166;"MACEDONIA";"Province";;;;;;;;;;;;;;;;;
-167;"AFRICA";"Province";;;;;;;;;;;;;;;;;
-168;"GALLIA NARBONENSIS";"Province";;;;;;;;;;;;;;;;;
-169;"CILICIA & CYPRUS";"Province";;;;;;;;;;;;;;;;;
-170;"ASIA";"Province";;;;;;;;;;;;;;;;;
-171;"SYRIA";"Province";;;;;;;;;;;;;;;;;
-172;"BITHYNIA";"Province";;;;;;;;;;;;;;;;;
-173;"GALLIA TRANSALPINA";"Province";;;;;;;;;;;;;;;;;
-174;"CRETA & CYRENAICA";"Province";;;;;;;;;;;;;;;;;
+;;Province;RevUnSenVar;RevUnSenFix;RevUnRomeVar;RevUnRomeFix;RevDevSenVar;RevDevSenFix;RevDevRomeVar;RevDevRomeFix;UnLand;UnSea;DevLand;DevSea;Frontier
+160;SICILIA;Province;1;0;1;-2;1;4;1;2;2;0;2;0;0
+161;SARDINIA & CORSICA;Province;1;-5;-1;-1;1;-1;-1;1;0;0;1;0;0
+162;HISPANIA CITERIOR;Province;1;-2;-1;1;1;2;1;1;1;0;2;0;1
+163;HISPANIA ULTERIOR;Province;1;-3;-1;-1;1;1;1;-1;2;0;4;0;1
+164;ILLYRICUM;Province;1;-3;-1;-1;1;0;1;0;2;0;4;0;1
+165;GALLIA CISALPINA;Province;1;-1;1;-1;1;3;2;-1;1;0;2;0;1
+166;MACEDONIA;Province;1;1;2;-2;2;-1;2;2;5;5;5;5;1
+167;AFRICA;Province;1;-1;2;-4;1;3;1;1;3;5;4;5;0
+168;GALLIA NARBONENSIS;Province;1;-3;1;-3;1;1;1;1;1;0;2;0;0
+169;CILICIA & CYPRUS;Province;1;-4;-1;0;1;0;-1;3;2;5;3;5;0
+170;ASIA;Province;1;2;2;-3;1;6;2;3;6;5;6;5;0
+171;SYRIA;Province;1;-1;1;0;1;3;1;0;4;5;4;5;0
+172;BITHYNIA;Province;1;-4;1;-2;1;2;1;2;2;5;4;5;0
+173;GALLIA TRANSALPINA;Province;1;-4;1;-5;1;0;1;1;3;0;6;0;1
+174;CRETA & CYRENAICA;Province;1;-1;1;-2;1;1;1;2;1;5;2;5;1

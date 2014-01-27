@@ -9,6 +9,7 @@ namespace ROR;
  * $subPhase (string) : the current sub phase of the current phase
  * $initiative (int) : Current initiative from 1 to 6
  * $scenario (string), can have any value defined in $VALID_SCENARIOS
+ * $variants (array) : an array of values that must be in $VALID_SCENARIOS
  * $unrest (int) : current unrest level
  * $treasury (int) : current treasury
  * $nbPlayers (int) : number of human players from 1 to 6
@@ -49,13 +50,13 @@ class Game
     public static $VALID_PHASES = array('Setup','Mortality','Revenue','Forum','Population','Senate','Combat','Revolution');
     public static $VALID_ACTIONS = array('Bid','RollEvent','Persuasion','Knights','ChangeLeader','SponsorGames','curia');
     public static $DEFAULT_PARTY_NAMES = array ('Imperials' , 'Plutocrats' , 'Conservatives' , 'Populists' , 'Romulians' , 'Remians');
-    //public static $VALID_SCENARIOS = array('EarlyRepublic','MiddleRepublic','LateRepublic');
     public static $VALID_SCENARIOS = array('EarlyRepublic');
+    public static $VALID_VARIANTS = array('Pontifex Maximus' , 'Provincial Wars' , 'Rebel governors' , 'Legionary disbandment' , 'Advocates' , 'Passing Laws' , 'Free Parking');
     
     private $id ;
     public $name ;
     public $turn , $phase , $subPhase , $initiative ;
-    public $scenario , $unrest , $treasury , $nbPlayers ;
+    public $scenario , $variants , $unrest , $treasury , $nbPlayers ;
     public $currentBidder , $persuasionTarget ;
     public $party ;
     public $drawDeck , $earlyRepublic , $middleRepublic , $lateRepublic , $discard , $unplayedProvinces , $inactiveWars , $activeWars , $imminentWars , $unprosecutedWars , $forum , $curia ;
@@ -77,7 +78,7 @@ class Game
      * @param array $userNames array of 'user_id'=>'user name'
      * @return mixed FALSE (failure) OR $messages array (success)
      */
-    public function create($name , $scenario , $partyNames , $userNames) {
+    public function create($name , $scenario , $partyNames , $userNames , $pickedVariants) {
         $messages = array () ;
         $this->id = substr(md5(uniqid(rand())),0,8) ;
         $this->name = $name;
@@ -88,6 +89,8 @@ class Game
         if (in_array($scenario, self::$VALID_SCENARIOS)) {
             $this->scenario = $scenario ;
         } else {return FALSE;}
+        // TO DO : Variants check
+        $this->variants = explode(',' , $pickedVariants) ;
         $this->unrest = 0 ;
         $this->treasury = 100 ;
         $this->nbPlayers = count($partyNames);
@@ -845,6 +848,56 @@ class Game
         return $result ;
     }
     
+    /**
+     * 
+     * @param Conflict $conflict
+     * @return int|boolean
+     */
+    public function getNumberOfMatchedConflicts($conflict) {
+        $result = 0 ;
+        if ($conflict->type != 'Conflict') {
+            return FALSE ;
+        }
+        foreach ($this->activeWars as $active) {
+            if ( $active->matches == $conflict->matches) {
+                $result++;
+            }
+        }
+        foreach ($this->unprosecutedWars  as $unprosecuted) {
+            if ( $unprosecuted->matches == $conflict->matches ) {
+                $result++;
+            }
+        }
+        // No conflict matching this has been found
+        if ($result==0) {
+            return FALSE ;
+        }
+        return $result ;
+    }
+    
+    /**
+     * 
+     * @param Conflict $conflict
+     * @return aray|boolean Array("land" , "support" , "fleet") | FALSE
+     */
+    public function getModifiedConflictStrength($conflict) {
+        $result = array () ;
+        if ($conflict->type != 'Conflict') {
+            return FALSE ;
+        }
+        $result['land'] = $conflict->land ;
+        $result['support'] = $conflict->support ;
+        $result['fleet'] = $conflict->fleet ;
+        $matchedConflicts = $this->getNumberOfMatchedConflicts($conflict) ;
+        $result['land'] *= $matchedConflicts ;
+        $result['fleet'] *= $matchedConflicts ;
+        foreach ($conflict->leaders->cards as $leader) {
+            $result['land']+=$leader->strength ;
+            $result['fleet']+=$leader->strength ;
+        }
+        return $result ;
+    }
+    
     /************************************************************
      * Functions for SETUP phase
      ************************************************************/
@@ -1210,7 +1263,7 @@ class Game
     private function revenue_barbarianRaids ($barbarianRaids , $province , $senator) {
         $messages = array() ;
         $provinceName = $province->name ;
-        $writtenForce = $province->land ;
+        $writtenForce = $province->land() ;
         $garrisons = $this->getProvinceGarrisons($province) ;
         $governorName = $senator->name ;
         $governorMIL = $senator->MIL ;
@@ -3436,6 +3489,8 @@ class Game
             } else {
                 array_push($messages , array(_('Now waiting for the other elected consul to pick a position.') , 'message' , $user_id ));
             }
+            // Consuls have been elected : check possibility of a dictator
+            // TO DO
         /*
          * TO DO : Other decision types
          */
@@ -3465,6 +3520,29 @@ class Game
             return FALSE ;
         }
     }
+    
+    /**
+     * Returns the reason why a dictator can be appointed. If impossible, the array will be empty.
+     * @return array
+     */
+    private function senate_getDictatorFlag() {
+        $result = array() ;
+        if ( ($this->unprosecutedWars->nbCards() + $this->activeWars->nbCards()) >= 3 ) {
+            array_push($result , _('There is 3 or more active conflicts') ) ;
+        }
+        foreach ($this->activeWars as $active) {
+            if ( ($this->getModifiedConflictStrength($active)) >= 20) {
+                array_push($result , sprintf(_('%s has a combined strength equal or greater than 20') , $active->name) ) ;
+            }
+        }
+        foreach ($this->unprosecutedWars  as $unprosecuted) {
+            if ( ($this->getModifiedConflictStrength($unprosecuted)) >= 20) {
+                array_push($result , sprintf(_('%s has a combined strength equal or greater than 20') , $unprosecuted->name) ) ;
+            }
+        }
+        return $result ;
+    }
+    
     /**
      * This function returns an array indicating all the ways user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune')
      * or empty array if he can't

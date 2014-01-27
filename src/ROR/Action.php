@@ -33,7 +33,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
             $userNames[$values['user_id']] = $app['user.manager']->getUser($values['user_id'])->getName();
         }
         $game = new Game ;
-        $messages = $game->create($game_stmt['name'] , $game_stmt['scenario'], $partyNames , $userNames) ;
+        $messages = $game->create($game_stmt['name'] , $game_stmt['scenario'], $partyNames , $userNames , $game_stmt['variants']) ;
         if ($messages !== FALSE) {
             $game_data = serialize($game);
             $app['db']->update('games' , Array ('game_data' => $game_data ) , Array('game_id' => $game_id) );

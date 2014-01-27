@@ -5,9 +5,14 @@ CREATE TABLE `games` (
   `time_created` int(11) NOT NULL DEFAULT '0',
   `status` varchar(50) NOT NULL DEFAULT 'Pre-game',
   `scenario` varchar(50) NOT NULL DEFAULT '',
+  `variants` varchar(1000) NOT NULL DEFAULT '',
   `game_data` blob,
   UNIQUE KEY `game_id` (`game_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+/*
+ALTER TABLE games ADD variants varchar(1000) NOT NULL DEFAULT '';
+*/
 
 DROP TABLE IF EXISTS `logs`;
 CREATE TABLE `logs` (

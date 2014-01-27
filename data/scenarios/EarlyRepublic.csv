@@ -1,13 +1,13 @@
 ;Title;Type;;;;;;;;;;;;;;;
 ;;Conflict;matches;# of matched wars;Subtext 2;Active;Causes;Attacks province#;Revolt if province# exists;Victory creates province#; OR all wars defeated  war:province;Land strength;Fleet support;Fleet strength;Disaster;Standoff;Spoils
-1;1ST PUNIC WAR;Conflict;Punic;3;264 - 241 BC		;0	;;;;Sicilia, Corsica et Sardinia;;10;5;10;13;11,14;35
-2;2ND PUNIC WAR;Conflict;Punic;3;218 - 201 BC		;1	;tax farmer;Gallia Cisalpina, Gallia Narbonensis;;Hispania Citerior, Hispania Ulterior;;15;5;0;10;11,15;25
-3;1ST ILLYRIAN WAR;Conflict;Illyrian;2;229 - 228 BC	;0	;drought;Macedonia;;;Illyricum;5;3;0;5;17;10
-4;2ND ILLYRIAN WAR;Conflict;Illyrian;2;220 - 219 BC	;1	;;Macedonia;;;Illyricum;4;2;0;5;17;10
-5;1ST GALIC WAR;Conflict;Gallic;3;225 - 222 BC		;1	;;Gallia Cisalpina, Gallia Narbonensis, Gallia Transalpina;;Gallia Cisalpina;;10;0;0;13;15;20
-6;1ST MACEDONIAN WAR;Conflict;Macedonian;4;215 - 205 BC	;1	;;Illyricum, Macedonia;Macedonia;;;12;10;0;12;11,18;25
-7;2ND MACEDONIAN WAR;Conflict;Macedonian;4;200 - 196 BC	;0	;;Illyricum, Macedonia;Macedonia;;;10;5;0;13;14;45
-8;SYRIAN WAR;Conflict;Syrian;1;192 - 189 BC		;1	;;Bithynia, Macedonia, Asia;Syria;;;6;2;0;16;15;45
+1;1ST PUNIC WAR;Conflict;Punic;3;264 - 241 BC;0;;;;160,161;;10;5;10;13;11,14;35
+2;2ND PUNIC WAR;Conflict;Punic;3;218 - 201 BC;1;tax farmer;165,168;;162,163;;15;5;0;10;11,15;25
+3;1ST ILLYRIAN WAR;Conflict;Illyrian;2;229 - 228 BC;0;drought;166;;;164;5;3;0;5;17;10
+4;2ND ILLYRIAN WAR;Conflict;Illyrian;2;220 - 219 BC;1;;166;;;164;4;2;0;5;17;10
+5;1ST GALIC WAR;Conflict;Gallic;3;225 - 222 BC;1;;165,168,173;;165;;10;0;0;13;15;20
+6;1ST MACEDONIAN WAR;Conflict;Macedonian;4;215 - 205 BC;1;;164,166;166;;;12;10;0;12;11,18;25
+7;2ND MACEDONIAN WAR;Conflict;Macedonian;4;200 - 196 BC;0;;164,166;166;;;10;5;0;13;14;45
+8;SYRIAN WAR;Conflict;Syrian;1;192 - 189 BC;1;;172,166,170;171;;;6;2;0;16;15;45
 ;;Family;ID;MIL;ORA;LOY;Influence;LOY Special;Abilities;;;;;;;;
 ;;Statesman;ID;MIL;ORA;LOY;Influence;LOY Special;Abilities;;;;;;;;
 9;CORNELIUS;Family;1;4;3;9;5;;;;;;;;;;

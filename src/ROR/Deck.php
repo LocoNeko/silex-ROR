@@ -63,6 +63,10 @@ class Deck
         return array_shift($this->cards) ;
     }
     
+    public function nbCards() {
+        return count($this->cards);
+    }
+    
     /**
      * Creates a deck from a scenario csv file located in <b>/../../data/scenarios/</b>
      * @param string $scenarioName The name of the scenario
