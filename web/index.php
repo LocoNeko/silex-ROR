@@ -28,7 +28,7 @@ ExceptionHandler::register();
 $app = new Silex\Application();
 $app['debug'] = true;
 
-$config=parse_ini_file(__DIR__.'/../src/application.ini');
+$config=parse_ini_file(__DIR__.'/../config/application.ini');
  
 $app->register(new Provider\DoctrineServiceProvider(), array('db.options' => array(
     'driver'   => 'pdo_mysql',
