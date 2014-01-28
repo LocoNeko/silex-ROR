@@ -14,6 +14,7 @@ class Party
      * $phase_done (bool) : Whether this party has played its phase or not
      * $bid (int) : The party's current initiative/persuasion bid
      * $bidDone (bool) : whether or not this party is done bidding for initiative or NULL (WARNING : This is NOT used for persuasion)
+     *                  Also using bidDone for Seante (Dictator appointment/election)
      * $bidWith (Senator) : the senator the party is bidding with for initiative/persuasion or NULL
      */
     public $user_id;

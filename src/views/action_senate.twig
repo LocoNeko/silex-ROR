@@ -8,9 +8,11 @@
     You can make a Proposal<br>
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_proposal'} ) }}">
 
-        {# Consuls proposal #}
+        {#
+            Consuls proposal
+        #}
         {% if output['type']=='Consuls' %}
-        Nominate :<br>
+        Nominate for Consularship :<br>
             <input type="hidden" name="type" value="Consuls">
             <select name="parameters[0]" style="width:500px;">
                 {%for senator in output['senators']%}
@@ -28,7 +30,23 @@
                 {% endfor %}
             </select>
             <br><br>
+        {#
+            Dictator proposal
+        #}
         {% elseif output['type']=='Dictator' %}
+        {#
+            Censor proposal
+        #}
+        {% elseif output['type']=='Censor' %}
+        Nominate for Censorship :<br>
+            <input type="hidden" name="type" value="Censor">
+            <select name="parameters[0]" style="width:500px;">
+                {%for senator in output['senators']%}
+                <option value="{{senator['senatorID']}}">
+                     {{senator['name']}} ({{senator['partyName']}})
+                </option>
+                {% endfor %}
+            </select><br>
         {#
         TO DO : 15 other types of proposals
         #}

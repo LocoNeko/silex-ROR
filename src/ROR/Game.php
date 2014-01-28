@@ -3284,7 +3284,6 @@ class Game
          * - Tribune
          */
         $latestProposal = $this->senate_getLatestProposal() ;
-        
         /*
          * Short-circuit the normal view if the sate is 'Unanimous defeat'
          */
@@ -3421,8 +3420,23 @@ class Game
                     $output['state'] = 'Proposal impossible';
                 }
             /*
+             * Pontifex Maximus
+             */
+            /*
              * Dictator
              */
+            /*
+             * Censor
+             */
+            } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Censor') ) {
+                $candidates = $this->senate_possibleCensors() ;
+                $output['state'] = 'Proposal';
+                $output['type'] = 'Censor';
+                $output['proposalHow'] = $this->senate_canMakeProposal($user_id);
+                $output['senators'] = array () ;
+                foreach ($candidates as $candidate) {
+                    array_push($output['senators'] , array('senatorID' => $candidate->senatorID , 'name' => $candidate->name , 'partyName' => $this->getPartyOfSenator($candidate)->fullName())) ;
+                }
             } else {
                 // TO DO : All the rest...
                 $output['state'] = 'Error';
@@ -3477,20 +3491,41 @@ class Game
                 $latestProposal->parameters[($roll<=3 ? 2 : 3)] = $latestProposal->parameters[0];
                 $latestProposal->parameters[($roll<=3 ? 3 : 2)] = $latestProposal->parameters[1];
                 array_push($messages , array(_('As the newly elected pair couldn\'t agree, the senators are randomely appointed.')));
-                $romeConsul = $this->senate_appointConsul('Rome Consul' , $latestProposal->parameters[2]);
-                $fieldConsul = $this->senate_appointConsul('Field Consul' , $latestProposal->parameters[3]);
+                $romeConsul = $this->senate_appointOfficial('Rome Consul' , $latestProposal->parameters[2]);
+                $fieldConsul = $this->senate_appointOfficial('Field Consul' , $latestProposal->parameters[3]);
                 array_push($messages , array(sprintf(_('%s becomes Rome Consul, and %s becomes Field Consul') , $romeConsul->name , $fieldConsul->name)));
             // Both consuls picked
             } elseif ($latestProposal->parameters[2]!==NULL && $latestProposal->parameters[3]!==NULL) {
-                $romeConsul = $this->senate_appointConsul('Rome Consul' , $latestProposal->parameters[2]);
-                $fieldConsul = $this->senate_appointConsul('Field Consul' , $latestProposal->parameters[3]);
+                $romeConsul = $this->senate_appointOfficial('Rome Consul' , $latestProposal->parameters[2]);
+                $fieldConsul = $this->senate_appointOfficial('Field Consul' , $latestProposal->parameters[3]);
                 array_push($messages , array(sprintf(_('%s becomes Rome Consul, and %s becomes Field Consul') , $romeConsul->name , $fieldConsul->name)));
             // One consul hasn't been picked yet
             } else {
                 array_push($messages , array(_('Now waiting for the other elected consul to pick a position.') , 'message' , $user_id ));
             }
             // Consuls have been elected : check possibility of a dictator
-            // TO DO
+            if ($latestProposal->parameters[2]!==NULL && $latestProposal->parameters[3]!==NULL) {
+                $dictatorFlag = $this->senate_getDictatorFlag();
+                if (count($dictatorFlag)==0) {
+                    array_push($messages , array(_('A dictator cannot be appointed or elected. Moving on to Censor election.')) );
+                    $this->subPhase='Censor';
+                    $candidates = $this->senate_possibleCensors() ;
+                    if (count($candidates)==1) {
+                        array_push($messages , array(sprintf(_('Only %s is eligible for Censorship, so he is automatically elected.' , $candidates[0]))) );
+                        // TO DO
+                    }
+                } else {
+                    // A dictator can be appointed/elected. Set each party's "bidDone" to FALSE to give them all a chance to do so.
+                    foreach ($dictatorFlag as $flag) {
+                        array_push($messages , array($flag) );
+                    }
+                    array_push($messages , array(_('A dictator can be appointed or elected.')) );
+                    foreach($this->party as $party) {
+                        $party->bidDone = FALSE ;
+                    }
+                    $this->subPhase='Dictator';
+                }
+            }
         /*
          * TO DO : Other decision types
          */
@@ -3501,21 +3536,35 @@ class Game
     }
 
     /**
-     * Convenience function to appoint consuls
-     * @param string $type 'Rome Consul' | 'Field Consul'
+     * Convenience function to appoint officials
+     * @param string $type 'Dictator' | 'Rome Consul' | 'Field Consul' | 'Censor' | 'Master of Horse' | 'Pontifex Maximus'
      * @param string $senatorID The senatorID of the senator to appoint
-     * @return mixed senator object if successful, FALSE if $type was wrong
+     * @return mixed senator object if successful, FALSE if $type was wrong or Senator already holds an office
      */
-    private function senate_appointConsul($type , $senatorID) {
-        if ($type=='Rome Consul' || $type=='Field Consul') {
-            $currentConsul = $this->senate_findOfficial($type);
-            if ($currentConsul!==FALSE) {
-                $currentConsul['senator']->office = NULL ;
+    private function senate_appointOfficial($type , $senatorID) {
+        if (in_array($type , Senator::$VALID_OFFICES)) {
+            $currentOfficial = $this->senate_findOfficial($type);
+            $official = $this->getSenatorWithID($senatorID) ;
+            // Error : Senator already holds an office other than Censor (who can be re-elected)
+            if ($official->office!=NULL && $type!='Censor') {
+                return FALSE ;
             }
-            $consul = $this->getSenatorWithID($senatorID) ;
-            $consul->office = $type ;
-            $consul->changeINF(5) ;
-            return $consul ;
+            if ($currentOfficial!==FALSE) {
+                $currentOfficial['senator']->office = NULL ;
+            }
+            $official->office = $type ;
+            switch ($type) {
+                case 'Dictator' :
+                    $INFincrease = 7 ;
+                    break ;
+                case 'Master of Horse' :
+                    $INFincrease = 3 ;
+                    break ;
+                default :
+                    $INFincrease = 5 ;
+            }
+            $official->changeINF($INFincrease) ;
+            return $official ;
         } else {
             return FALSE ;
         }
@@ -3530,12 +3579,12 @@ class Game
         if ( ($this->unprosecutedWars->nbCards() + $this->activeWars->nbCards()) >= 3 ) {
             array_push($result , _('There is 3 or more active conflicts') ) ;
         }
-        foreach ($this->activeWars as $active) {
+        foreach ($this->activeWars->cards as $active) {
             if ( ($this->getModifiedConflictStrength($active)) >= 20) {
                 array_push($result , sprintf(_('%s has a combined strength equal or greater than 20') , $active->name) ) ;
             }
         }
-        foreach ($this->unprosecutedWars  as $unprosecuted) {
+        foreach ($this->unprosecutedWars->cards  as $unprosecuted) {
             if ( ($this->getModifiedConflictStrength($unprosecuted)) >= 20) {
                 array_push($result , sprintf(_('%s has a combined strength equal or greater than 20') , $unprosecuted->name) ) ;
             }
@@ -3634,6 +3683,38 @@ class Game
             }
         }
         return $result;
+    }
+    
+    /**
+     * Returns an array of senators that can be elected Censor
+     * @return array
+     */
+    public function senate_possibleCensors() {
+        $result=array();
+        $alreadyRejected=array();
+        foreach ($this->proposals as $proposal) {
+            if ( ($proposal->type=='Censor') && ($proposal->outcome==FALSE) ) {
+                array_push($alreadyRejected , $proposal->parameters[0]) ;
+            }
+        }
+        foreach($this->party as $party) {
+            foreach($party->senators->cards as $senator) {
+                if ($senator->priorConsul && $senator->inRome() && $senator->office != 'Dictator' && $senator->office != 'Rome Consul' && $senator->office != 'Field Consul' && !in_array($senator->senatorID , $alreadyRejected) ) {
+                    array_push($result , $senator);
+                }    
+            }
+        }
+        // If there is no possible candidate, the Censor can exceptionnaly be a Senator without prior consul marker
+        if (count($result)==0) {
+            foreach($this->party as $party) {
+                foreach($party->senators->cards as $senator) {
+                    if ($senator->inRome() && $senator->office != 'Dictator' && $senator->office != 'Rome Consul' && $senator->office != 'Field Consul' && !in_array($senator->senatorID , $alreadyRejected)) {
+                        array_push($result , $senator);
+                    }    
+                }
+            }
+        }
+        return $result ;
     }
     
     /**
