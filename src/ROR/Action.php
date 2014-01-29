@@ -39,13 +39,21 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
             $app['db']->update('games' , Array ('game_data' => $game_data ) , Array('game_id' => $game_id) );
             // First game save
             $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => $game->phase , 'subPhase' => $game->subPhase , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
-            log($app , $game_id , $user_id , $messages ) ;
-        } else {
-            // TO DO : Failure to create game
+            // Initialise the $playerNames array, so we can pass it to the log function to properly display logs. (This is ugly as it's done once more below, but can't be bothered)
+            $playerNames = array() ;
+            foreach ($game->party as $key=>$party) {
+                $playerNames[$key] = ($party->user_id==$user_id ? $party->name._(' [you]') : $party->fullName()) ;
+            }
+            log($app , $game_id , $user_id , $messages , $playerNames) ;
         }
     } else {
         $game = unserialize($game_stmt['game_data']);
     }
+    $playerNames = array() ;
+    foreach ($game->party as $key=>$party) {
+        $playerNames[$key] = ($party->user_id==$user_id ? $party->name._(' [you]') : $party->fullName()) ;
+    }
+
     /*
      * Second, we handle any action sent through $action and $request
      */
@@ -58,12 +66,6 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
             $session->set('POST' , $request->request->all()) ;
             $currentSubPhase = $game->subPhase ;
             $nbOfProposals = count($game->proposals) ;
-
-            // Initialise the $playerNames array, so we can pass it to the log function to properly display logs.
-            $playerNames = array() ;
-            foreach ($game->party as $key=>$party) {
-                $playerNames[$key] = ($party->user_id==$user_id ? $party->name._(' [you]') : $party->fullName()) ;
-            }
 
             switch ($action) {
                 case 'setup_PickLeader' :

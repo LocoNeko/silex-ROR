@@ -122,7 +122,7 @@ class Senator extends Card
                 $result = FALSE ;
             }
         }
-        // TO DO : commander of an army
+        // TO DO : commander of an army & Proconsul
         return $result ;
     }
     

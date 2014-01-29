@@ -46,7 +46,7 @@ class Pusher implements WampServerInterface {
         } else {
             $listPlayers = 'Everyone.';
         }
-        echo date('G:H:s').' game_id : '.$this->game_id.', From : '.$entryData['from'].', Recipients : '.$listPlayers.PHP_EOL;
+        echo date('Y-m-d, G:H:s (O)').' game_id : '.$this->game_id.', From : '.$entryData['from'].', Recipients : '.$listPlayers.PHP_EOL;
         $this->game_id->broadcast($entryData);
     }
 }

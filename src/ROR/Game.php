@@ -51,7 +51,7 @@ class Game
     public static $VALID_ACTIONS = array('Bid','RollEvent','Persuasion','Knights','ChangeLeader','SponsorGames','curia');
     public static $DEFAULT_PARTY_NAMES = array ('Imperials' , 'Plutocrats' , 'Conservatives' , 'Populists' , 'Romulians' , 'Remians');
     public static $VALID_SCENARIOS = array('EarlyRepublic');
-    public static $VALID_VARIANTS = array('Pontifex Maximus' , 'Provincial Wars' , 'Rebel governors' , 'Legionary disbandment' , 'Advocates' , 'Passing Laws' , 'Free Parking');
+    public static $VALID_VARIANTS = array('Pontifex Maximus' , 'Provincial Wars' , 'Rebel governors' , 'Legionary disbandment' , 'Advocates' , 'Passing Laws');
     
     private $id ;
     public $name ;
@@ -64,6 +64,7 @@ class Game
     public $events , $eventTable ;
     public $populationTable , $appealTable , $landBillsTable ;
     public $legion, $fleet ;
+    public $steppedDown, $proposals, $laws ;
     
      /************************************************************
      * General functions
@@ -89,8 +90,14 @@ class Game
         if (in_array($scenario, self::$VALID_SCENARIOS)) {
             $this->scenario = $scenario ;
         } else {return FALSE;}
-        // TO DO : Variants check
         $this->variants = explode(',' , $pickedVariants) ;
+        foreach($this->variants as $key=>$variant) {
+            if (!in_array($variant, self::$VALID_VARIANTS)) {
+                array_push($messages , array(sprintf(_('The %s variant wasn\'t recognised and has been removed') , $variant) , 'alert') ) ;
+                unset($this->variants[$key]) ;
+            }
+        }
+        // TO DO : Variants check
         $this->unrest = 0 ;
         $this->treasury = 100 ;
         $this->nbPlayers = count($partyNames);
@@ -762,6 +769,11 @@ class Game
         $level = $this->getEventLevel('name' , 'Drought') ;
         //TO DO : Check wars that cause drought even when inactive
         foreach ($this->activeWars->cards as $war) {
+            if (strstr($war->causes,'drought')!==FALSE) {
+                $level++;
+            }
+        }
+        foreach ($this->unprosecutedWars->cards as $war) {
             if (strstr($war->causes,'drought')!==FALSE) {
                 $level++;
             }
@@ -3390,56 +3402,65 @@ class Game
             foreach($this->party as $party) {
                 array_push($output['votingOrder'],array('user_id' => $party->user_id , 'name' => $party->fullname()));
             }
-            /*
-             * Consuls
-             */
-            if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
-                $possiblePairs = $this->senate_consulsPairs() ;
-                // Only one pair is available
-                if (count($possiblePairs)==1) {
-                    // TO DO : Automatic election
-                } elseif (count($this->senate_canMakeProposal($user_id))>0) {
-                    $output['state'] = 'Proposal';
-                    $output['type'] = 'Consuls';
-                    $output['proposalHow'] = $this->senate_canMakeProposal($user_id);
-                    $output['pairs'] = array() ;
-                    foreach($possiblePairs as $pair) {
-                        $senator1 = $this->getSenatorWithID($pair[0]) ;
-                        $party1 = $this->getPartyOfSenator($senator1) ;
-                        $senator2 = $this->getSenatorWithID($pair[1]) ;
-                        $party2 = $this->getPartyOfSenator($senator2) ;
-                        array_push($output['pairs'] , array($senator1->name.' ('.$party1->fullName().')' , $senator2->name.' ('.$party2->fullName().')'));
-                    }
-                    $output['senators'] = array() ;
-                    $alignedSenators = $this->getAllAlignedSenators(TRUE) ;
-                    foreach ($alignedSenators as $senator) {
-                        array_push($output['senators'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'partyName' => $this->getPartyOfSenator($senator)->fullName())) ;
-                    }
-                    
-                } else {
-                    $output['state'] = 'Proposal impossible';
-                }
-            /*
-             * Pontifex Maximus
-             */
-            /*
-             * Dictator
-             */
-            /*
-             * Censor
-             */
-            } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Censor') ) {
-                $candidates = $this->senate_possibleCensors() ;
-                $output['state'] = 'Proposal';
-                $output['type'] = 'Censor';
-                $output['proposalHow'] = $this->senate_canMakeProposal($user_id);
-                $output['senators'] = array () ;
-                foreach ($candidates as $candidate) {
-                    array_push($output['senators'] , array('senatorID' => $candidate->senatorID , 'name' => $candidate->name , 'partyName' => $this->getPartyOfSenator($candidate)->fullName())) ;
-                }
+            // How to make a proposal
+            $output['proposalHow'] = $this->senate_canMakeProposal($user_id);
+            
+            // Cannot make a proposal
+            if (count($output['proposalHow'])==0) {
+                $output['state'] = 'Proposal impossible';
+                
+            //Can make a proposal
             } else {
+
+                /*
+                 * Consuls
+                 */
+                if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
+                    $possiblePairs = $this->senate_consulsPairs() ;
+                    // Only one pair is available
+                    if (count($possiblePairs)==1) {
+                        // TO DO : Automatic election
+                    } elseif (count($this->senate_canMakeProposal($user_id))>0) {
+                        $output['state'] = 'Proposal';
+                        $output['type'] = 'Consuls';
+                        $output['pairs'] = array() ;
+                        foreach($possiblePairs as $pair) {
+                            $senator1 = $this->getSenatorWithID($pair[0]) ;
+                            $party1 = $this->getPartyOfSenator($senator1) ;
+                            $senator2 = $this->getSenatorWithID($pair[1]) ;
+                            $party2 = $this->getPartyOfSenator($senator2) ;
+                            array_push($output['pairs'] , array($senator1->name.' ('.$party1->fullName().')' , $senator2->name.' ('.$party2->fullName().')'));
+                        }
+                        $output['senators'] = array() ;
+                        $alignedSenators = $this->getAllAlignedSenators(TRUE) ;
+                        foreach ($alignedSenators as $senator) {
+                            array_push($output['senators'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'partyName' => $this->getPartyOfSenator($senator)->fullName())) ;
+                        }
+
+                    } else {
+                        $output['state'] = 'Proposal impossible';
+                    }
+                /*
+                 * Pontifex Maximus
+                 */
+                /*
+                 * Dictator
+                 */
+                /*
+                 * Censor
+                 */
+                } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Censor') ) {
+                    $candidates = $this->senate_possibleCensors() ;
+                    $output['state'] = 'Proposal';
+                    $output['type'] = 'Censor';
+                    $output['senators'] = array () ;
+                    foreach ($candidates as $candidate) {
+                        array_push($output['senators'] , array('senatorID' => $candidate->senatorID , 'name' => $candidate->name , 'partyName' => $this->getPartyOfSenator($candidate)->fullName())) ;
+                    }
                 // TO DO : All the rest...
-                $output['state'] = 'Error';
+                } else {
+                    $output['state'] = 'Error';
+                }
             }
         }
         return $output ;
@@ -3511,7 +3532,7 @@ class Game
                     $this->subPhase='Censor';
                     $candidates = $this->senate_possibleCensors() ;
                     if (count($candidates)==1) {
-                        array_push($messages , array(sprintf(_('Only %s is eligible for Censorship, so he is automatically elected.' , $candidates[0]))) );
+                        array_push($messages , array(sprintf(_('Only %s is eligible for Censorship, so he is automatically elected.') , $candidates[0]->name)) );
                         // TO DO
                     }
                 } else {

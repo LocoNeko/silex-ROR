@@ -22,7 +22,7 @@ class RORControllerProvider implements ControllerProviderInterface
          */
         $controllers->get('/ListGames', function(Request $request) use ($app)
         {
-            return $app['twig']->render('game_list.twig', array(
+            return $app['twig']->render('lobby_gameList.twig', array(
                'layout_template' => 'layout.twig',
                'nb_games' => $this->numberOfGames ($app),
                'games' => $this->listGames($request , $app),
@@ -72,7 +72,7 @@ class RORControllerProvider implements ControllerProviderInterface
                     }
                 }
             }
-            return $app['twig']->render('view_game.twig', array(
+            return $app['twig']->render('lobby_viewGame.twig', array(
                    'layout_template' => 'layout.twig',
                    'game' => $this->gameDetails($app, $game_id),
                    'players' => $this->listPlayers($app, $game_id),
@@ -94,7 +94,7 @@ class RORControllerProvider implements ControllerProviderInterface
                 }
                 return $app->redirect($app['url_generator']->generate('ListGames'));
             } else {
-                return $app['twig']->render('create_game.twig', array(
+                return $app['twig']->render('lobby_createGame.twig', array(
                         'layout_template' => 'layout.twig',
                         'valid_scenarios' => Game::$VALID_SCENARIOS,
                         'valid_variants' => Game::$VALID_VARIANTS,
@@ -164,7 +164,7 @@ class RORControllerProvider implements ControllerProviderInterface
          */
         $controllers->match('/Log/{game_id}/{user_id}' , function($game_id , $user_id) use ($app) {
             $logs = getLogs ( $app , $game_id , $user_id) ;
-            return $app['twig']->render('log.twig', Array(
+            return $app['twig']->render('action_viewLog.twig', Array(
                 'logs' => $logs
             ));
         })
@@ -250,13 +250,14 @@ class RORControllerProvider implements ControllerProviderInterface
             } else {
                 return FALSE ;
             }
-            $variantsArray = $request->request->get('variants[]') ;
+            $variantsArray = $request->request->get('variants') ;
             $variantList='';
             foreach ($variantsArray as $variant) {
                 if (in_array($variant, Game::$VALID_VARIANTS)) {
                     $variantList.=$variant.',';
                 }
             }
+            $variantList = substr($variantList,0,-1);
             $app['db']->insert('games', Array( 'game_id' => $id , 'name' => $name , 'time_created' => time() , 'status' => 'Pre-game' , 'scenario' => $scenario , 'variants' => $variantList));
             return TRUE ;
     }

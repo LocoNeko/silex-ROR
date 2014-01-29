@@ -1,7 +1,7 @@
 <div class="row">
 {% for card in content['game'].curia.cards %}
     <div class="span3">
-        {% embed "card.twig" with {'card': card } only %}
+        {% embed "action_viewCard.twig" with {'card': card } only %}
         {% endembed %}
     </div>
 {% endfor %}
