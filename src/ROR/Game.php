@@ -2920,7 +2920,10 @@ class Game
                 array_push($messages , array(_('People revolt - Game over.') , 'error'));
             }
             array_push($messages , array('SENATE PHASE','alert'));
-            $this->senate_init();
+            $init_messages = $this->senate_init();
+            foreach($init_messages as $init_message) {
+                array_push($messages , $init_message);
+            }
         }
         return $messages ;
     }
@@ -2952,6 +2955,7 @@ class Game
      * Initialises various Senate-related variables
      */
     public function senate_init() {
+        $messages = array() ;
         $this->phase = 'Senate';
         $this->subPhase = 'Consuls';
         unset($this->steppedDown); $this->steppedDown = array() ;
@@ -2968,7 +2972,12 @@ class Game
                 }
             }
         }
-        // TO DO : Check if there is only one possible pair of consuls, and appoint them if it's the case.
+        // Check if there is only one possible pair of consuls, and appoint them if it's the case.
+        $possiblePairs = $this->senate_consulsPairs() ;
+        if (count($possiblePairs)==1) {
+            $messages = $this->senate_proposalConsuls(NULL , 'Consuls' , NULL , 'Automatic' , array($possiblePairs[0][0] , $possiblePairs[0][1]) , NULL) ;
+        }
+        return $messages ;
     }
     
     /**
@@ -2988,15 +2997,63 @@ class Game
     }
 
     /**
+     * @param type $user_id
      * Put a proposal forward
      * @param string $type A valid proposal type, as in Proposal::$VALID_PROPOSAL_TYPES
      * @param string $description A proposal's description
+     * @param type $proposalHow
      * @param type $parameters an array of parameters
-     * @return type
+     * @param type $votingOrder
+     * @return array messages
      */
-    public function senate_proposal($user_id , $type , $description , $proposalHow , $parameters , $votingOrderRaw) {
+    public function senate_proposal($user_id , $type , $description , $proposalHow , $parameters , $votingOrder) {
         $messages = array() ;
         
+        /*
+         * Basic checks
+         */
+        $check = $this->senate_checkProposal($user_id , $type , $proposalHow , $votingOrder) ;
+        /*
+         * Check per proposal type
+         */
+        if ($check===TRUE) {
+            // Check parameters based on proposal type, and if everything checks out, puts the proposal forward
+            // Consuls
+            if ($type=='Consuls') {
+                $proposalMessages = $this->senate_proposalConsuls($user_id , $type , $description , $proposalHow , $parameters , $votingOrder) ;
+            //Dictator
+            } elseif ($type=='Dictator') {
+                // TO DO : Dictator Proposal
+            // Censor
+            } elseif ($type=='Censor') {
+                // TO DO : Censor Proposal
+                // TO DO : 15 other types of proposals... 
+            } else {
+                return array(array(_('Error with proposal type.') , 'error' , $user_id)) ;
+            }
+            // Go through all the messages returned by the specific proposal function
+            foreach($proposalMessages as $message) {
+                array_push($messages , $message) ;
+            }
+        } else {
+            $messages = $check ;
+        }
+        return $messages;
+    }
+    
+    /**
+     * Function that validates proposals, checking only for basic errors :
+     * Wrong phase, another proposal under way, wrong type, wrong way of making proposal, wrong voting order
+     * @param type $user_id
+     * @param type $type
+     * @param type $proposalHow
+     * @param type $votingOrder
+     * @return boolean
+     */
+    private function senate_checkProposal($user_id , $type , $proposalHow , $votingOrder) {
+        /*
+         * Basic checks
+         */
         if ($this->phase!='Senate') {
             return array(array(_('Wrong phase.') , 'error' , $user_id)) ;
         }
@@ -3032,41 +3089,78 @@ class Game
         if (!$canMakeProposal) {
             return array(array(sprintf(_('Cannot make proposals using %s') , $proposalHow) , 'error')) ;
         }
-        // Voting Order
-        $votingOrder = explode(',', $votingOrderRaw) ;
-        if ($this->senate_validateVotingOrder($votingOrder) !== TRUE) {
-            return array(array(_('Invalid voting order.') , 'error')) ;
+        // Voting Order : Goes through all the elements of the $votingOrder array and check if they are all exactly the same as the keys in $this->party
+        if (count($votingOrder)!=count($this->party)) {
+            return array(array(_('Invalid voting order : not enough parties') , 'error')) ;
         }
-        // Check parameters based on proposal type, and if everything checks out, put the proposal forward
-        // Consuls
-        if ($type=='Consuls') {
-            $proposalMessages = $this->senate_proposalConsuls($type , $typeKey , $description , $parameters , $user_id , $proposalHow , $votingOrder) ;
-        //Dictator
-        } elseif ($type=='Dictator') {
-            // TO DO : 15 other types of proposals... 
-        } else {
-            return array(array(_('Error with proposal type.') , 'error' , $user_id)) ;
+        while (count($votingOrder)>0) {
+            $currentElement = array_shift($votingOrder) ;
+            if (!array_key_exists($currentElement , $this->party)) {
+                return array(array(_('Invalid voting order : unknown party') , 'error')) ;
+            }
         }
-        // Go through all the messages returned by the specific proposal function
-        foreach($proposalMessages as $message) {
-            array_push($messages , $message) ;
-        }
-        return $messages;
+        return TRUE ;
     }
     
     /**
+     * TO DO : Check if I can use this function (unsued at the moment) to validate any type of proposal
+     * @param type $validation
+     * @param type $parameters
+     * @param type $user_id
+     * @return string
+     */
+    private function senate_validateParameter($validation , $parameters , $user_id) {
+        $result = TRUE ;
+        if ($validation=='Senator') {
+            $senator = $this->getSenatorWithID($parameters[0]) ;
+            if ($senator[0]===FALSE) {
+                $result = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Error retrieving Senator data.','error' , $user_id);
+            }
+        } elseif ($validation=='Pair') {
+            usort ($parameters, function($a, $b) {
+                return strcmp($a, $b);
+            });
+            $senator[0] = $this->getSenatorWithID($parameters[0]) ;
+            $senator[1] = $this->getSenatorWithID($parameters[1]) ;
+            if ($senator[0]->senatorID == $senator[1]->senatorID) {
+                $result = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This is a pair of one. Please stop drinking.','error' , $user_id);
+            }
+            foreach ($this->proposals as $proposal) {
+                if ($proposal->type=='Consuls' && $proposal->outcome==FALSE && $proposal->parameters[0]==$senator[0]->senatorID && $proposal->parameters[1]==$senator[1]->senatorID) {
+                    $result = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This pair has already been rejected' , 'error' , $user_id);
+                }
+            }
+        } elseif ($validation=='inRome') {
+            $senator = $this->getSenatorWithID($parameters[0]) ;
+            $result = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Senator is not in Rome.','error' , $user_id);
+        } elseif ($validation=='Office') {
+            $senator = $this->getSenatorWithID($parameters[0]) ;
+            if (!in_array('Tradition Erodes' , $this->laws)) {
+                if ( ($senator->office == 'Dictator') || ($senator->office == 'Rome Consul') || ($senator->office == 'Field Consul') ) {
+                    $result =array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Before the \'Tradition Erodes\' law is in place, Senators cannot be proposed if they are already Dictator or Consul.' , 'error' , $user_id);
+                }
+            }
+            // Check if he is not Pontifex
+            if ($senator->office == 'Pontifex Maximus') {
+                $result = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.' , 'error'  , $user_id);
+            }
+        }
+        return $result ;
+    }
+
+    /**
      * Validates & pushes forward a 'Consuls' proposal - function taken out of senate_proposal for readability's sake
      * @param type $type The type of the proposal
-     * @param int $typeKey The key of the type in the Proposal::$VALID_PROPOSAL_TYPES array
-     * @param array $parameters An array of parameters to be validated
      * @param type $description
-     * @param array $parameters
+     * @param array $parameters An array of parameters to be validated
      * @param string  $user_id
      * @param mixed $proposalHow
+     * @param array $votingOrder
      * @return array A message array 
      */
-    private function senate_proposalConsuls($type , $typeKey , $description , $parameters , $user_id , $proposalHow , $votingOrder) {
+    private function senate_proposalConsuls($user_id , $type , $description , $proposalHow , $parameters , $votingOrder) {
         $messages = array() ;
+        $typeKey = array_search($type, Proposal::$VALID_PROPOSAL_TYPES) ;
         /*
          * First part : validation
          */
@@ -3133,31 +3227,92 @@ class Game
                 if ($result===TRUE) {
                     $senator1 = $this->getSenatorWithID($parameters[0]) ;
                     $senator2 = $this->getSenatorWithID($parameters[1]) ;
-                    $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
-                    array_push($messages , array(sprintf(_('%s, {%s} proposes %s and %s as consuls.') , $using , $user_id , $senator1->name , $senator2->name)) );
+                    if ($proposalHow=='Automatic') {
+                        $proposal->outcome = TRUE ;
+                        array_push($messages , array(sprintf(_('%s and %s are nominated consuls as the only available pair.') , $senator1->name , $senator2->name)) );
+                    } else {
+                        $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
+                        array_push($messages , array(sprintf(_('%s, {%s} proposes %s and %s as consuls.') , $using , $user_id , $senator1->name , $senator2->name)) );
+                    }
                     array_push($this->proposals , $proposal) ;
                 }
             }
         }
         return $messages ;
     }
-    
+
     /**
-     * Goes through all the elements of the $votingOrder array and check if they are all exactly the same as the keys in $this->party
-     * @param array $votingOrder The voting order array
-     * @return boolean
+     * Validates & pushes forward a 'Censor' proposal - function taken out of senate_proposal for readability's sake
+     * @param type $type The type of the proposal
+     * @param type $description
+     * @param array $parameters An array of parameters to be validated
+     * @param string  $user_id
+     * @param mixed $proposalHow
+     * @param array $votingOrder
+     * @return array A message array 
      */
-    private function senate_validateVotingOrder($votingOrder) {
-        if (count($votingOrder)!=count($this->party)) {
-            return FALSE ;
+    private function senate_proposalCensor($user_id , $type , $description , $proposalHow , $parameters , $votingOrder) {
+        $messages = array() ;
+        $typeKey = array_search($type, Proposal::$VALID_PROPOSAL_TYPES) ;
+        /*
+         * First part : validation
+         */
+        $validation = TRUE ;
+        $senator = $this->getSenatorWithID($parameters[0]) ;
+        if ($senator===FALSE) {
+            $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Error retrieving Senator data.','error' , $user_id);
         }
-        while (count($votingOrder)>0) {
-            $currentElement = array_shift($votingOrder) ;
-            if (!array_key_exists($currentElement , $this->party)) {
-                return FALSE ;
+        if ( count($parameters)==1 ) {
+            // Check if he is in Rome
+            if (!$senator->inRome()) {
+                $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Senator must be in Rome to be proposed.','error' , $user_id);
+            }
+            // Check if they already have been rejected
+            foreach ($this->proposals as $proposal) {
+                if ($proposal->type=='Censor' && $proposal->outcome==FALSE && $proposal->parameters[0]==$senator->senatorID) {
+                    $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : This senator has already been rejected' , 'error' , $user_id);
+                }
+            }
+            // Check that he is not already Consuls or Dictator Except if 'Tradition Erodes' law is in play
+            if (!in_array('Tradition Erodes' , $this->laws)) {
+                if ( ($senator->office == 'Dictator') || ($senator->office == 'Rome Consul') || ($senator->office == 'Field Consul') ) {
+                    $validation =array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : Before the \'Tradition Erodes\' law is in place, a Senator cannot be proposed if he is are already Dictator or Consul.' , 'error' , $user_id);
+                }
+            }
+            // Check if he is not Pontifex
+            if ($senator->office == 'Pontifex Maximus') {
+                $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : The Pontifex Maximus cannot be proposed.' , 'error'  , $user_id);
+            }
+        } else {
+            $validation = array(Proposal::$DEFAULT_PROPOSAL_DESCRIPTION[$typeKey].' : You must propose 1 senator' , 'error' , $user_id);
+        }
+        // Proposal couldn't be validated
+        if (isset($validation[1]) && $validation[1]=='error') {
+            return array($validation);
+        /*
+        * Second part : put the proposal forward
+        */
+        } else {
+            $proposal = new Proposal ;
+            $result = $proposal->init($type , $user_id , $description , $this->party , $parameters , $votingOrder) ;
+            if ( isset($result[2]) && $result[2]=='error' ) {
+                return array(array(_('Error with proposal type.') , 'error')) ;
+            } else {
+                // The proposal is correct, put it in the proposals array and if a tribune was used, flag it
+                if ($result===TRUE) {
+                    $senator = $this->getSenatorWithID($parameters[0]) ;
+                    if ($proposalHow=='Automatic') {
+                        $proposal->outcome = TRUE ;
+                        array_push($messages , array(sprintf(_('%s is nominated Censor as he is the only senator available.') , $senator->name)) );
+                    } else {
+                        $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
+                        array_push($messages , array(sprintf(_('%s, {%s} proposes %s as Censor.') , $using , $user_id , $senator->name)) );
+                    }
+                    array_push($this->proposals , $proposal) ;
+                }
             }
         }
-        return TRUE ;
+        return $messages ;
     }
     
     /**
@@ -3247,8 +3402,12 @@ class Game
             if ($unanimous && $latestProposal->proposedBy==$HRAO['user_id']) {
                 array_push($messages , array(sprintf(_('The presiding magistrate %s has been unanimously defeated.') , $HRAO['senator']->name))) ;
                 $this->subPhase = 'Unanimous defeat' ;
-                // TO DO : President unanimously defeated
             }
+            /* 
+             * TO DO : Deal with automatic nominations
+             * - Consuls : Only one pair of senators left
+             * - Censor : Only one prior consul left
+             */
         }
         return $messages ;
     }
@@ -3260,6 +3419,7 @@ class Game
      * @return array
      */
     public function senate_stepDown($user_id , $stepDown) {
+        // TO DO : Change SubPhase when Censor steps down (Prosecutions immediately end)
         $messages = array() ;
         $HRAO = $this->getHRAO(TRUE) ;
         if ($HRAO['user_id']==$user_id) {
@@ -3411,6 +3571,7 @@ class Game
                     $output['type'] = 'Consuls';
                     $output['pairs'] = array() ;
                     $possiblePairs = $this->senate_consulsPairs() ;
+                    // TO DO : Check if there is only one pair
                     foreach($possiblePairs as $pair) {
                         $senator1 = $this->getSenatorWithID($pair[0]) ;
                         $party1 = $this->getPartyOfSenator($senator1) ;
@@ -3460,7 +3621,11 @@ class Game
      * @return type
      */
     private function senate_viewProposalDescription($latestProposal) {
-        $description = sprintf(_('%s is proposing : ') , $this->party[$latestProposal->proposedBy]->fullName());
+        if ($latestProposal->proposedBy == NULL) {
+            $description = _('Automatic proposal for : ');
+        } else {
+            $description = sprintf(_('%s is proposing : ') , $this->party[$latestProposal->proposedBy]->fullName());
+        }
         switch ($latestProposal->type) {
             case 'Consuls' :
                 $senator1 = $this->getSenatorWithID($latestProposal->parameters[0]) ;
@@ -3472,7 +3637,7 @@ class Game
         return $description ;
     }
     /**
-     * A decision (not a vote) has been made on a proposal :<br>
+     * A decision (not a vote) has been made on a proposal that was voted (outcome is TRUE) :<br>
      * - Consuls deciding who will do what<br>
      * - Dictator appointing MoH<br>
      * - Prosecutor accepting/refusing nomination<br>
@@ -3683,7 +3848,7 @@ class Game
      * - Both in Rome
      * - Both without an incompatible office before the "Tradition Erodes" law is in place
      * - Not yet rejected as a pair
-     * @return array
+     * @return array of senatorIDs
      */
     public function senate_consulsPairs() {
         $listOfSenators=array();

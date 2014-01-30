@@ -31,6 +31,9 @@
             </select>
             <br><br>
         {#
+            Pontifex Maximus proposal
+        #}
+        {#
             Dictator proposal
         #}
         {% elseif output['type']=='Dictator' %}
@@ -47,6 +50,12 @@
                 </option>
                 {% endfor %}
             </select><br>
+        {#
+            Prosecutions
+        #}
+        {% elseif output['type']=='Prosecutions' %}
+        Prosecutions :
+            <input type="hidden" name="type" value="Prosecutions">
         {#
         TO DO : 15 other types of proposals
         #}
@@ -164,7 +173,7 @@ You cannot make a proposal at the moment
             <button type="submit" class="btn-danger">OK</button>
         </form>
     {% else %}
-        Waiting for the him to decide how to handle the unanimous defeat.<br>
+        Waiting for him to decide how to handle his unanimous defeat.<br>
     {% endif %}
 {#
     Error

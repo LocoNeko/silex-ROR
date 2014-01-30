@@ -130,4 +130,23 @@ class Proposal {
         }
         return $result ;
     }
+    
+    public function nbOfGivenParameters() {
+        switch($this->type) {
+            case 'Prosecutions' :
+                $result = 3 ;
+                break ;
+            case 'Consuls' :
+            case 'Governors' :
+                $result = 2 ;
+                break ;
+            case 'Dictator' :
+            case 'Censor' :
+                $result = 1 ;
+            default :
+                $result = 0 ;
+                break ;
+        }
+        return $result ;
+    }
 }

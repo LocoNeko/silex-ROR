@@ -123,7 +123,8 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                     log ($app , $game_id , $user_id , $game->population_speech ($user_id) , $playerNames );
                     break ;
                 case 'senate_proposal' :
-                    log ($app , $game_id , $user_id , $game->senate_proposal($user_id , $request->request->get('type') , $request->request->get('description') , $request->request->get('proposalHow') , $request->request->get('parameters')  , $request->request->get('votingOrder') ) , $playerNames );
+                    $votingOrder = explode(',', $request->request->get('votingOrder')) ;
+                    log ($app , $game_id , $user_id , $game->senate_proposal($user_id , $request->request->get('type') , $request->request->get('description') , $request->request->get('proposalHow') , $request->request->get('parameters')  , $votingOrder ) , $playerNames );
                     break ;
                 case 'senate_vote' :
                     log ($app , $game_id , $user_id , $game->senate_vote($user_id , $request->request->all() )  , $playerNames);
