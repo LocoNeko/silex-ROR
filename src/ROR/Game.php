@@ -97,7 +97,6 @@ class Game
                 unset($this->variants[$key]) ;
             }
         }
-        // TO DO : Variants check
         $this->unrest = 0 ;
         $this->treasury = 100 ;
         $this->nbPlayers = count($partyNames);
@@ -2969,6 +2968,7 @@ class Game
                 }
             }
         }
+        // TO DO : Check if there is only one possible pair of consuls, and appoint them if it's the case.
     }
     
     /**
@@ -3166,6 +3166,7 @@ class Game
      * @param array $request
      */
     public function senate_vote($user_id , $request) {
+        // TO DO : Veto
         $messages = array() ;
         $ballotMessage = array();
         $ballotMessage[-1] = _('votes AGAINST the proposal');
@@ -3323,16 +3324,7 @@ class Game
         if ($latestProposal!==FALSE && !$latestProposal->resolved()) {
             $output['type'] = $latestProposal->type ;
             // The proposal's long description
-            // TO DO : Put that in a sub function to re-use it ?
-            $output['longDescription'] = sprintf(_('%s is proposing : ') , $this->party[$latestProposal->proposedBy]->fullName());
-            switch ($latestProposal->type) {
-                case 'Consuls' :
-                    $senator1 = $this->getSenatorWithID($latestProposal->parameters[0]) ;
-                    $senator2 = $this->getSenatorWithID($latestProposal->parameters[1]) ;
-                    $output['longDescription'].= sprintf(_('%s and %s as consuls.') , $senator1->name , $senator2->name);
-                    break ;
-                // TO DO : 15 more types of proposals
-            }
+            $output['longDescription'] = $this->senate_viewProposalDescription($latestProposal) ;
             /*
              * Decisions
              */
@@ -3411,34 +3403,25 @@ class Game
                 
             //Can make a proposal
             } else {
-
                 /*
                  * Consuls
                  */
                 if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
+                    $output['state'] = 'Proposal';
+                    $output['type'] = 'Consuls';
+                    $output['pairs'] = array() ;
                     $possiblePairs = $this->senate_consulsPairs() ;
-                    // Only one pair is available
-                    if (count($possiblePairs)==1) {
-                        // TO DO : Automatic election
-                    } elseif (count($this->senate_canMakeProposal($user_id))>0) {
-                        $output['state'] = 'Proposal';
-                        $output['type'] = 'Consuls';
-                        $output['pairs'] = array() ;
-                        foreach($possiblePairs as $pair) {
-                            $senator1 = $this->getSenatorWithID($pair[0]) ;
-                            $party1 = $this->getPartyOfSenator($senator1) ;
-                            $senator2 = $this->getSenatorWithID($pair[1]) ;
-                            $party2 = $this->getPartyOfSenator($senator2) ;
-                            array_push($output['pairs'] , array($senator1->name.' ('.$party1->fullName().')' , $senator2->name.' ('.$party2->fullName().')'));
-                        }
-                        $output['senators'] = array() ;
-                        $alignedSenators = $this->getAllAlignedSenators(TRUE) ;
-                        foreach ($alignedSenators as $senator) {
-                            array_push($output['senators'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'partyName' => $this->getPartyOfSenator($senator)->fullName())) ;
-                        }
-
-                    } else {
-                        $output['state'] = 'Proposal impossible';
+                    foreach($possiblePairs as $pair) {
+                        $senator1 = $this->getSenatorWithID($pair[0]) ;
+                        $party1 = $this->getPartyOfSenator($senator1) ;
+                        $senator2 = $this->getSenatorWithID($pair[1]) ;
+                        $party2 = $this->getPartyOfSenator($senator2) ;
+                        array_push($output['pairs'] , array($senator1->name.' ('.$party1->fullName().')' , $senator2->name.' ('.$party2->fullName().')'));
+                    }
+                    $output['senators'] = array() ;
+                    $alignedSenators = $this->getAllAlignedSenators(TRUE) ;
+                    foreach ($alignedSenators as $senator) {
+                        array_push($output['senators'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'partyName' => $this->getPartyOfSenator($senator)->fullName())) ;
                     }
                 /*
                  * Pontifex Maximus
@@ -3457,6 +3440,12 @@ class Game
                     foreach ($candidates as $candidate) {
                         array_push($output['senators'] , array('senatorID' => $candidate->senatorID , 'name' => $candidate->name , 'partyName' => $this->getPartyOfSenator($candidate)->fullName())) ;
                     }
+                /*
+                 * Prosecutions
+                 */
+                } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Prosecutions') ) {
+                    $output['state'] = 'Proposal';
+                    $output['type'] = 'Prosecutions';
                 // TO DO : All the rest...
                 } else {
                     $output['state'] = 'Error';
@@ -3466,6 +3455,22 @@ class Game
         return $output ;
     }
 
+    /**
+     * Returns a description of the current proposal
+     * @return type
+     */
+    private function senate_viewProposalDescription($latestProposal) {
+        $description = sprintf(_('%s is proposing : ') , $this->party[$latestProposal->proposedBy]->fullName());
+        switch ($latestProposal->type) {
+            case 'Consuls' :
+                $senator1 = $this->getSenatorWithID($latestProposal->parameters[0]) ;
+                $senator2 = $this->getSenatorWithID($latestProposal->parameters[1]) ;
+                $description.= sprintf(_('%s and %s as consuls.') , $senator1->name , $senator2->name);
+                break ;
+            // TO DO : 15 more types of proposals
+        }
+        return $description ;
+    }
     /**
      * A decision (not a vote) has been made on a proposal :<br>
      * - Consuls deciding who will do what<br>
@@ -3531,9 +3536,11 @@ class Game
                     array_push($messages , array(_('A dictator cannot be appointed or elected. Moving on to Censor election.')) );
                     $this->subPhase='Censor';
                     $candidates = $this->senate_possibleCensors() ;
+                    // Only one eligible candidate : appoint him and move to prosecution phase
                     if (count($candidates)==1) {
                         array_push($messages , array(sprintf(_('Only %s is eligible for Censorship, so he is automatically elected.') , $candidates[0]->name)) );
-                        // TO DO
+                        $this->senate_appointOfficial('Censor', $candidates[0]->senatorID) ;
+                        $this->subPhase='Prosecutions';
                     }
                 } else {
                     // A dictator can be appointed/elected. Set each party's "bidDone" to FALSE to give them all a chance to do so.
@@ -3620,6 +3627,15 @@ class Game
      */
     public function senate_canMakeProposal($user_id) {
         $result=array() ;
+        // Short-circuit the function : prosecutions limit the possibilities of proposal to the Censor (not even tribune cards)
+        if ($this->subPhase=='Prosecutions') {
+            $censor = $this->senate_findOfficial('Censor');
+            if ($censor['user_id']==$user_id) {
+                return array('Censor');
+            } else {
+                return array();
+            }
+        }
         $president = $this->getHRAO(TRUE);
         if ($president['user_id']==$user_id) {
             $result[] = 'President' ;
