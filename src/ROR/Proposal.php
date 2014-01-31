@@ -76,7 +76,18 @@ class Proposal {
         $this->votingOrder = $votingOrder ;
         $this->outcome = NULL ;
         $this->proposedBy = $proposedBy ;
+        /**
+         * Check number of parameters
+         */
+        $nbParameters = $this->nbOfParameters() ;
+        if ($nbParameters['given']!=count($parameters)) {
+            return array(sprintf(_('Received %d parameters, expected %d.') , count($parameters) , $nbParameters) , 'error') ;
+        }
         $this->parameters = $parameters ;
+        // Set all remaining parameters to NULL
+        for ($i=$nbParameters['given'];$i<$nbParameters['total'];$i++) {
+            $this->parameters[$i] = NULL ;
+        }
 
         return TRUE;
     }
@@ -131,22 +142,52 @@ class Proposal {
         return $result ;
     }
     
-    public function nbOfGivenParameters() {
+    /**
+     * Returns the number of parameters that must be passed to the init() function, and the total number of parameters
+     * @return array ('given' => X , 'total' => Y)
+     */
+    public function nbOfParameters() {
         switch($this->type) {
             case 'Prosecutions' :
-                $result = 3 ;
+                $result = array ('given' => 3 , 'total' => 4) ;
                 break ;
             case 'Consuls' :
+                $result = array ('given' => 2 , 'total' => 4);
+                break ;
             case 'Governors' :
-                $result = 2 ;
+                $result = array ('given' => 2 , 'total' => 2) ;
                 break ;
             case 'Dictator' :
             case 'Censor' :
-                $result = 1 ;
+                $result = array ('given' => 1 , 'total' => 1) ;
+                break ;
+            case 'Land Bills' :
+                $result = array ('given' => 3 , 'total' => 5) ;
+                break ;
             default :
-                $result = 0 ;
+                $result = FALSE ;
                 break ;
         }
         return $result ;
     }
+    
+    /**
+     * Returns an array of validation rules to use to validate a proposal of this type<br>
+     * The array elements are arrays : ('rule name' , index of the parameter to be checked )
+     * @return array
+     */
+    public static function validationRules($type) {
+        $result = array() ;
+        switch($type) {
+            case 'Consuls' :
+                $result[0] = array('pair' , NULL);
+                $result[1] = array('inRome' , 0);
+                $result[2] = array('inRome' , 1);
+                $result[3] = array('office' , 0);
+                $result[4] = array('office' , 1);
+                break ;
+        }
+        return $result ;
+    }
+
 }
