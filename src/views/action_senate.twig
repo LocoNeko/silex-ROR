@@ -54,8 +54,24 @@
             Prosecutions
         #}
         {% elseif output['type']=='Prosecutions' %}
-        Prosecutions :
+            Prosecutions :<br>
             <input type="hidden" name="type" value="Prosecutions">
+            Prosecute :
+            <select name="reason" style="width:750px;">
+                {%for reason in output['list']%}
+                <option value="{{reason['senator'].senatorID}},{{reason['reason']}}">
+                     {{reason['text']}}
+                </option>
+                {% endfor %}
+            </select><br>
+            With prosecutor :
+            <select name="prosecutor">
+                {%for possibleProsecutor in output['possibleProsecutors']%}
+                <option>
+                     {{possibleProsecutor['name']}}
+                </option>
+                {% endfor %}
+            </select><br>
         {#
         TO DO : 15 other types of proposals
         #}

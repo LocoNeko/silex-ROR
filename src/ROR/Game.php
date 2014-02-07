@@ -548,9 +548,8 @@ class Game
             while (in_array($allSenators[0]->senatorID , $this->steppedDown)) {
                 array_shift($allSenators) ;
             }
-        } else {
-            $senator = $allSenators[0] ;
         }
+        $senator = $allSenators[0] ;
         $party = $this->getPartyOfSenator($senator) ;
         $user_id = $party->user_id ;
         return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
@@ -1377,7 +1376,7 @@ class Game
             $result['total']+=$senator->knights ;
             $result['knights']+=$senator->knights ;
             foreach ($senator->controls->cards as $card) {
-                if ( $card->type == 'Concession' ) {
+                if ( $card->type == 'Concession' && $card->income > 0) {
                     $card->corrupt = TRUE ;
                     $result['total']+=$card->income ;
                     array_push($result['concessions'] , array( 'id' => $card->id , 'name' => $card->name , 'income' => $card->income , 'special' => $card->special , 'senator_name' => $senator->name , 'senatorID' => $senator->senatorID ) );
@@ -3457,6 +3456,10 @@ class Game
                 } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Prosecutions') ) {
                     $output['state'] = 'Proposal';
                     $output['type'] = 'Prosecutions';
+                    $nbProsecutions = $this->senate_getFinishedProsecutions() ;
+                    $output['list'] = $this->senate_getListPossibleProsecutions() ;
+                    $output['possibleProsecutors'] = $this->senate_getListPossibleProsecutors() ;
+                    
                 // TO DO : All the rest...
                 } else {
                     $output['state'] = 'Error';
@@ -3780,6 +3783,82 @@ class Game
             return FALSE ;
         }
     }
+    
+    /**
+     * Returns the number of each type of prosecutions that have already been voted upon
+     * @return array ['minor'] , ['major'] , ['minorList']
+     */
+    public function senate_getFinishedProsecutions() {
+        $result = array() ;
+        $result['minor'] = 0 ;
+        $result['major'] = 0 ;
+        foreach ($this->proposals as $proposal) {
+            if ($proposal->type=='Prosecutions' && $proposal->parameter[1]=='major' && $proposal->outcome!==NULL) {
+                $result['major']++;
+            } elseif ($proposal->type=='Prosecutions' && $proposal->parameter[1]!='major' && $proposal->outcome!==NULL) {
+                $result['minor']++;
+            }
+        }
+        return $result ;
+    }
+    
+    /**
+     * Returns a list of all the possible reasons for prosecutions
+     * @return array 'senator' , 'reason'
+     */
+    public function senate_getListPossibleProsecutions() {
+        $result = array();
+        foreach ($this->party as $party) {
+            foreach ($party->senators->cards as $senator) {
+                if ($senator->major) {
+                    $result[] = array('senator' => $senator , 'reason' => 'major' , 'text' => sprintf(_('MAJOR - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
+                    $result[] = array('senator' => $senator , 'reason' => 'minor' , 'text' => sprintf(_('Minor - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
+                }
+                if ($senator->corrupt) {
+                    $alreadyprosecuted = FALSE ;
+                    foreach ($this->proposals as $proposal) {
+                        if ($proposal->type=='Prosecutions' && $proposal->outcome!==NULL && $proposal->parameter[0]==$senator->senatorID && $proposal->parameter[1]=='province' ) {
+                            $alreadyprosecuted = TRUE ;
+                        }
+                    }
+                    if (!$alreadyprosecuted) {
+                        $result[] = array('senator' => $senator , 'reason' => 'province' , 'text' => sprintf(_('Minor - %s (%s) for governing a province') , $senator->name , $party->fullname())) ;
+                    }
+                }
+                foreach ($senator->controls->cards as $card) {
+                    if ($card->type=='Concession' && $card->corrupt) {
+                        $alreadyprosecuted = FALSE ;
+                        foreach ($this->proposals as $proposal) {
+                            if ($proposal->type=='Prosecutions' && $proposal->outcome!==NULL && $proposal->parameter[0]==$senator->senatorID && $proposal->parameter[1]==$card->id ) {
+                                $alreadyprosecuted = TRUE ;
+                            }
+                        }
+                        if (!$alreadyprosecuted) {
+                            $result[] = array('senator' => $senator , 'reason' => $card->id , 'text' => sprintf(_('Minor - %s (%s) for profiting from concession %s') , $senator->name , $party->fullname() , $card->name)) ;
+                        }
+                    }
+                }
+            }
+        }
+        return $result ;
+    }
+    
+    /**
+     * Returns an array of senators in Rome who are not the Censor
+     * @return type
+     */
+    public function senate_getListPossibleProsecutors() {
+        $result = array() ;
+        foreach ($this->party as $party) {
+            foreach ($party->senators->cards as $senator) {
+                if ($senator->inRome() && $senator->office!='Censor') {
+                    $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name.' ('.$party->fullName().')') ;
+                }
+            }
+        }
+        return $result ;
+    }
+    
     
     /************************************************************
      * Functions for REVOLUTION phase

@@ -186,6 +186,11 @@ class Proposal {
                 $result[3] = array('office' , 0);
                 $result[4] = array('office' , 1);
                 break ;
+            case 'Censor' :
+                $result[0] = array('inRome' , 0);
+                $result[1] = array('office' , 0);
+                $result[2] = array('censor_rejected' , 0);
+                break ;
         }
         return $result ;
     }
