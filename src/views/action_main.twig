@@ -34,7 +34,7 @@ Phase : Population<br>
     {% embed 'action_population.twig' %}
     {% endembed %}
 {% elseif content['game'].phase == 'Senate' %}
-Phase : Senate<br>
+Phase : Senate - {{content['game'].subPhase}}<br>
     {% embed 'action_senate.twig' %}
     {% endembed %}
 {% endif %}

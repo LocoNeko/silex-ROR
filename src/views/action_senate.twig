@@ -57,7 +57,7 @@
             Prosecutions :<br>
             <input type="hidden" name="type" value="Prosecutions">
             Prosecute :
-            <select name="reason" style="width:750px;">
+            <select name="parameters[0]" style="width:750px;">
                 {%for reason in output['list']%}
                 <option value="{{reason['senator'].senatorID}},{{reason['reason']}}">
                      {{reason['text']}}
@@ -65,20 +65,27 @@
                 {% endfor %}
             </select><br>
             With prosecutor :
-            <select name="prosecutor">
+            <select name="parameters[2]">
                 {%for possibleProsecutor in output['possibleProsecutors']%}
-                <option>
+                <option value="{{possibleProsecutor['senatorID']}}">
                      {{possibleProsecutor['name']}}
                 </option>
                 {% endfor %}
             </select><br>
+            <input type="hidden" name="proposalHow" value="Censor"></input>
         {#
         TO DO : 15 other types of proposals
         #}
         {% endif %}
-            Choose how to make proposal :<br>
-        {% embed 'action_senate_proposalHow.twig' %}
-        {% endembed %}
+        {#
+            Show a list of possible ways to make a proposal
+            Doesn't apply to prosecutions (only Censor can make proposals)
+        #}
+            {% if output['type']!='Prosecutions' %}
+                Choose how to make proposal :<br>
+                {% embed 'action_senate_proposalHow.twig' %}
+                {% endembed %}
+            {% endif %}
         Choose voting order :<br>
         {% embed 'action_senate_votingOrder.twig' %}
         {% endembed %}

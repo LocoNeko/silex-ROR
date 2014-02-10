@@ -189,8 +189,14 @@ class Proposal {
             case 'Censor' :
                 $result[0] = array('inRome' , 0);
                 $result[1] = array('office' , 0);
-                $result[2] = array('censor_rejected' , 0);
+                $result[2] = array('censorRejected' , 0);
                 break ;
+            case 'Prosecutions' :
+                $result[0] = array('inRome' , 0) ;
+                $result[1] = array('inRome' , 2) ;
+                $result[2] = array('cantProsecuteSelf' , NULL) ;
+                $result[3] = array('censorCantBeProsecutor' , NULL) ;
+                $result[4] = array('prosecutionRejected' , NULL) ;
         }
         return $result ;
     }

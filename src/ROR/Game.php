@@ -3017,16 +3017,22 @@ class Game
          */
         $check = $this->senate_validateProposalBasic($user_id , $type , $proposalHow , $votingOrder) ;
         if ($check !==TRUE) {
-            return $check ;
+            return array(array($check , 'error' , $user_id)) ;
         }
         /*
          * Parameters validation
          */
         $rules = Proposal::validationRules($type) ;
+        // For Prosecutions, parameters 0 & 1 are 'compressed' into parameter 0 at the time of form submission
+        if ($type=='Prosecutions') {
+            $compressedParameter = explode(',' , $parameters[0]);
+            $parameters[0] = $compressedParameter[0] ;
+            $parameters[1] = $compressedParameter[1] ;
+        }
         foreach ($rules as $rule) {
-            $validation = $this->senate_validateParameter($rule[0] , $rule[1]) ;
+            $validation = $this->senate_validateParameter($rule[0] , $parameters , $rule[1]) ;
             if ($validation !== TRUE) {
-                return $validation ;
+                return array(array($validation , 'error' , $user_id)) ;
             }
         }
         /*
@@ -3036,7 +3042,7 @@ class Game
         $proposal = new Proposal ;
         $result = $proposal->init($type , $user_id , $description , $this->party , $parameters , $votingOrder) ;
         if ($result !== TRUE) {
-            return array($result) ;
+            return array(array($result)) ;
         }
 
         // Consuls
@@ -3046,13 +3052,32 @@ class Game
             $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
             array_push($messages , array(sprintf(_('%s, {%s} proposes %s and %s as consuls.') , $using , $user_id , $senator1->name , $senator2->name)) );
             array_push($this->proposals , $proposal) ;
+            
         //Dictator
         } elseif ($type=='Dictator') {
             // TO DO : Dictator Proposal
+             
         // Censor
         } elseif ($type=='Censor') {
             // TO DO : Censor Proposal
-            // TO DO : 15 other types of proposals... 
+        
+        // Prosecutions
+        } elseif ($type=='Prosecutions') {
+            $accused = $this->getSenatorWithID($parameters[0]) ;
+            $accusedParty = $this->getPartyOfSenator($accused) ;
+            $prosecutor = $this->getSenatorWithID($parameters[2]) ;
+            $prosecutorParty = $this->getPartyOfSenator($prosecutor) ;
+            $reasonsList = $this->senate_getListPossibleProsecutions() ;
+            $reasonText = '';
+            foreach ($reasonsList as $reason) {
+                if ($reason['reason']==$parameters[1]) {
+                    $reasonText = $reason['text'] ;
+                }
+            }
+            array_push($messages , array(sprintf(_('The Censor {%s} accuses %s {%s}, appointing %s {%s} as prosecutor. Reason : %s') , $user_id , $accused->name , $accusedParty->fullName() , $prosecutor->name , $prosecutorParty->fullName() , $reasonText )) );
+            array_push($this->proposals , $proposal) ;
+        
+        // TO DO : 15 other types of proposals... 
         } else {
             return array(array(_('Error with proposal type.') , 'error' , $user_id)) ;
         }
@@ -3123,7 +3148,7 @@ class Game
     
     /**
      * Validates a proposal's parameters against a specific rule
-     * @param type $rule 'Pair'|'inRome'|'office'|'censor_rejected'
+     * @param type $rule 'Pair'|'inRome'|'office'|'censorRejected'
      * @param array $parameters the array of parameters of the proposal
      * @param integer $index The index of the parameter to be validated, if needed (for some rules, it's obvious, like 'pair')
      * @return string
@@ -3144,7 +3169,7 @@ class Game
                 }
                 return TRUE ;
             case 'inRome' :
-                return ( $this->getSenatorWithID($parameters[$index])->inRome ? 'Senator is not in Rome.' : TRUE ) ;
+                return ( $this->getSenatorWithID($parameters[$index])->inRome() ? TRUE : 'Senator is not in Rome.' ) ;
             case 'office' :
                 $senator = $this->getSenatorWithID($parameters[$index]) ;
                 if (!in_array('Tradition Erodes' , $this->laws)) {
@@ -3153,10 +3178,22 @@ class Game
                     }
                 }
                 return ( ($senator->office == 'Pontifex Maximus') ? 'The Pontifex Maximus cannot be proposed.' : TRUE ) ;
-            case 'censor_rejected' :
+            case 'censorRejected' :
                 foreach ($this->proposals as $proposal) {
                     if ($proposal->type=='Censor' && $proposal->outcome==FALSE && $proposal->parameters[0]==$parameters[0]) {
                         return 'Proposing this Senator as Censor has already been rejected';
+                    }
+                }
+                return TRUE ;
+            case 'cantProsecuteSelf' :
+                return ($parameters[0]==$parameters[2] ? 'A Senator cannot prosecute himself' : TRUE) ;
+            case 'censorCantBeProsecutor' :
+                $senator = $this->getSenatorWithID($parameters[2]) ;
+                return ($senator->office=='Censor' ? 'The Censor cannot be prosecutor' : TRUE) ;
+            case 'prosecutionRejected' :
+                foreach ($this->proposals as $proposal) {
+                    if ($proposal->type=='Prosecutions' && $proposal->outcome==FALSE && $proposal->parameters[0]==$parameters[0] && $proposal->parameters[1]==$parameters[1]) {
+                        return 'This prosecution has already been rejected';
                     }
                 }
                 return TRUE ;
@@ -3456,10 +3493,9 @@ class Game
                 } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Prosecutions') ) {
                     $output['state'] = 'Proposal';
                     $output['type'] = 'Prosecutions';
-                    $nbProsecutions = $this->senate_getFinishedProsecutions() ;
                     $output['list'] = $this->senate_getListPossibleProsecutions() ;
                     $output['possibleProsecutors'] = $this->senate_getListPossibleProsecutors() ;
-                    
+                
                 // TO DO : All the rest...
                 } else {
                     $output['state'] = 'Error';
@@ -3642,6 +3678,7 @@ class Game
      * This function returns an array indicating all the ways user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune')
      * or empty array if he can't
      * @param type $user_id
+     * @return array with a list of ways to make a proposal
      */
     public function senate_canMakeProposal($user_id) {
         $result=array() ;
@@ -3808,12 +3845,16 @@ class Game
      */
     public function senate_getListPossibleProsecutions() {
         $result = array();
+        $nbProsecutions = $this->senate_getFinishedProsecutions() ;
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
-                if ($senator->major) {
-                    $result[] = array('senator' => $senator , 'reason' => 'major' , 'text' => sprintf(_('MAJOR - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
-                    $result[] = array('senator' => $senator , 'reason' => 'minor' , 'text' => sprintf(_('Minor - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
-                }
+                    if ($senator->major) {
+                        // Cannot have a major prosecution if there already was a minor prosecution
+                        if ($nbProsecutions['minor']==0) {
+                            $result[] = array('senator' => $senator , 'reason' => 'major' , 'text' => sprintf(_('MAJOR - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
+                        }
+                        $result[] = array('senator' => $senator , 'reason' => 'minor' , 'text' => sprintf(_('Minor - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
+                    }
                 if ($senator->corrupt) {
                     $alreadyprosecuted = FALSE ;
                     foreach ($this->proposals as $proposal) {
