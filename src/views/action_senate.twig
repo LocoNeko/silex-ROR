@@ -152,6 +152,9 @@ You cannot make a proposal at the moment
 #}
 {% elseif output['state']=='Decision' %}
     Decision<br>
+    {#
+        Decision - Consuls
+    #}
     {% if output['type'] =='Consuls'%}
         {% if output['canDecide']%}
             <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_decision'} ) }}">
@@ -172,6 +175,23 @@ You cannot make a proposal at the moment
             </form>
         {% else %}
             Waiting for the elected consuls to decide between themselves
+        {% endif %}
+    {#
+        Decision - Prosecutor
+    #}
+    {% elseif output['type'] =='Prosecutions'%}
+        {{output['prosecutorName']}} must decide if he accepts to be the prosecutor :<br>
+        {% if output['canDecide']%}
+            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_decision'} ) }}">
+                <input type="hidden" name="type" id="type" value="prosecutions">
+                <select name="accept">
+                    <option value="YES">ACCEPT</option>
+                    <option value="NO">REFUSE</option>
+                </select><br>
+                <button type="submit" class="btn-danger">OK</button>
+            </form>
+        {% else %}
+            Waiting for the appointed prosecutor to decide if he accepts the appointment.
         {% endif %}
     {% else %}
     {% endif %}

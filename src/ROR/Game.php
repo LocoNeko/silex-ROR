@@ -422,9 +422,27 @@ class Game
     }
     
     /**
+     * Returns the name of a senator, with the name of his party (or 'forum')
+     * @param type $senatorID The ID of the senator 
+     * @return boolean string or FALSE
+     */
+    public function getSenatorFullName($senatorID) {
+        $senator = $this->getSenatorWithID($senatorID) ;
+        if ($senator!==FALSE) {
+            $party = $this->getPartyOfSenator($senator) ;
+            if ($party!==FALSE) {
+                $partyName = ($party=='forum' ? '(forum)' : ' ('.$party->fullName().') ');
+                return $senator->name.$partyName;
+            }
+            return FALSE ;
+        }
+        return FALSE ;
+    }
+    
+    /**
      * 
-     * @param type $senatorID
-     * @return boolean
+     * @param string $senatorID The ID of the Senator
+     * @return boolean $senator or FALSE
      */
     public function getSenatorWithID ($senatorID) {
         foreach ($this->party as $party) {
@@ -3063,10 +3081,6 @@ class Game
         
         // Prosecutions
         } elseif ($type=='Prosecutions') {
-            $accused = $this->getSenatorWithID($parameters[0]) ;
-            $accusedParty = $this->getPartyOfSenator($accused) ;
-            $prosecutor = $this->getSenatorWithID($parameters[2]) ;
-            $prosecutorParty = $this->getPartyOfSenator($prosecutor) ;
             $reasonsList = $this->senate_getListPossibleProsecutions() ;
             $reasonText = '';
             foreach ($reasonsList as $reason) {
@@ -3074,7 +3088,7 @@ class Game
                     $reasonText = $reason['text'] ;
                 }
             }
-            array_push($messages , array(sprintf(_('The Censor {%s} accuses %s {%s}, appointing %s {%s} as prosecutor. Reason : %s') , $user_id , $accused->name , $accusedParty->fullName() , $prosecutor->name , $prosecutorParty->fullName() , $reasonText )) );
+            array_push($messages , array(sprintf(_('The Censor {%s} accuses %s, appointing %s as prosecutor. Reason : %s') , $user_id , $this->getSenatorFullName($parameters[0]) , $this->getSenatorFullName($parameters[2]) , $reasonText )) );
             array_push($this->proposals , $proposal) ;
         
         // TO DO : 15 other types of proposals... 
@@ -3402,33 +3416,43 @@ class Game
                 /*
                  *  TO DO - other decisions :
                  * - Dictator appoints Master of horse
-                 * - Appointed Prosecutor accepts/rejects appointment
                  * - Accused calls Popular Appeal
                  * etc
                  */
-                
-            /*
-             * Vote (The proposal has no outcome : make vote possible)
-             */
-            } elseif ($latestProposal->outcome===NULL) {
-                $output['state'] = 'Vote' ;
-                $output['voting'] = $latestProposal->voting ;
-                $output['treasury'] = array() ;
-                foreach($this->party[$user_id]->senators->cards as $senator) {
-                    $output['treasury'][$senator->senatorID] = $senator->treasury ;
-                }
-                $output['votingOrder'] = $latestProposal->votingOrder ;
-                $output['votingOrderNames'] = array() ;
-                foreach ($output['votingOrder'] as $key=>$value) {
-                    $output['votingOrderNames'][$key] = $this->party[$value]->fullName();
-                }
-                // This is not your turn to vote
-                if ($output['votingOrder'][0]!=$user_id) {
-                    $output['canVote'] = FALSE ;
-                // This is your turn to vote
-                } else {
-                    $output['canVote'] = TRUE ;
-                }
+            // Prosecutions : The prosecutor must agree to his appointment
+            } elseif ($this->phase=='Senate' && $this->subPhase=='Prosecutions' && $latestProposal->outcome===NULL && $latestProposal->parameters[3]===NULL ) {
+                $output['state'] = 'Decision' ;
+                $output['type'] = 'Prosecutions' ;
+                $prosecutor = $this->getSenatorWithID($latestProposal->parameters[2]) ;
+                $output['prosecutorName'] = $this->getSenatorFullName($latestProposal->parameters[2]) ;
+                $output['prosecutorID'] = $prosecutor -> senatorID ;
+                $output['prosecutorParty'] = $this->getPartyOfSenator($prosecutor)->user_id ;
+                $output['canDecide'] = ( $output['prosecutorParty'] == $user_id ) ;
+            }
+        /*
+         * Vote (The proposal has no outcome : make vote possible)
+         */
+        } elseif ($latestProposal!==FALSE && $latestProposal->outcome===NULL) {
+            $output['state'] = 'Vote' ;
+            $output['type'] = $latestProposal->type ;
+            // The proposal's long description
+            $output['longDescription'] = $this->senate_viewProposalDescription($latestProposal) ;
+            $output['voting'] = $latestProposal->voting ;
+            $output['treasury'] = array() ;
+            foreach($this->party[$user_id]->senators->cards as $senator) {
+                $output['treasury'][$senator->senatorID] = $senator->treasury ;
+            }
+            $output['votingOrder'] = $latestProposal->votingOrder ;
+            $output['votingOrderNames'] = array() ;
+            foreach ($output['votingOrder'] as $key=>$value) {
+                $output['votingOrderNames'][$key] = $this->party[$value]->fullName();
+            }
+            // This is not your turn to vote
+            if ($output['votingOrder'][0]!=$user_id) {
+                $output['canVote'] = FALSE ;
+            // This is your turn to vote
+            } else {
+                $output['canVote'] = TRUE ;
             }
 
         /*
@@ -3521,10 +3545,21 @@ class Game
                 $senator2 = $this->getSenatorWithID($latestProposal->parameters[1]) ;
                 $description.= sprintf(_('%s and %s as consuls.') , $senator1->name , $senator2->name);
                 break ;
+            case 'Prosecutions' :
+                $reasonsList = $this->senate_getListPossibleProsecutions() ;
+                $reasonText = '';
+                foreach ($reasonsList as $reason) {
+                    if ($reason['reason']==$latestProposal->parameters[1]) {
+                        $reasonText = $reason['text'] ;
+                    }
+                }
+                $description.= sprintf(_('%s. Prosecutor : %s') , $reasonText , $this->getSenatorFullName($latestProposal->parameters[2]) );
+                break ;
             // TO DO : 15 more types of proposals
         }
         return $description ;
     }
+    
     /**
      * A decision (not a vote) has been made on a proposal that was voted (outcome is TRUE) :<br>
      * - Consuls deciding who will do what<br>
@@ -3541,7 +3576,7 @@ class Game
         /*
          * Consuls decision
          */
-        if (($this->phase=='Senate') && ($this->subPhase=='Consuls') && $latestProposal->outcome===TRUE && $request['type']=='consuls') {
+        if ($this->phase=='Senate' && $this->subPhase=='Consuls' && $latestProposal->outcome===TRUE && $request['type']=='consuls') {
             for ($i=0 ; $i<2 ; $i++) {
                 $senator[$i] = $this->getSenatorWithID($latestProposal->parameters[$i]) ;
                 $party[$i] = $this->getPartyOfSenator($senator[$i])->user_id;
@@ -3607,6 +3642,25 @@ class Game
                     }
                     $this->subPhase='Dictator';
                 }
+            }
+            
+        /*
+         * Prosecutions decision (prosecutor accepting/refusing appointment)
+         */
+        } elseif ($this->phase=='Senate' && $this->subPhase=='Prosecutions' && $latestProposal->outcome===NULL && $request['type']=='prosecutions') {
+            $prosecutor = $this->getSenatorWithID($latestProposal->parameters[2]) ;
+            $prosecutorParty = $this->getPartyOfSenator($prosecutor)->user_id ;
+            if ($prosecutorParty == $user_id) {
+                if ($request['accept']=='YES') {
+                    $this->proposals[count($this->proposals)-1]->parameters[3] = TRUE ;
+                    array_push($messages , sprintf(_('%s accepts to be prosecutor.') , $prosecutor->name)) ;
+                } else {
+                    // Since this proposal was never actually put forward, simply destroy it
+                    unset ($this->proposals[count($this->proposals)-1]) ;
+                    return array(array(sprintf(_('The appointed prosecutor %s chickens out.') , $prosecutor->name)));
+                }
+            } else {
+                return array(array(_('You cannot take such a decision at this moment.')  , 'error' , $user_id));
             }
         /*
          * TO DO : Other decision types
@@ -3830,9 +3884,9 @@ class Game
         $result['minor'] = 0 ;
         $result['major'] = 0 ;
         foreach ($this->proposals as $proposal) {
-            if ($proposal->type=='Prosecutions' && $proposal->parameter[1]=='major' && $proposal->outcome!==NULL) {
+            if ($proposal->type=='Prosecutions' && $proposal->parameters[1]=='major' && $proposal->outcome!==NULL) {
                 $result['major']++;
-            } elseif ($proposal->type=='Prosecutions' && $proposal->parameter[1]!='major' && $proposal->outcome!==NULL) {
+            } elseif ($proposal->type=='Prosecutions' && $proposal->parameters[1]!='major' && $proposal->outcome!==NULL) {
                 $result['minor']++;
             }
         }
@@ -3851,9 +3905,9 @@ class Game
                     if ($senator->major) {
                         // Cannot have a major prosecution if there already was a minor prosecution
                         if ($nbProsecutions['minor']==0) {
-                            $result[] = array('senator' => $senator , 'reason' => 'major' , 'text' => sprintf(_('MAJOR - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
+                            $result[] = array('senator' => $senator , 'reason' => 'major' , 'text' => sprintf(_('MAJOR prosecution - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
                         }
-                        $result[] = array('senator' => $senator , 'reason' => 'minor' , 'text' => sprintf(_('Minor - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
+                        $result[] = array('senator' => $senator , 'reason' => 'minor' , 'text' => sprintf(_('Minor prosecution - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
                     }
                 if ($senator->corrupt) {
                     $alreadyprosecuted = FALSE ;
@@ -3863,7 +3917,7 @@ class Game
                         }
                     }
                     if (!$alreadyprosecuted) {
-                        $result[] = array('senator' => $senator , 'reason' => 'province' , 'text' => sprintf(_('Minor - %s (%s) for governing a province') , $senator->name , $party->fullname())) ;
+                        $result[] = array('senator' => $senator , 'reason' => 'province' , 'text' => sprintf(_('Minor prosecution - %s (%s) for governing a province') , $senator->name , $party->fullname())) ;
                     }
                 }
                 foreach ($senator->controls->cards as $card) {
@@ -3875,7 +3929,7 @@ class Game
                             }
                         }
                         if (!$alreadyprosecuted) {
-                            $result[] = array('senator' => $senator , 'reason' => $card->id , 'text' => sprintf(_('Minor - %s (%s) for profiting from concession %s') , $senator->name , $party->fullname() , $card->name)) ;
+                            $result[] = array('senator' => $senator , 'reason' => $card->id , 'text' => sprintf(_('Minor prosecution - %s (%s) for profiting from concession %s') , $senator->name , $party->fullname() , $card->name)) ;
                         }
                     }
                 }
