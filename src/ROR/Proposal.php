@@ -149,7 +149,7 @@ class Proposal {
     public function nbOfParameters() {
         switch($this->type) {
             case 'Prosecutions' :
-                $result = array ('given' => 3 , 'total' => 4) ;
+                $result = array ('given' => 3 , 'total' => 5) ;
                 break ;
             case 'Consuls' :
                 $result = array ('given' => 2 , 'total' => 4);

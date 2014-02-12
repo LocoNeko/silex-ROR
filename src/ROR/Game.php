@@ -3311,6 +3311,104 @@ class Game
         }
         return $messages ;
     }
+
+    /**
+     * Roll on the popular appeal table when a player appeals to the people, and applies the immediate effects if any
+     * @param string $user_id The player appealling to the people
+     * @return array messages
+     */
+    public function senate_appeal($user_id) {
+        $messages = array() ;
+        if ($this->phase == 'Senate' && $this->subPhase == 'Prosecutions') {
+            $latestProposal = $this->senate_getLatestProposal() ;
+            $accused = $this ->getSenatorWithID($latestProposal->parameters[0]) ;
+            if ($latestProposal->type == 'Prosecutions' && ($this ->getPartyOfSenator($accused) -> user_id == $user_id) && $latestProposal->parameters[4]===NULL ) {
+                $roll = $this->rollDice(2, -1) ;
+                array_push($messages , sprintf(_('Popular Appeal : %s rolls %d.') , $accused->name , $roll['total'])) ;
+                $modifiedResult = $roll['total'] + $accused->POP ;
+                $appealEffects = $this->appealTable[max(2 , min(12 , $modifiedResult))] ;
+                if ($appealEffects['special']=='freed') {
+                    // The accused is freed, and mortality chits are drawn to potentially kill the prosecutor or censor
+                    $chitsToDraw = 12 - $modifiedResult ;
+                    array_push($messages , sprintf(_('The righteous populace frees him. Since a %d was rolled, %d mortality chits are drawned to see if they kill the Prosecutor or Censor for this obvious frame-up.') , $modifiedResult , $chitsToDraw)) ;
+                    $prosecutor = $this ->getSenatorWithID($latestProposal->parameters[2]) ;
+                    $censor = $this->getHRAO(TRUE) ;
+                    $chits = $this->mortality_chits($chitsToDraw) ;
+                    foreach ($chits as $chit) {
+                        if ($chit!='NONE' && $chit!='DRAW 2') {
+                            if ($prosecutor->senatorID == (string)$chit || $censor->senatorID == (string)$chit || $prosecutor->statesmanFamily()==(string)$chit || $censor->statesmanFamily()==(string)$chit) {
+                                $returnedMessage= $this->mortality_killSenator((string)$chit) ;
+                                array_push($messages , array(sprintf(_('Chit drawn : %s. %s'), $chit , $returnedMessage[0]) , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
+                            }
+                        } else {
+                            array_push($messages , array(sprintf(_('Chit drawn : %s'),$chit)));
+                        }
+                    }
+                    $this->proposals[count($this->proposals)-1]->parameters[4] = 'freed' ;
+                    $this->proposals[count($this->proposals)-1]->outcome = FALSE ;
+                } elseif ($appealEffects['special']=='killed') {
+                    array_push($messages , _('The disgusted populace kills him themselves')) ;
+                    // TO DO : Check what happens when the ID is alphanumerical
+                    array_push($messages , $this->mortality_killSenator($accused->senatorID)) ;
+                    $this->proposals[count($this->proposals)-1]->parameters[4] = 'killed' ;
+                    $this->proposals[count($this->proposals)-1]->outcome = TRUE ;
+                } else {
+                    $this->proposals[count($this->proposals)-1]->parameters[4] = $appealEffects['votes'] ;
+                    array_push($messages , sprintf(_('%s %s %d votes from his popular appeal.' , $accused->name , ($appealEffects['votes']>0 ? _('gains') : _('loses')) , $appealEffects['votes'] ))) ;
+                }
+            }
+        }
+        return $messages ;
+    }
+
+    /**
+     * Proceed with the effects of a successful prosecutions : gain/loss of POP,INF,Prior Consul,Concessions, Life
+     * @return array messages
+     */
+    public function senate_prosecutionSuccessful() {
+        $messages = array() ;
+        $latestProposal = $this->senate_getLatestProposal() ;
+        if ($latestProposal->type=='Prosecutions' && $latestProposal->outcome==TRUE) {
+            $accused = $this->getSenatorWithID($latestProposal->parameters[0]) ;
+            $prosecutor = $this->getSenatorWithID($latestProposal->parameters[2]) ;
+            // This was a major prosecution
+            // TO DO 
+            if ($latestProposal->parameters[1]=='major') {
+            // This was a minor prosecution
+            } else {
+                $INFloss = min(5 , $accused->INF) ;
+                $priorConsulMarker = $accused->priorConsul ;
+                $accused->changePOP(-5) ;
+                $accused->changeINF(-5) ;
+                $accused->priorConsul = FALSE ;
+                $message = sprintf(_('Minor prosecution successful : %s loses %d INF, 5 POP%s. ') , $accused->name , $INFloss , ($priorConsulMarker ? _(' and his prior consul marker') : '') );
+                $concessionLossMessage = NULL;
+                foreach($accused->controls->cards as $card) {
+                    if ($card->type=='Concession') {
+                        if ($concessionLossMessage===NULL) {
+                            $concessionLossMessage = _('As well as the following concessions : ');
+                        }
+                        $concession = $accused->controls->drawCardWithValue('id' , $card->id) ;
+                        $concessionLossMessage .= $concession->name.', ';
+                        $this->forum->putOnTop($concession) ;
+                    }
+                }
+                if ($concessionLossMessage !== NULL) {
+                    $concessionLossMessage = substr($concessionLossMessage, 0 , -2) ;
+                    $message.=$concessionLossMessage ;
+                }
+                array_push($messages , array($message)) ;
+                $prosecutor->changeINF($INFloss) ;
+                $message2 = sprintf(_('The prosecutor %s gains %d INF.') , $prosecutor->name , $INFloss);
+                if ($priorConsulMarker) {
+                    $prosecutor->priorConsul = TRUE ;
+                    $message2.=' As well as the accused\'s prior consul marker.';
+                }
+                array_push($messages , array($message2)) ;
+            }
+        }
+        return $messages ;
+    }
     
     /**
      * Handles the Presiding Magistrate decision to stepdown or not following an unanimous defeat, then sets the subPhase back to the latest proposal type
@@ -3389,7 +3487,7 @@ class Game
              * Decisions
              */
             // Consuls : The outcome is TRUE (the proposal was voted), but Consuls have yet to decide who will be Consul of Rome / Field Consul
-            if (($this->phase=='Senate') && ($this->subPhase=='Consuls') && $latestProposal->outcome===TRUE && ($latestProposal->parameters[2]===NULL || $latestProposal->parameters[3]===NULL) ) {
+            if ($this->phase=='Senate' && $this->subPhase=='Consuls' && $latestProposal->outcome===TRUE && ($latestProposal->parameters[2]===NULL || $latestProposal->parameters[3]===NULL) ) {
                 $output['state'] = 'Decision' ;
                 $output['type'] = 'Consuls' ;
                 $senator = array() ; $party = array() ;
@@ -3446,6 +3544,13 @@ class Game
             $output['votingOrderNames'] = array() ;
             foreach ($output['votingOrder'] as $key=>$value) {
                 $output['votingOrderNames'][$key] = $this->party[$value]->fullName();
+            }
+            // Popular appeal possible or not
+            if ( ($latestProposal->type=='Prosecutions') && ($this ->getPartyOfSenatorWithID($latestProposal->parameters[0]) -> user_id == $user_id) && $latestProposal->parameters[4]===NULL ) {
+                $output['appeal'] = TRUE ;
+                $output['popularity'] = $this->getSenatorWithID($latestProposal->parameters[0])->POP ;
+            } else {
+                $output['appeal'] = FALSE ;
             }
             // This is not your turn to vote
             if ($output['votingOrder'][0]!=$user_id) {

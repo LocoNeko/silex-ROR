@@ -129,6 +129,9 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                 case 'senate_vote' :
                     log ($app , $game_id , $user_id , $game->senate_vote($user_id , $request->request->all() )  , $playerNames);
                     break ;
+                case 'senate_appeal' :
+                    log ($app , $game_id , $user_id , $game->senate_appeal($user_id)  , $playerNames);
+                    break ;
                 case 'senate_stepDown' :
                     log ($app , $game_id , $user_id , $game->senate_stepDown($user_id , $request->request->get('stepDown') ) , $playerNames );
                     break ;

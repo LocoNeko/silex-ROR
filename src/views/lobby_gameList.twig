@@ -5,16 +5,17 @@
 {% block content %}
 
     <div class="page-header">
-        <h1>{% trans %}List Games{% endtrans %}</h1>
+        <h1>{% trans %}List{% endtrans %}</h1>
     </div>
-    
-    {% if nb_games == 1 %}
-        <h4>{{ nb_games }} game found</h4>
-    {% elseif nb_games > 1%}
-        <h4>{{ nb_games }} games found</h4>
-    {% else %}
-        <h4>No game found</h4>
-    {% endif %}
+    <h4>
+        {% if nb_games == 1 %}
+            {{ nb_games }} game found
+        {% elseif nb_games > 1%}
+            {{ nb_games }} games found
+        {% else %}
+            No game found
+        {% endif %}
+    </h4>
         
     {% if nb_games > 0 %}
         <br>
