@@ -82,6 +82,22 @@
         {% endfor %}
         </fieldset>
     {% endif %}
+    
+    {# Rebel legions maintenance #}
+    {% if output['rebels']|length > 0 %}
+        {{output['text']['rebels']}}<br>
+        {% for rebel in output['rebels'] %}
+                {{rebel['name']}} must maintain {{rebel['nbLegions']}} legions, of which {{rebel['loyal']}} veterans are loyal to him and {{rebel['notLoyal']}} veterans are loyal to somebody else :<br>
+                {% for legion in rebel['list'] %}
+                    {{legion.name}}
+                {#
+                    TO DO : legion-per-legion interface
+                    Legion name , Veteran or not , loyal to the senator or not, if NOT free give a list of 5 options :
+                    Maintenance priority : Party, Personal, Disband | Personal,Party,Disband | Party,Disband | Personal,Disband | Disband
+                #}
+                {% endfor %}
+        {% endfor %}
+    {% endif %}
         <button type="submit" class="btn btn-info">DONE</button>
     </form>
     

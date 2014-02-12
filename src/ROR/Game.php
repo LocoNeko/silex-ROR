@@ -1373,9 +1373,12 @@ class Game
     /**
      * Returns a list of the various components of base revenue : senators, leader, knights, concessions, provinces
      * @param string $user_id
-     * @return array ['total'] , ['senators'] , ['leader'] , ['knights'] , array ['concessions'] , array ['provinces'] => 'province' , 'senator'
+     * @return array ['total'] , ['senators'] , ['leader'] , ['knights'] ,
+     * array ['concessions'] => ('id' , 'name' , 'income' , 'special' , 'senator_name' , 'senatorID') ,
+     * array ['provinces'] => ('province' , 'senator') ,
+     * array['rebels'] => ('senatorID' , 'name' , 'nbLegions' , 'loyal' , 'notLoyal' , 'list')
      */
-    public function revenue_Base($user_id) {
+    public function revenue_base($user_id) {
         $result = array() ;
         $result['total'] = 0 ;
         $result['senators'] = 0 ;
@@ -1383,24 +1386,46 @@ class Game
         $result['knights'] = 0 ;
         $result['concessions'] = array() ;
         $result['provinces'] = array() ;
+        $result['rebels'] = array() ;
         foreach ($this->party[$user_id]->senators->cards as $senator) {
-            if ($this->party[$user_id]->leader->senatorID == $senator->senatorID) {
-                $result['total']+=3 ;
-                $result['leader']=$senator->name ;
-            } else {
-                $result['total']+=1 ;
-                $result['senators']+=1 ;
-            }
-            $result['total']+=$senator->knights ;
-            $result['knights']+=$senator->knights ;
-            foreach ($senator->controls->cards as $card) {
-                if ( $card->type == 'Concession' && $card->income > 0) {
-                    $card->corrupt = TRUE ;
-                    $result['total']+=$card->income ;
-                    array_push($result['concessions'] , array( 'id' => $card->id , 'name' => $card->name , 'income' => $card->income , 'special' => $card->special , 'senator_name' => $senator->name , 'senatorID' => $senator->senatorID ) );
-                } elseif ( $card->type == 'Province' ) {
-                    array_push($result['provinces'] , array('province' => $card , 'senator' => $senator ) );
+            if (!$senator->rebel && !$senator->captive) {
+                if ($this->party[$user_id]->leader->senatorID == $senator->senatorID) {
+                    $result['total']+=3 ;
+                    $result['leader']=$senator->name ;
+                } else {
+                    $result['total']+=1 ;
+                    $result['senators']+=1 ;
                 }
+                $result['total']+=$senator->knights ;
+                $result['knights']+=$senator->knights ;
+                foreach ($senator->controls->cards as $card) {
+                    if ( $card->type == 'Concession' && $card->income > 0) {
+                        $card->corrupt = TRUE ;
+                        $result['total']+=$card->income ;
+                        array_push($result['concessions'] , array( 'id' => $card->id , 'name' => $card->name , 'income' => $card->income , 'special' => $card->special , 'senator_name' => $senator->name , 'senatorID' => $senator->senatorID ) );
+                    } elseif ( $card->type == 'Province' ) {
+                        array_push($result['provinces'] , array('province' => $card , 'senator' => $senator ) );
+                    }
+                }
+            } elseif ($senator->rebel) {
+                $nbLegions = 0 ;
+                $nbVeteransLoyal = 0 ;
+                $nbVeteransNotLoyal = 0 ;
+                $legionList = array() ;
+                foreach($this->legion as $legion) {
+                    if ($legion->location == $senator->senatorID) {
+                        array_push($legionList , $legion) ;
+                        $nbLegions++ ;
+                        if ($legion->veteran) {
+                            if ($legion->loyalty == $senator->senatorID) {
+                                $nbVeteransLoyal ++ ;
+                            } else {
+                                $nbVeteransNotLoyal ++ ;
+                            }
+                        }
+                    }
+                }
+                array_push($result['rebels'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'nbLegions' => $nbLegions , 'loyal' => $nbVeteransLoyal , 'notLoyal' => $nbVeteransNotLoyal , 'list' => $legionList) ) ;
             }
         }
         return $result ;
@@ -1414,6 +1439,7 @@ class Game
      * - Take provincial spoils or not
      * - Handle Rome's treasury loss if the Senator lets Rome pay
      * - Develop provinces
+     * - Pay for rebel legions maintenance
      * - Move to Redistribution subphase if the player was the last in order of play
      * @param string $user_id the player's user_id
      * @param request $request the POST variables
@@ -1422,7 +1448,7 @@ class Game
     public function revenue_ProvincialSpoils ($user_id , $request ) {
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Base') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $messages = array() ;
-            $base = $this->revenue_Base($user_id);
+            $base = $this->revenue_base($user_id);
             /*
              * Handle increased revenue & POP loss from 'drought' concessions (the two 'grains' concessions)
              * This comes in the request with a YES or NO flag on $request[id] where id is the concession card's id
@@ -1508,6 +1534,17 @@ class Game
                 }
                 array_push ($messages , array($message)) ;
             }
+            /*
+             * TO DO :
+             * Rebel legions cost 2 talents per turn to maintain and must be paid before the redistribution of wealth occurs in the Revenue Phase.
+             * The rebel senator can pay this from his personal or faction treasury. 
+             * Rebel governors may collect provincial spoils from provinces, as well as all State and local taxes as personal revenue before paying maintenance costs.
+             * Veteran legions owing allegiance to a rebel senator require no maintenance, while veteran legions owing no allegiance must be maintained normally.
+             * If, during the Revenue Phase, the rebel cannot pay the required maintenance, he must release the legions he cannot afford.
+             * Any garrison legions/fleets that that are released in this manner immediately return to the senate, which may instead pay the maintenance.
+             * If the HRAO does not wish to pay the maintenance costs of these troops or if the senate cannot afford them, they are immediately disbanded.
+             */
+
             // Phase done for this player. If all players are done, move to redistribution subPhase
             $this->party[$user_id]->phase_done = TRUE ;
             if ($this->whoseTurn() === FALSE ) {
@@ -1529,10 +1566,12 @@ class Game
         $result=array() ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             foreach($this->party[$user_id]->senators->cards as $senator) {
-                if ($senator->treasury > 0 ) {
+                if ($senator->treasury > 0 && !$senator->captive && !$senator->rebel) {
                     array_push($result , array('list' => 'from' , 'type' => 'senator' , 'id' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury ));
                 }
-                array_push($result , array('list' => 'to' , 'type' => 'senator' , 'id' => $senator->senatorID , 'name' => $senator->name ));
+                if (!$senator->captive && !$senator->rebel) {
+                    array_push($result , array('list' => 'to' , 'type' => 'senator' , 'id' => $senator->senatorID , 'name' => $senator->name ));
+                }
             }
             array_push($result , array('list' => 'from' , 'type' => 'party' , 'id' => $user_id , 'name' => $this->party[$user_id]->name , 'treasury' => $this->party[$user_id]->treasury ));
             foreach($this->party as $key=>$value) {
@@ -1818,10 +1857,13 @@ class Game
             // Playing base revenue phase : Getting more from concessions during drought & Provincial spoils
             } else {
                 $output['state'] = 'Base - Playing' ;
-                $revenueBase = $this->revenue_Base($user_id) ;
+                $revenueBase = $this->revenue_base($user_id) ;
                 $output['text']['senators'] = ($revenueBase['senators']>0 ? sprintf(_('Revenue collected from %d senators : %dT.') , $revenueBase['senators'] , $revenueBase['senators']) : _('Currently no Senators in the party : no revenue collected from senators.') );
                 $output['text']['leader'] = ($revenueBase['leader']!='' ? sprintf(_('Revenue collected from Leader %s : 3T.') , $revenueBase['leader']) : _('Currently no leader : no revenue collected from leader.'));
                 $output['text']['knights'] = ($revenueBase['knights']>0 ? sprintf(_('Revenue collected from %d knights : %dT.') , $revenueBase['knights'] , $revenueBase['knights']) : _('Currently no knights : no revenue collected from knights.'));
+                // rebel legions
+                $output['rebels'] = $revenueBase['rebels'] ;
+                $output['text']['rebels'] = _('There is a rebel in the faction');
                 // Concessions
                 $output['concessions'] = array() ;
                 $output['concession_drought'] = array();

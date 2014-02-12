@@ -14,7 +14,8 @@ function numberToRoman($num) {
 }
 
 /**
- * @param string $Location NULL if Legion doesn't exist
+ * @param string $location NULL if Legion doesn't exist
+ * $location is equal to the SenatorID of their commander 
  */
 class Legion
 {
