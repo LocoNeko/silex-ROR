@@ -2043,7 +2043,6 @@ class Game
     public function forum_bid ($user_id , $senatorRaw , $amount) {
         $amount = (int)$amount ;
         $messages = array() ;
-        // TO DO : I can do better than this ! (test sub phase)
         if ($this->phase=='Forum') {
             if ($this->forum_whoseInitiative()===FALSE) {
                 // There was no bid
@@ -3362,10 +3361,31 @@ class Game
                 $this->subPhase = 'Unanimous defeat' ;
             }
             /* 
-             * TO DO : Deal with automatic nominations
+             * Deal with automatic nominations if the outcome was FALSE
              * - Consuls : Only one pair of senators left
              * - Censor : Only one prior consul left
              */
+            if ($latestProposal->outcome == FALSE) {
+                if ($latestProposal->type=='Consuls') {
+                    $possiblePairs = $this->senate_consulsPairs() ;
+                    if (count($possiblePairs)==1) {
+                        $senator1 = $this->getSenatorWithID($possiblePairs[0][0]) ;
+                        $senator2 = $this->getSenatorWithID($possiblePairs[0][1]) ;
+                        $proposal = new Proposal ;
+                        $proposal->init('Consuls' , NULL , NULL , $this->party , array($possiblePairs[0][0] , $possiblePairs[0][1]) , NULL) ;
+                        $proposal->outcome = TRUE ;
+                        array_push($messages , array(sprintf(_('%s and %s are nominated consuls as the only available pair.') , $senator1->name , $senator2->name)) );
+                    }
+                } elseif ($latestProposal->type=='Censor') {
+                    $candidates = $this->senate_possibleCensors() ;
+                    // Only one eligible candidate : appoint him and move to prosecution phase
+                    if (count($candidates)==1) {
+                        array_push($messages , array(sprintf(_('Only %s is eligible for Censorship, so he is automatically elected.') , $candidates[0]->name)) );
+                        $this->senate_appointOfficial('Censor', $candidates[0]->senatorID) ;
+                        $this->subPhase='Prosecutions';
+                    }
+                }
+            }
         }
         return $messages ;
     }
@@ -3475,7 +3495,6 @@ class Game
      * @return array
      */
     public function senate_stepDown($user_id , $stepDown) {
-        // TO DO : Change SubPhase when Censor steps down (Prosecutions immediately end)
         $messages = array() ;
         $HRAO = $this->getHRAO(TRUE) ;
         if ($HRAO['user_id']==$user_id) {
@@ -3488,6 +3507,11 @@ class Game
             }
             $latestProposal = $this->senate_getLatestProposal() ;
             $this->subPhase = $latestProposal->type ;
+            // If the Censor steps down, move to Governors election.
+            if ($stepDown==1 && $this->subPhase == 'Prosecutions') {
+                array_push($messages , array(_('With the Censor stepping down, the Prosecution phase ends.')) );
+                $this->subPhase = 'Governors' ;
+            }
         } else {
             return array(array(_('You are not presiding magistrate, hence cannot step down.') , 'error' , $user_id));
         }
@@ -3643,7 +3667,6 @@ class Game
                     $output['type'] = 'Consuls';
                     $output['pairs'] = array() ;
                     $possiblePairs = $this->senate_consulsPairs() ;
-                    // TO DO : Check if there is only one pair
                     foreach($possiblePairs as $pair) {
                         $senator1 = $this->getSenatorWithID($pair[0]) ;
                         $party1 = $this->getPartyOfSenator($senator1) ;
@@ -3707,6 +3730,10 @@ class Game
                 $senator2 = $this->getSenatorWithID($latestProposal->parameters[1]) ;
                 $description.= sprintf(_('%s and %s as consuls.') , $senator1->name , $senator2->name);
                 break ;
+            case 'Censor' :
+                $censor = $this->getSenatorWithID($latestProposal->parameters[0]) ;
+                $description.= sprintf(_('%s as Censor.') , $censor->name);
+                break ;
             case 'Prosecutions' :
                 $reasonsList = $this->senate_getListPossibleProsecutions() ;
                 $reasonText = '';
@@ -3717,7 +3744,7 @@ class Game
                 }
                 $description.= sprintf(_('%s. Prosecutor : %s') , $reasonText , $this->getSenatorFullName($latestProposal->parameters[2]) );
                 break ;
-            // TO DO : 15 more types of proposals
+            // TO DO : other types of proposals
         }
         return $description ;
     }
