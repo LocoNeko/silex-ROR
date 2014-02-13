@@ -85,16 +85,25 @@
     
     {# Rebel legions maintenance #}
     {% if output['rebels']|length > 0 %}
+        <input type="hidden" name="rebel" value="YES">
         {{output['text']['rebels']}}<br>
         {% for rebel in output['rebels'] %}
                 {{rebel['name']}} must maintain {{rebel['nbLegions']}} legions, of which {{rebel['loyal']}} veterans are loyal to him and {{rebel['notLoyal']}} veterans are loyal to somebody else :<br>
                 {% for legion in rebel['list'] %}
-                    {{legion.name}}
-                {#
-                    TO DO : legion-per-legion interface
-                    Legion name , Veteran or not , loyal to the senator or not, if NOT free give a list of 5 options :
-                    Maintenance priority : Party, Personal, Disband | Personal,Party,Disband | Party,Disband | Personal,Disband | Disband
-                #}
+                    {{legion.name}}, {{legion.veteran ? 'Veteran' : 'Regular'}}, {{legion.loyalty==rebel['senatorID'] ? 'Loyal to him' : 'Not loyal to him'}}
+                    {% if legion.loyalty==rebel['senatorID'] %}
+                        Maintenance free
+                    {% else %}
+                        Maintenance priority :
+                        <select name="LEGION_{{legion.name}}_{{rebel['senatorID']}}" id="LEGION_{{legion.name}}">
+                            <option value="A">Party treasury, or personal, or disband</option>
+                            <option value="B">Personal treasury, or party, or disband</option>
+                            <option value="C">Party treasury, or disband</option>
+                            <option value="D">Personal treasury, or disband</option>
+                            <option value="E">Disband</option>
+                        </select>
+                    {% endif %}
+                    <br>
                 {% endfor %}
         {% endfor %}
     {% endif %}

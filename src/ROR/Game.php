@@ -1408,6 +1408,7 @@ class Game
                     }
                 }
             } elseif ($senator->rebel) {
+                // Rebel senator's legions
                 $nbLegions = 0 ;
                 $nbVeteransLoyal = 0 ;
                 $nbVeteransNotLoyal = 0 ;
@@ -1423,6 +1424,12 @@ class Game
                                 $nbVeteransNotLoyal ++ ;
                             }
                         }
+                    }
+                }
+                //  Rebels CAN collect provincial spoils
+                foreach ($senator->controls->cards as $card) {
+                    if ( $card->type == 'Province' ) {
+                        array_push($result['provinces'] , array('province' => $card , 'senator' => $senator ) );
                     }
                 }
                 array_push($result['rebels'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'nbLegions' => $nbLegions , 'loyal' => $nbVeteransLoyal , 'notLoyal' => $nbVeteransNotLoyal , 'list' => $legionList) ) ;
@@ -1534,17 +1541,26 @@ class Game
                 }
                 array_push ($messages , array($message)) ;
             }
-            /*
-             * TO DO :
-             * Rebel legions cost 2 talents per turn to maintain and must be paid before the redistribution of wealth occurs in the Revenue Phase.
-             * The rebel senator can pay this from his personal or faction treasury. 
-             * Rebel governors may collect provincial spoils from provinces, as well as all State and local taxes as personal revenue before paying maintenance costs.
-             * Veteran legions owing allegiance to a rebel senator require no maintenance, while veteran legions owing no allegiance must be maintained normally.
-             * If, during the Revenue Phase, the rebel cannot pay the required maintenance, he must release the legions he cannot afford.
-             * Any garrison legions/fleets that that are released in this manner immediately return to the senate, which may instead pay the maintenance.
-             * If the HRAO does not wish to pay the maintenance costs of these troops or if the senate cannot afford them, they are immediately disbanded.
-             */
-
+            if ($request['rebel']=='YES') {
+                // Pick up each LEGION_XXX_YYY (XXX is the legion's name, YYY is the rebel senator's senatorID), check which option was picked : A,B,C,D,E
+                // TO DO : Pay maintenance or disband
+                // TO DO : If legions are released, If the HRAO does not wish to pay the maintenance costs of these troops or if the senate cannot afford them, they are immediately disbanded.
+                // This specific HRAO decision should be moved to the HRAO's redistribution function.
+                foreach($request as $key=>$value) {
+                    if (substr($key,0,6)=='LEGION') {
+                        $itemised = explode('_' , $key) ;
+                        $legionName = $itemised[1] ;
+                        $rebelID = $itemised[2] ;
+                        switch($value) {
+                            case 'A' :
+                            case 'B' :
+                            case 'C' :
+                            case 'D' :
+                            case 'E' :
+                        }
+                    }
+                }
+            }
             // Phase done for this player. If all players are done, move to redistribution subPhase
             $this->party[$user_id]->phase_done = TRUE ;
             if ($this->whoseTurn() === FALSE ) {
