@@ -1836,7 +1836,15 @@ class Game
                 $this->resetPhaseDone();
                 $this->phase='Forum';
                 array_push($messages , array(_('FORUM PHASE'),'alert'));
-                // TO DO : remove events that expire at the beginning of the forum phase
+                // Remove events that expire at the beginning of the forum phase
+                foreach ($this->events as $number => $event) {
+                    if ($event['level']>0) {
+                        if ( ($number != 174) && ($number != 175) && ($number != 176) ) {
+                            $this->events[$number]['level'] = 0 ;
+                            array_push($messages , array(sprintf(_('Event %s is removed.') , $event['name'])));
+                        }
+                    }
+                }
                 $this->subPhase='RollEvent';
                 $this->initiative=1;
                 array_push($messages , array(_('Initiative #1'),'alert'));
@@ -2108,25 +2116,28 @@ class Game
     public function forum_rollEvent($user_id) {
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='RollEvent') && ($this->forum_whoseInitiative()==$user_id) ) {
-            array_push($messages , array('Event roll Sub Phase'));
+            array_push($messages , array(_('Event roll Sub Phase')));
             $roll = $this->rollDice(2, 0) ;
             if ($roll['total']==7) {
                 // Event
                 $eventRoll = $this->rollDice(3,0) ;
-                array_push($messages , array($this->party[$user_id]->fullName().' rolls a 7, then rolls a '.$eventRoll['total'].' on the events table.'));
+                
+                
+                
+                array_push($messages , array( sprintf(_('{%s} rolls a 7, then rolls a %d on the events table.') , $user_id , $eventRoll['total']) ));
                 $eventNumber = $this->eventTable[(int)$eventRoll['total']][$this->scenario] ;
                 $message = $this->forum_putEventInPlay('number' , $eventNumber) ;
                 array_push($messages, array($message , 'alert'));
             } else {
                 // Card
-                array_push($messages , array($this->party[$user_id]->fullName().' rolls a '.$roll['total'].' and draws a card.'));
+                array_push($messages , array( sprintf(_('{%s} rolls a %d and draws a card.') , $user_id , $roll['total']) ));
                 $card = $this->drawDeck->drawTopCard() ;
                 if ($card !== NULL) {
                     if ($card->type == 'Statesman' || $card->type == 'Faction' || $card->type == 'Concession') {
                         // Keep the card
                         $this->party[$user_id]->hand->putOnTop($card);
-                        array_push($messages , array($this->party[$user_id]->fullName().' draws a faction card and keeps it.','message',$this->getAllButOneUserID($user_id)));
-                        array_push($messages , array('You draw '.$card->name.' and put it in your hand.','message',$user_id));
+                        array_push($messages , array(sprintf(_('{%s} draws a faction card and keeps it.') , $user_id),'message',$this->getAllButOneUserID($user_id)));
+                        array_push($messages , array(sprintf(_('You draw %s and put it in your hand.') , $card->name),'message',$user_id));
                     } else {
                         // If a Family has been drawn check if a corresponding Statesman is in play
                         if ($card->type=='Family') {
@@ -2141,12 +2152,12 @@ class Game
                             // No corresponding statesman : Family goes to the Forum
                             if (count($possibleStatemen)==0) {
                                 $this->forum->putOnTop($card) ;
-                                array_push($messages , array($this->party[$user_id]->fullName().' draws '.$card->name.' that goes to the forum.'));
+                                array_push($messages , array( sprintf(_('{%s} draws %s that goes to the forum.') , $user_id , $card->name) ));
                             // Found one or more (in case of brothers) corresponding Statesmen : put the Family under them
                             // Case 1 : only one Statesman
                             } elseif (count($possibleStatemen)==1) {
                                 $possibleStatemen[0]['senator']->controls->putOnTop($card) ;
-                                array_push($messages , array($possibleStatemen[0]['party']->fullName().' has '.$possibleStatemen[0]['senator']->name.' so the family joins him.'));
+                                array_push($messages , array( sprintf(_('{%s} has %s so the family joins him.') , $possibleStatemen[0]['party']->user_id , $possibleStatemen[0]['senator']->name) ));
                             // Case 2 : brothers are in play
                             } else {
                                 // Sorts the possibleStatemen in SenatorID order, so 'xxA' is before 'xxB'
@@ -2155,22 +2166,36 @@ class Game
                                     return strcmp($a['senator']->senatorID , $b['senator']->senatorID);
                                 });
                                 $possibleStatemen[0]['senator']->controls->putOnTop($card) ;
-                                array_push($messages , array($possibleStatemen[0]['party']->fullName().' has '.$possibleStatemen[0]['senator']->name.'  (who has the letter "A" and takes precedence over his brother) so the family joins him.'));
+                                array_push($messages , array( sprintf(_('{%s} has %s (who has the letter "A" and takes precedence over his brother) so the family joins him.') , $possibleStatemen[0]['party']->user_id , $possibleStatemen[0]['senator']->name) ));
                             }
                         } else {
                             // Card goes to forum
                             // TO DO : Wars and Leaders don't go to forum
+                            /*
+                             * Whenever a war card is drawn from the deck that would match another war or revolt card (see revolts below)
+                             *  already located anywhere in the Forum, the drawn card is placed in the Imminent Wars slot for the remainder of the current turn, 
+                             * and it does not multiply any active wars until it itself becomes active. 
+                             * If the already existing war card in the Forum is currently located in an Inactive War slot, 
+                             * it is immediately moved to an Active War slot; otherwise, nothing else happens.
+                             * 
+                             * If, while an inactive or active war is in play, a matching leader card is drawn 
+                             * (e.g., Hannibal is drawn while Punic Wars are active or inactive) the leader is 
+                             * immediately placed with the war and the war is considered active. 
+                             * If a leader resides in the Curia and a war matching that leader is drawn both the leader and the war are immediately considered active, 
+                             * even if the war would normally be considered inactive.
+                             * EXCEPTION: Leaders cannot activate imminent wars.
+                             */
                             $this->forum->putOnTop($card) ;
-                            array_push($messages , array($this->party[$user_id]->fullName().' draws '.$card->name.' that goes to the forum.'));
+                            array_push($messages , array(sprintf(_('{%s} draws %s that goes to the forum.') , $user_id , $card->name)));
                         }
                     }
                 } else {
-                    array_push($messages , array('There is no more cards in the deck.','alert'));
+                    array_push($messages , array(_('There is no more cards in the deck.'),'alert'));
                 }
             }
             // Persuasion initialisation
             $this->subPhase = 'Persuasion';
-            array_push($messages , array ('Persuasion Sub Phase') );
+            array_push($messages , array (_('Persuasion Sub Phase')) );
             $this->forum_resetPersuasion();
             $this->currentBidder = $user_id;
         }
@@ -2200,18 +2225,18 @@ class Game
             // The event is not currently in play
             if ($this->events[$eventNumber]['level'] == 0) {
                 $this->events[$eventNumber]['level']++ ;
-                $message='Event '.$this->events[$eventNumber]['name'].' is now in play.';
+                $message=sprintf(_('Event %s is now in play.') , $this->events[$eventNumber]['name']);
             // The event is currently in play at maximum level & CANNOT increase
             } elseif ($this->events[$eventNumber]['level'] == $this->events[$eventNumber]['max_level']) {
                 $nameToUse = ($this->events[$eventNumber]['level']> 1 ? $this->events[$eventNumber]['increased_name'] : $this->events[$eventNumber]['name'] ) ;
-                $message='Event '.$nameToUse.' is already in play at its maximum level ('.$this->events[$eventNumber]['max_level'].').';
+                $message=sprintf(_('Event %s is already in play at its maximum level (%d).') , $nameToUse , $this->events[$eventNumber]['max_level']);
             // The event is currently in play and not yet at maximum level : it can increase
             } else {
                 $this->events[$eventNumber]['level']++ ;
-                $message='Event '.$this->events[$eventNumber]['name'].' has its level increased to '.$this->events[$eventNumber]['increased_name'].' (level '.$this->events[$eventNumber]['level'].').';
+                $message=sprintf(_('Event %s has its level increased to %s (level %d).') , $this->events[$eventNumber]['name'] , $this->events[$eventNumber]['increased_name'] , $this->events[$eventNumber]['level']);
             }
         } else {
-            $message = 'Error retrieving event.' ;
+            $message = _('Error retrieving event.') ;
         }
         return $message ;
     }
@@ -2304,9 +2329,9 @@ class Game
         $messages = array() ;
         if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
             $this->subPhase = 'Knights';
-            array_push($messages , array($this->party[$user_id]->fullName().' doesn\'t try to persuade any senator during this initiative.'));
+            array_push($messages , array( sprintf(_('{%s} doesn\'t try to persuade any senator during this initiative.') , $user_id) ));
         } else {
-            array_push($messages , array('Wrong phase, subphase or player','error',$user_id));
+            array_push($messages , array(_('Wrong phase, subphase or player'),'error',$user_id));
         }
         return $messages ;
     }
@@ -2391,7 +2416,7 @@ class Game
                                 $this->party[$user_id]->bidWith->treasury-=$amount ;
                                 $this->party[$user_id]->bid = $amount ;
                                 $this->persuasionTarget = $targetSenator ;
-                                array_push($messages , array ($persuadingSenator->name.' ('.$partyPersuader->fullName().') attempts to persuade '.$targetSenator->name.' ('.($partyTarget=='forum' ? 'forum' : $partyTarget->fullName()).')')) ;
+                                array_push($messages , array ( sprintf(_('%s ({%s}) attempts to persuade %s (%s)') , $persuadingSenator->name , $partyPersuader->user_id , $targetSenator->name , ($partyTarget=='forum' ? _('forum') : '{'.$partyTarget->user_id.'}') ) )) ;
                                 $nextPlayer = $this->whoIsAfter($user_id);
                                 $this->currentBidder = $nextPlayer['user_id'];
                                 foreach ($nextPlayer['messages'] as $message) {
@@ -2410,20 +2435,20 @@ class Game
                                         $targetSenator->controls->putOnTop($card);
                                         // The player stays the current bidder, as other players cannot counter-bribe on a seduction card
                                         $this->currentBidder = $user_id;
-                                        array_push($messages , array ($persuadingSenator->name.' ('.$partyPersuader->fullName().') attempts to persuade '.$targetSenator->name.' ('.($partyTarget=='forum' ? 'forum' : $partyTarget->fullName()).') using a '.$card->name.' card.')) ;
+                                        array_push($messages , array ( sprintf(_('%s ({%s}) attempts to persuade %s (%s) using a %s card.') , $persuadingSenator->name , $partyPersuader->user_id , $targetSenator->name , ($partyTarget=='forum' ? _('forum') : '{'.$partyTarget->user_id.'}') , $card->name ) )) ;
                                     }
                                 } else {
-                                    return array(array('You do not have that card in hand.','error',$user_id));
+                                    return array(array(_('You do not have that card in hand.'),'error',$user_id));
                                 }
                             }
                         } else {
-                            return array(array('Amount error','error',$user_id));
+                            return array(array(_('Amount error'),'error',$user_id));
                         }
                     } else {
-                        return array(array('Error - party mismatch','error',$user_id));
+                        return array(array(_('Error - party mismatch'),'error',$user_id));
                     }
                 } else {
-                    return array(array('Error - party mismatch','error',$user_id));
+                    return array(array(_('Error - party mismatch'),'error',$user_id));
                 }
             /* 
              * We know the target, this is a bribe     
@@ -2445,27 +2470,28 @@ class Game
                                 if (($currentPersuasion['target']['card']!==FALSE)) {
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
                                 }
-                                array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls an unmodified '.$roll['total'].', which is greater than 9 and an automatic failure.'));
+                                array_push ($messages , array( sprintf(_('FAILURE - {%s} rolls an unmodified %d, which is greater than 9 and an automatic failure.') , $user_id , $roll['total']) ));
                             // Failure if roll > target number    
                             } elseif ($roll['total']>$currentPersuasion['odds']['total']) {
                                 if (($currentPersuasion['target']['card']!==FALSE)) {
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
                                 }
-                                array_push ($messages , array('FAILURE - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
+                                
+                                array_push ($messages , array( sprintf(_('FAILURE - {%s} rolls %d, which is greater than the target number of %d.') , $user_id , $roll['total'] , $currentPersuasion['odds']['total']) ));
                             // Success
                             } else {
                                 if (($currentPersuasion['target']['card']!==FALSE)) {
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'SUCCESS') );
                                 }
-                                array_push ($messages , array('SUCCESS - '.$this->party[$user_id]->fullName().' rolls '.$roll['total'].', which is not greater than the target number of '.$currentPersuasion['odds']['total'].'.'));
+                                array_push ($messages , array( sprintf(_('SUCCESS - {%s} rolls %d, which is not greater than the target number of %d.') , $user_id , $roll['total'] , $currentPersuasion['odds']['total']) ));
                                 if ($currentPersuasion['target']['party'] == 'forum') {
                                     $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
-                                    array_push ($messages , array($senator->name.' leaves the forum and joins '.$this->party[$user_id]->fullName()));
+                                    array_push ($messages , array( sprintf(_('%s leaves the forum and joins {%s}.') , $senator->name , $user_id) ));
                                 } else {
                                     $senator = $this->party[$currentPersuasion['target']['party']]->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
-                                    array_push ($messages , array($senator->name.' leaves '.$this->party[$currentPersuasion['target']['party']].fullName().' and joins '.$this->party[$user_id]->fullName()));
+                                    array_push ($messages , array( sprintf(_('%s leaves {%s} and joins {%s}.') , $senator->name , $this->party[$currentPersuasion['target']['party']].user_id , $user_id) ));
                                 }
                             }
                             $totalBids = 0 ;
@@ -2476,32 +2502,32 @@ class Game
                                 // Whatever the outcome, put total bribe and counter-bribe money on the target.
                                 $senator = $this->getSenatorWithID($currentPersuasion['target']['senatorID']) ;
                                 $senator->treasury+=$totalBids;
-                                array_push ($messages , array($currentPersuasion['target']['name'].' takes a total of '.$totalBids.' T from bribes and counter-bribes.'));
+                                array_push ($messages , array( sprintf(_('%s takes a total of %dT from bribes and counter-bribes.') , $currentPersuasion['target']['name'] , $totalBids) ));
                             }
                             $this->forum_resetPersuasion() ;
                             $this->subPhase = 'Knights';
-                            array_push($messages , array ('Knights Sub Phase') );
+                            array_push($messages , array (_('Knights Sub Phase')) );
                             
                         // More bribe : go for another round of counter bribes
                         } else {
                             if ($this->party[$user_id]->bidWith->treasury>=$amount) {
                                 $this->party[$user_id]->bidWith->treasury-=$amount;
                                 $this->party[$user_id]->bid+=$amount;
-                                array_push ($messages , array($this->party[$user_id]->fullName().' bribes more.'));
+                                array_push ($messages , array( sprintf(_('%s bribes more.') , $user_id) ));
                                 $nextPlayer = $this->whoIsAfter($user_id);
                                 $this->currentBidder = $nextPlayer['user_id'];
                                 foreach ($nextPlayer['messages'] as $message) {
                                     array_push($messages , $message);
                                 }
                             } else {
-                                array_push ($messages , array('The senator is too poor' , 'error' , $user_id));
+                                array_push ($messages , array(_('The senator is too poor') , 'error' , $user_id));
                             }
                         }
                         
                     // This user doesn't have the initiative, this is a counter-bribe
                     } else {
                         if ($amount==0) {
-                            array_push ($messages , array($this->party[$user_id]->fullName().' doesn\'t spend money to counter-bribe.'));
+                            array_push ($messages , array( sprintf(_('{%s} doesn\'t spend money to counter-bribe.') , $user_id) ));
                             $nextPlayer = $this->whoIsAfter($user_id);
                             $this->currentBidder = $nextPlayer['user_id'];
                             foreach ($nextPlayer['messages'] as $message) {
@@ -2510,19 +2536,19 @@ class Game
                         } elseif ($this->party[$user_id]->treasury >= $amount) {
                             $this->party[$user_id]->treasury -= $amount ;
                             $this->party[$user_id]->bid += $amount ;
-                            array_push ($messages , array($this->party[$user_id]->fullName().' spends '.$amount.' T from the party treasury to counter-bribe.'));
+                            array_push ($messages , array( sprintf(_('{%s} spends %dT from the party treasury to counter-bribe.') , $user_id , $amount) ));
                             $nextPlayer = $this->whoIsAfter($user_id);
                             $this->currentBidder = $nextPlayer['user_id'];
                             foreach ($nextPlayer['messages'] as $message) {
                                 array_push($messages , $message);
                             }
                         } else {
-                            return array(array('Error - not enough money in the party\'s treasury','error',$user_id));
+                            return array(array(_('Error - not enough money in the party\'s treasury'),'error',$user_id));
                         }
                     }
                 // This is user is NOT the current bidder, something is wrong
                 } else {
-                    return array(array('Error - this is not your turn to play','error',$user_id));
+                    return array(array(_('Error - this is not your turn to play'),'error',$user_id));
                 }
             }
         }
