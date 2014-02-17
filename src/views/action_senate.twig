@@ -92,6 +92,14 @@
         <br>
         <button type="submit" class="btn-danger">MAKE PROPOSAL</button>
     </form>
+    {#
+        For prosecutions : give a chance to do without
+    #}
+    {% if output['type']=='Prosecutions' %}
+    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_endProscutions'} ) }}">
+        <button type="submit" class="btn-danger">NO MORE PROSECUTIONS</button>
+    </form>
+    {% endif %}
 
 {#
     Proposal impossible

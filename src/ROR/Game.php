@@ -3308,6 +3308,26 @@ class Game
     }
     
     /**
+     * Function used by the Censor to end prosecutions
+     * @param string $user_id The user_id (supposed to be the Censor)
+     * @return array messages
+     */
+    public function senate_endProscutions($user_id) {
+        $messages = array() ;
+        if ($this->phase == 'Senate' && $this->subPhase == 'Prosecutions') {
+            $censor = $this->senate_findOfficial('censor') ;
+            if ($censor['user_id']!=$user_id) {
+                return array(array(_('ERROR - Only the Censor can end prosecutions') , 'error' , $user_id));
+            } else {
+                array_push($messages , array( sprintf(_('The Censor %s returns the floor to the Presiding Magistrate') , $censor->name) ));
+                // Sub phase will turn either to 'Governors' or 'Other business'
+                array_push($messages , senate_setSubPhaseAfterProsecutions($user_id));
+            }
+        }
+        return $messages ;
+    }
+    
+    /**
      * Cast vote on current proposal
      * @param string $user_id
      * @param array $request
@@ -3420,6 +3440,11 @@ class Game
                         $this->subPhase='Prosecutions';
                     }
                 }
+            } else {
+                if ($latestProposal->type=='Prosecutions') {
+                    $this->senate_prosecutionSuccessful($user_id) ;
+                }
+                // TO DO : all other vote results
             }
         }
         return $messages ;
@@ -3475,9 +3500,10 @@ class Game
 
     /**
      * Proceed with the effects of a successful prosecutions : gain/loss of POP,INF,Prior Consul,Concessions, Life
+     * @param string $user_id
      * @return array messages
      */
-    public function senate_prosecutionSuccessful() {
+    public function senate_prosecutionSuccessful($user_id) {
         $messages = array() ;
         $latestProposal = $this->senate_getLatestProposal() ;
         if ($latestProposal->type=='Prosecutions' && $latestProposal->outcome==TRUE) {
@@ -3497,7 +3523,8 @@ class Game
                     $message2.=' As well as the accused\'s prior consul marker.';
                 }
                 array_push($messages , array($message2)) ;
-                
+                // Sub phase will turn either to 'Governors' or 'Other business'
+                array_push($messages , senate_setSubPhaseAfterProsecutions($user_id));
             // This was a minor prosecution
             } else {
                 $accused->changePOP(-5) ;
@@ -3527,6 +3554,10 @@ class Game
                     $message2.=' As well as the accused\'s prior consul marker.';
                 }
                 array_push($messages , array($message2)) ;
+                if ($this->senate_getFinishedProsecutions()['minor']==2) {
+                    // Sub phase will turn either to 'Governors' or 'Other business'
+                    array_push($messages , senate_setSubPhaseAfterProsecutions($user_id));
+                }
             }
         }
         return $messages ;
@@ -3550,11 +3581,16 @@ class Game
                 array_push($messages , array(sprintf(_('%s steps down as presiding magistrate after his unanimous defeat.') , $HRAO['senator']->name )) );
             }
             $latestProposal = $this->senate_getLatestProposal() ;
-            $this->subPhase = $latestProposal->type ;
+            if (in_array($latestProposal->type , array('Consuls' , 'Pontifex Maximus' , 'Dictator' , 'Censor' , 'Prosecutions' , 'Governors')) ) {
+                $this->subPhase = $latestProposal->type ;
+            } else {
+                $this->subPhase = 'Other business';
+            }
             // If the Censor steps down, move to Governors election.
             if ($stepDown==1 && $this->subPhase == 'Prosecutions') {
                 array_push($messages , array(_('With the Censor stepping down, the Prosecution phase ends.')) );
-                $this->subPhase = 'Governors' ;
+                // Sub phase will turn either to 'Governors' or 'Other business'
+                array_push($messages , senate_setSubPhaseAfterProsecutions($user_id));
             }
         } else {
             return array(array(_('You are not presiding magistrate, hence cannot step down.') , 'error' , $user_id));
@@ -3562,7 +3598,7 @@ class Game
         return $messages ;
     }
     
-     /*
+     /**
      * setup_view returns all the data needed to render setup templates. The function returns an array $output :
      * $output['state'] (Mandatory) gives the name of the current state to be rendered :
      * - Vote : A vote on a proposal is underway
@@ -3748,7 +3784,6 @@ class Game
                     $output['type'] = 'Prosecutions';
                     $output['list'] = $this->senate_getListPossibleProsecutions() ;
                     $output['possibleProsecutors'] = $this->senate_getListPossibleProsecutors() ;
-                
                 // TO DO : All the rest...
                 } else {
                     $output['state'] = 'Error';
@@ -4187,6 +4222,50 @@ class Game
         return $result ;
     }
     
+    /**
+     * This function sets the Senate subPhase to either 'Governors' or 'Other business' based on the situation
+     * If there is at least one province in play (even with a governor), set the phase to 'Governors', otherwise set it to 'Other business'
+     * @param string $user_id Current user id
+     * @return array One message array (Not an arrray of array like many other functions)
+     */
+    public function senate_setSubPhaseAfterProsecutions($user_id) {
+        if ($this->phase=='Senate' && $this->subPhase=='Prosecutions') {
+            $provinceFound = FALSE ;
+            foreach ($this->party as $party) {
+                foreach ($party->senators->cards as $senator) {
+                    foreach ($senator->controls->cards as $card) {
+                        if ($card->type == 'Province') {
+                            $provinceFound = TRUE ;
+                        }
+                    }
+                }
+            }
+            foreach ($this->forum->cards as $card) {
+                if ($card->type == 'Province') {
+                    $provinceFound = TRUE ;
+                }
+                if ($card->type=='Family' || $card->type=='Statesman') {
+                    foreach ($card->controls->cards as $card2) {
+                        if ($card2->type == 'Province') {
+                            $provinceFound = TRUE ;
+                        }
+                    }
+                }
+            }
+            if ($provinceFound) {
+                $message = array(_('Senate sub phase - Governorships') , 'alert');
+                $this->subPhase='Governors';
+            } else {
+                $message = array(_('Senate sub phase - Other business') , 'alert');
+                $this->subPhase='Other business';
+            }
+        } else {
+            $message = array(_('Error - This is not the prosecutions sub phase') , 'error' , $user_id);
+        }
+        return $message ;
+    }
+    
+
     
     /************************************************************
      * Functions for REVOLUTION phase

@@ -126,6 +126,9 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                     $votingOrder = explode(',', $request->request->get('votingOrder')) ;
                     log ($app , $game_id , $user_id , $game->senate_proposal($user_id , $request->request->get('type') , $request->request->get('description') , $request->request->get('proposalHow') , $request->request->get('parameters')  , $votingOrder ) , $playerNames );
                     break ;
+                case 'senate_endProscutions' :
+                    log ($app , $game_id , $user_id , $game->senate_endProscutions($user_id) , $playerNames );
+                    break ;
                 case 'senate_vote' :
                     log ($app , $game_id , $user_id , $game->senate_vote($user_id , $request->request->all() )  , $playerNames);
                     break ;
