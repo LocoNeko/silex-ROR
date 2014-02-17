@@ -2567,22 +2567,22 @@ class Game
         if ($senator!==FALSE) {
             $card = $senator->controls->drawCardWithValue($id) ;
             if ($card!==FALSE) {
-                $completeMessage='The '.$card->name.' card is discarded.';
+                $completeMessage=sprintf(_('The %s card is discarded.') , $card->name);
                 if ($card->name=="BLACKMAIL") {
                     if ($outcome=='FAILURE') {
-                        $rollINF = min(0,$this->rollDice(2, -1)) ;
-                        $rollPOP = min(0,$this->rollDice(2, -1)) ;
+                        $rollINF = max(0,$this->rollDice(2, -1)['total']) ;
+                        $rollPOP = max(0,$this->rollDice(2, -1)['total']) ;
                         $senator->changeINF(-$rollINF);
                         $senator->changePOP(-$rollPOP);
-                        $completeMessage.=' The failure of the persuasion causes a loss of '.$rollINF.' INF and '.$rollPOP.' POP to '.$senator->name;
+                        $completeMessage.=sprintf(_(' The failure of the persuasion causes a loss of %d INF and %d POP to %s') , $rollINF , $rollPOP , $senator->name);
                     }
                 }
                 $message = array($completeMessage);
             } else {
-                $message = array('Cannot find this Card' , 'error' , $user_id );
+                $message = array(_('Cannot find this Card') , 'error' , $user_id );
             }
         } else {
-            $message = array('Cannot find this Senator' , 'error' , $user_id );
+            $message = array(_('Cannot find this Senator') , 'error' , $user_id );
         }
         return $message ;
     }
@@ -2622,27 +2622,27 @@ class Game
                         $roll = $this->rollOneDie(-1);
                         if (($roll+$amount) >= 6) {
                             $senator->knights++;
-                            array_push($messages , array('Attracting Knight : SUCCESS - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is >= 6.')) ;
+                            array_push($messages , array( sprintf(_('Attracting Knight : SUCCESS - %s ({%s}) spends %dT and rolls %d. The total is >= 6.') , $senator->name , $user_id , $amount , $roll) )) ;
                         } else {
-                            array_push($messages , array('Attracting Knight : FAILURE - '.$senator->name.' ('.$this->party[$user_id]->fullName().') spends '.$amount.' T and rolls '.$roll.'. The total is < 6.')) ;
+                            array_push($messages , array( sprintf(_('Attracting Knight : FAILURE - %s ({%s}) spends %dT and rolls %d. The total is < 6.') , $senator->name , $user_id , $amount , $roll) )) ;
                         }
                         $this->subPhase = 'SponsorGames';
-                        array_push ($messages , array('Sponsor Games Sub Phase'));
+                        array_push ($messages , array(_('Sponsor Games Sub Phase')));
                         // Be nice : skip sponsor games sub phase if no senator can do them.
                         $listSponsorGames = $this->forum_listSponsorGames($user_id) ;
                         if (count($listSponsorGames)==0) {
-                            array_push ($messages , array($this->party[$user_id]->fullName().' has no senator who can sponsor games.'));
+                            array_push ($messages , array( sprintf(_('{%s} has no senator who can sponsor games.') , $user_id) ))  ;
                             $this->subPhase = 'ChangeLeader';
-                            array_push ($messages , array('Change Leader Sub Phase'));
+                            array_push ($messages , array(_('Change Leader Sub Phase')));
                         }
                     } else {
-                        array_push($messages , array('Amount error' , 'error' , $user_id)) ;
+                        array_push($messages , array(_('Amount error') , 'error' , $user_id)) ;
                     }
                 } else {
-                    array_push($messages , array('Wrong party' , 'error' , $user_id)) ;
+                    array_push($messages , array(_('Wrong party') , 'error' , $user_id)) ;
                 }
             } else {
-                array_push($messages , array('Error retrieving senator data' , 'error' , $user_id)) ;
+                array_push($messages , array(_('Error retrieving senator data') , 'error' , $user_id)) ;
             }
         }
         return $messages ;
@@ -2665,7 +2665,7 @@ class Game
                     $senator = $this->getSenatorWithID($senatorID);
                     if ($this->getPartyOfSenator($senator)->user_id==$user_id) {
                         if ($senator->knights <= $pressuredKnights) {
-                            $message = $senator->name.' pressures '.$pressuredKnights.' knight'.($pressuredKnights>1 ? 's' : '').'. Rolls : ';
+                            $message = sprintf(_('%s pressures %d knight%s. Rolls : ') , $senator->name , $pressuredKnights , ($pressuredKnights>1 ? 's' : '') ) ;
                             $total = 0 ;
                             for ($i=1 ; $i<$pressuredKnights ; $i++) {
                                 $roll = min($this->rollOneDie(-1),0);
@@ -2673,15 +2673,15 @@ class Game
                                 $total+=$roll;
                             }
                             $message = substr($message, 0 , -2) ;
-                            $message.= '. Earns a total of '.$total.'T.';
+                            $message.= sprintf(_('. Earns a total of %dT.') , $total);
                             array_push($messages , array($message));
                         } else {
                             $error = TRUE ;
-                            array_push($messages , array('Not enough knights for '.$senator->name.' : ignored' , 'error' , $user_id));
+                            array_push($messages , array(sprintf(_('Not enough knights for %s : ignored') , $senator->name) , 'error' , $user_id));
                         }
                     } else {
                         $error = TRUE ;
-                        array_push($messages , array('Wrong party for '.$senator->name.' : ignored' , 'error' , $user_id));
+                        array_push($messages , array(sprintf(_('Wrong party for %s : ignored') , $senator->name) , 'error' , $user_id));
                     }
                 }
             }
@@ -2689,12 +2689,12 @@ class Game
             // Be nice : skip sponsor games sub phase if no senator can do them.
             if (!$error) {
                 $this->subPhase = 'SponsorGames';
-                array_push ($messages , array('Sponsor Games Sub Phase'));
+                array_push ($messages , array( _('Sponsor Games Sub Phase') ));
                 $listSponsorGames = $this->forum_listSponsorGames($user_id) ;
                 if (count($listSponsorGames)==0) {
-                    array_push ($messages , array($this->party[$user_id]->fullName().' has no senator who can sponsor games.'));
+                    array_push ($messages , array( sprintf(_('{%s} has no senator who can sponsor games.') , $user_id) ));
                     $this->subPhase = 'ChangeLeader';
-                    array_push ($messages , array('Change Leader Sub Phase'));
+                    array_push ($messages , array( _('Change Leader Sub Phase') ));
                 }
             }
         }
@@ -2730,7 +2730,7 @@ class Game
         $messages = array();
         if ( ($this->phase=='Forum') && ($this->subPhase=='SponsorGames') && ($this->forum_whoseInitiative()==$user_id) && ($type==7 || $type==13 || $type==18) ) {
             $gamesEffects = array() ; $gamesEffects[7]= 1 ; $gamesEffects[13]= 2 ; $gamesEffects[18]= 3 ;
-            $gamesName = array() ; $gamesName[7] = 'Slice & Dice' ; $gamesName[13] = 'Blood Fest' ; $gamesName[18] = 'Gladiator Gala' ; 
+            $gamesName = array() ; $gamesName[7] = _('Slice & Dice') ; $gamesName[13] = _('Blood Fest') ; $gamesName[18] = _('Gladiator Gala') ; 
             $senatorData = explode('|' , $senatorRaw);
             $senatorID = $senatorData[0] ;
             $senator= $this->getSenatorWithID($senatorID);
@@ -2739,14 +2739,14 @@ class Game
                     $senator->treasury-=$type ;
                     $this->unrest-=$gamesEffects[$type];
                     $senator->changePOP($gamesEffects[$type]);
-                    array_push($messages , array($senator->name.' organises '.$gamesName[$type].', reducing the unrest by '.$gamesEffects[$type].' and gaining '.$gamesEffects[$type].' popularity.'));
+                    array_push($messages , array( sprintf(_('%s organises %s, reducing the unrest by %d and gaining %d popularity.') , $senator->name , $gamesName[$type] , $gamesEffects[$type] , $gamesEffects[$type]) ));
                     $this->subPhase = 'ChangeLeader';
-                    array_push ($messages , array('Change Leader Sub Phase'));
+                    array_push ($messages , array( _('Change Leader Sub Phase') ));
                 } else {
-                    array_push($messages , array($senator->name.' doesn\'t have enough money to sponsor these games.' , 'error' , $user_id));
+                    array_push($messages , array(sprintf(_('%s doesn\'t have enough money to sponsor these games.') , $senator->name) , 'error' , $user_id ));
                 }
             } else {
-                array_push($messages , array('Error - Wrong party' , 'error' , $user_id));
+                array_push($messages , array(_('Error - Wrong party') , 'error' , $user_id));
             }
         }
         return $messages ;
@@ -2767,21 +2767,21 @@ class Game
                 if ($this->getPartyOfSenator($senator)->user_id==$user_id) {
                     if ($this->party[$user_id]->leader->senatorID != $senatorID) {
                         $this->party[$user_id]->leader = $senator ;
-                        array_push($messages , array($senator->name.' is now the leader of '.$this->party[$user_id]->fullName()));
+                        array_push($messages , array(sprintf(_('%s is now the leader of {%s}') , $senator->name , $user_id) ));
                     } else {
                         $error = TRUE ;
-                        array_push($messages , array('Error - This senator is already the leader' , 'error' , $user_id));
+                        array_push($messages , array(_('Error - This senator is already the leader') , 'error' , $user_id));
                     }
                 } else {
                     $error = TRUE ;
-                    array_push($messages , array('Error - Wrong party' , 'error' , $user_id));
+                    array_push($messages , array(_('Error - Wrong party') , 'error' , $user_id));
                 }
             }
             if (!$error) {
                 $this->initiative++ ;
                 if ($this->initiative<=6) {
                     $this->subPhase = 'RollEvent';
-                    array_push($messages , array('Initiative #'.$this->initiative , 'alert'));
+                    array_push($messages , array(sprintf(_('Initiative #%d') , $this->initiative) , 'alert'));
                     // forum_initInitiativeBids returns messages to indicate players who might have been skipped because they can't bid
                     $initMessages = $this->forum_initInitiativeBids();
                     foreach ($initMessages as $message) {
@@ -2790,12 +2790,12 @@ class Game
                 } else {
                     $this->initiative=6;
                     $this->subPhase = 'curia';
-                    array_push($messages , array('All initiatives have been played, putting Rome in order.'));
+                    array_push($messages , array(_('All initiatives have been played, putting Rome in order.') ));
                     $curia_messages = $this->forum_curia();
                     foreach ($curia_messages as $message) {
                         array_push($messages , $message) ;
                     }
-                    array_push($messages , array('POPULATION PHASE','alert'));
+                    array_push($messages , array(_('POPULATION PHASE'),'alert'));
                     $this->phase = 'Population';
                     $this->subPhase = 'Speech';
                     $this->resetPhaseDone();
@@ -2822,7 +2822,8 @@ class Game
         foreach($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 if ($senator->office !=NULL) {
-                    array_push($messages , array($senator->name.' ('.$party->fullName().') held a major office and gets a major corruption marker.'));
+                    sprintf(_('%s ({%s}) held a major office and gets a major corruption marker.') , $senator->name , $party->user_id) ;
+                    array_push($messages , array());
                     $senator->major = TRUE ;
                 } else {
                     $senator->major = FALSE ;
@@ -2842,7 +2843,7 @@ class Game
          *  Curia death/revival
          */
         if (count($this->curia->cards)>0) {
-            array_push($messages , array('Rolling for cards in the curia'));
+            array_push($messages , array(_('Rolling for cards in the curia')));
             $cardsToMoveToForum = array() ;
             $cardsToDiscard = array() ;
             foreach ($this->curia->cards as $card) {
@@ -2850,17 +2851,17 @@ class Game
                     $roll = $this->rollOneDie(-1) ;
                     if ($roll>=5) {
                         array_push($cardsToMoveToForum , $card->id);
-                        array_push($messages , array('A '.$roll.' is rolled and '.$card->name.' comes back to the forum.'));
+                        array_push($messages , array( sprintf(_('A %d is rolled and %s comes back to the forum.') , $roll , $card->name) ));
                     } else {
-                        array_push($messages , array('A '.$roll.' is rolled and '.$card->name.' stays in the curia.'));
+                        array_push($messages , array( sprintf(_('A %d is rolled and %s stays in the curia.') , $roll , $card->name) ));
                     }
                 } elseif ($card->type=='Leader') {
                     $roll = $this->rollOneDie(-1) ;
                     if ($roll>=5) {
                         array_push($cardsToDiscard , $card->id);
-                        array_push($messages , array('A '.$roll.' is rolled and '.$card->name.' is discarded.'));
+                        array_push($messages , array( sprintf(_('A %d is rolled and %s is discarded.') , $roll , $card->name) ));
                     } else {
-                        array_push($messages , array('A '.$roll.' is rolled and '.$card->name.' stays in the curia.'));
+                        array_push($messages , array( sprintf(_('A %d is rolled and %s stays in the curia.') , $roll , $card->name) ));
                     }
                 }
             }
@@ -2870,7 +2871,7 @@ class Game
                 if ($card!==FALSE) {
                     $this->forum->putOnTop($card);
                 } else {
-                    array_push($messages , array('Error retrieving card from the curia','error')) ;
+                    array_push($messages , array(_('Error retrieving card from the curia') , 'error')) ;
                 }
             }
             foreach ($cardsToDiscard as $cardID) {
@@ -2878,7 +2879,7 @@ class Game
                 if ($card!==FALSE) {
                     $this->discard->putOnTop($card);
                 } else {
-                    array_push($messages , array('Error retrieving card from the curia','error')) ;
+                    array_push($messages , array( _('Error retrieving card from the curia') , 'error')) ;
                 }
             }
         }
@@ -2896,7 +2897,7 @@ class Game
         foreach($this->activeWars->cards as $war) {
             if (strstr($war->causes , 'tax farmer')) {
                 $roll=$this->rollOneDie(0);
-                $name='TAX FARMER '.(string)$roll;
+                $name=sprintf(_('TAX FARMER %s') , (string)$roll);
                 $toRuin = $this->getSpecificCard('name', $name) ;
                 array_push($messages , array($this->forum_ruinSpecificTaxFarmer($toRuin , $war->name , $roll),'alert'));
             }
@@ -2905,7 +2906,7 @@ class Game
         foreach($this->unprosecutedWars->cards as $war) {
             if (strstr($war->causes , 'tax farmer')) {
                 $roll=$this->rollOneDie(0);
-                $name='TAX FARMER '.(string)$roll;
+                $name=sprintf(_('TAX FARMER %s') , (string)$roll);
                 $toRuin = $this->getSpecificCard('name', $name) ;
                 array_push($messages , array($this->forum_ruinSpecificTaxFarmer($toRuin , $war->name , $roll),'alert'));
             }
@@ -2923,18 +2924,18 @@ class Game
         // RUIN tax farmer
         if ($toRuin!==FALSE) {
             if ($toRuin['where']=='curia') {
-                return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : no effect as this tax farmer is already in the curia.';
+                return sprintf(_('%s causes the ruin of a random tax farmer. A %d is rolled : no effect as this tax farmer is already in the curia.') , $becauseOf , $roll);
             } elseif ($toRuin['where']=='senator') {
                 $this->curia->putOnTop($toRuin['deck']->drawCardWithValue('id',$toRuin['card']->id));
-                return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : the ruined tax farmer is removed from '.$toRuin['senator']->name.'\'s control and placed in the curia.';
+                return sprintf(_('%s causes the ruin of a random tax farmer. A %d is rolled : the ruined tax farmer is removed from %s\'s control and placed in the curia.') , $becauseOf , $roll , $toRuin['senator']->name);
             } elseif ($toRuin['where']=='forum') {
                 $this->curia->putOnTop($toRuin['deck']->drawCardWithValue('id',$toRuin['card']->id));
-                return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : the ruined tax farmer is removed from the forum and placed in the curia.';
-            } else {
-                return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : ERROR - the ruined tax farmer was found in the wrong deck ('.$toRuin['where'].')';
+                return sprintf(_('%s causes the ruin of a random tax farmer. A %d is rolled : the ruined tax farmer is removed from the forum and placed in the curia.') , $becauseOf , $roll);
+                } else {
+                return sprintf(_('%s causes the ruin of a random tax farmer. A %d is rolled : ERROR - the ruined tax farmer was found in the wrong deck (%s)') , $becauseOf , $roll , $toRuin['where']);
             }
         } else {
-            return $becauseOf.' causes the ruin of a random tax farmer. A '.$roll.' is rolled : no effect as this tax farmer is not in play.';
+            return sprintf(_('%s causes the ruin of a random tax farmer. A %d is rolled : no effect as this tax farmer is not in play.') , $becauseOf , $roll);
         }
     }
     
@@ -2949,24 +2950,24 @@ class Game
     public function population_unrest() {
         $result = array() ;
         $result['total']=0;
-        $result['message']='No change in unrest from wars and droughts this turn.';
+        $result['message']=_('No change in unrest from wars and droughts this turn.');
         foreach ($this->unprosecutedWars->cards as $conflict) {
             $result['total']++;
             if ($result['total']==1) {
-                $result['message']='Unrest increases because of unprosecuted wars : ';
+                $result['message']=_('Unrest increases because of unprosecuted wars : ');
             }
             $result['message'].=$conflict.name.', ';
         }
         if ($result['total']>0) {
             $result['message']=substr($result['message'],0,-2);
-            $result['message'].=' : + '.$result['total'].' unrest.';
+            $result['message'].=sprintf(_(' : + %d unrest.') , $result['total']);
         }
         $droughtLevel = $this->getTotalDroughtLevel();
         if ($droughtLevel > 0 ) {
             if ($result['total']>0) {
-                $result['message'].= ' And ';
+                $result['message'].= _(' And ');
             }
-            $result['message'].=$droughtLevel.' droughts cause + '.$droughtLevel.' unrest.';
+            $result['message'].=sprintf(_('%d droughts cause +%d unrest.') , $droughtLevel , $droughtLevel);
             $result['total']+=$droughtLevel;
         }
         return $result;
@@ -2988,7 +2989,7 @@ class Game
             $HRAO = $this->getHRAO();
             // $total is minimum -1 and maximum 18
             $total = max (-1 , min (18 , $roll['total'] + $this->unrest - $HRAO['senator']->POP )) ;
-            array_push($messages , array($HRAO['senator']->name.' rolls '.$roll['total'].' + current unrest ('.$this->unrest.') - HRAO\'s Popularity ('.$HRAO['senator']->POP.')  for a total of '.$total.'.'));
+            array_push($messages , array( sprintf(_('%s rolls %d + current unrest (%d) - HRAO\'s Popularity (%d)  for a total of %d.') , $HRAO['senator']->name , $roll['total'] , $this->unrest , $HRAO['senator']->POP , $total) ));
             if ($total!=-1) {
                 $effects = $this->populationTable[$total];
                 foreach ($effects as $effect) {
@@ -3013,7 +3014,7 @@ class Game
                             $this->unrest+=$effect;
                             // Unrest cannot be negative
                             $this->unrest=max(0 , $this->unrest) ;
-                            array_push($messages , array('The unrest is changed by '.($effect>0 ? '+' :'').$effect.', now at '.$this->unrest,'alert')) ;
+                            array_push($messages , array( sprintf(_('The unrest is changed by '.($effect>0 ? '+' :'').'%d, now at %d') , $effect , $this->unrest) ,'alert')) ;
                     }
                 }
             } else {
@@ -4185,13 +4186,13 @@ class Game
         if ( (($this->phase=='Setup') && ($this->subPhase=='PlayCards')) || (($this->phase=='Revolution') && ($this->subPhase=='PlayCards')) ) {
             $statesman = $this->party[$user_id]->hand->drawCardWithValue('id', $card_id);
             if ($statesman === FALSE ) {
-                array_push($messages , array('The card is not in '.$this->party[$user_id]->fullName().'\'s hand','error'));
+                array_push($messages , array( sprintf(_('The card is not in {%s}\'s hand') , $user_id) ));
                 return $messages ;   
             } else {
                 if ($statesman->type!='Statesman') {
                     // This is not a statesman, put the card back and report an error
                     $this->party[$user_id]->hand->putOnTop($statesman);
-                    array_push($messages , array('"'.$statesman->name.'" is not a statesman','error'));
+                    array_push($messages , array( sprintf(_('"%s" is not a statesman','error') , $statesman->name) ));
                     return $messages ;
                 } else {
                     // This is a Statesman, proceed
@@ -4200,7 +4201,7 @@ class Game
                     if ($family === FALSE) {
                         // This family is weird. Put the card back and report the error
                         $this->party[$user_id]->hand->putOnTop($statesman);
-                        array_push($messages , array('Weird family.','error'));
+                        array_push($messages , array(_('Weird family.') , 'error'));
                         return $messages ;
                     }
                     // Check if family is already in player's party
@@ -4211,7 +4212,7 @@ class Game
                             if ($matchedFamily === FALSE) {
                                 $this->party[$user_id]->hand->putOnTop($statesman);
                                 $this->party[$user_id]->senators->putOnTop($matchedFamily);
-                                array_push($messages , array('Weird family.','error'));
+                                array_push($messages , array(_('Weird family.') , 'error'));
                                 return $messages ;
                             } else {
                                 // SUCCESS : Family is in player's party - put it under the Statesman
@@ -4229,7 +4230,7 @@ class Game
                                 if ($this->party[$user_id]->leader->senatorID == $matchedFamily->senatorID) {
                                     $this->party[$user_id]->leader=$statesman;
                                 }
-                                array_push($messages , array($this->party[$user_id]->fullName().' plays Statesman '.$statesman->name.' on top of senator '.$matchedFamily->name));
+                                array_push($messages , array( sprintf(_('{%s} plays Statesman %s on top of senator %s') , $user_id ,$statesman->name ,$matchedFamily->name ) ));
                                 return $messages ;
                             }
                         }
@@ -4241,14 +4242,14 @@ class Game
                             // SUCCESS : Family is unaligned in the forum - put it under the Statesman
                             $this->party[$user_id]->senators->putOnTop($statesman) ;
                             $statesman->controls->putOnTop($matchedFamily);
-                            array_push($messages , array($this->party[$user_id]->fullName().' plays Statesman '.$statesman->name.' and gets the matching unaligned family from the Forum.'));
+                            array_push($messages , array( sprintf(_('{%s} plays Statesman %s and gets the matching unaligned family from the Forum.') , $user_id , $statesman->name) ));
                             return $messages ;
                         }
 
                     }
                     // SUCCESS : There was no matched family in the player's party or the Forum
                     $this->party[$user_id]->senators->putOnTop($statesman) ;
-                    array_push($messages , array($this->party[$user_id]->fullName().' plays Statesman '.$statesman->name));
+                    array_push($messages , array( sprintf(_('{%s} plays Statesman %s') , $user_id , $statesman->name) ));
                     return $messages ;
                 }
             }
@@ -4267,34 +4268,34 @@ class Game
             $messages = array() ;
             $partyOfTargetSenator = $this->getPartyOfSenatorWithID($senator_id) ;
             if (!$partyOfTargetSenator || $partyOfTargetSenator=='forum') {
-                array_push($messages , array('This senator is not in play','alert',$user_id)) ;
+                array_push($messages , array( _('This senator is not in play') , 'alert' , $user_id)) ;
                 return $messages;
             }
             $senator = $this->party[$user_id]->senators->drawCardWithValue('senatorID', $senator_id);
             if ($senator === FALSE ) {
-                array_push($messages , array('The senator is not in '.$this->party[$user_id]->fullName().'\'s party' , 'error',$user_id));
+                array_push($messages , array( sprintf(_('The senator is not in {%s}\'s party') , $user_id) ));
                 return $messages ;   
             }
             $concession = $this->party[$user_id]->hand->drawCardWithValue('id', $card_id);
             if ($concession === FALSE ) {
                 $this->party[$user_id]->senators->putOnTop($senator);
-                array_push($messages , array('The card is not in '.$this->party[$user_id]->fullName().'\'s hand' , 'error',$user_id));
+                array_push($messages , array( sprintf(_('The card is not in {%s}\'s hand') , $user_id) , 'error',$user_id));
                 return $messages ;   
             } else {
                 if ($concession->type!='Concession') {
                    $this->party[$user_id]->senators->putOnTop($senator);
                    $this->party[$user_id]->hand->putOnTop($concession);
-                   array_push($messages , array($concession->name.'" is not a concession' , 'error',$user_id));
+                   array_push($messages , array(sprintf(_('"%s" is not a concession') , $concession->name) , 'error',$user_id));
                    return $messages ;
                 } elseif($concession->special=='land bill' && !$this->landCommissionerPlaybale()) {
                    $this->party[$user_id]->senators->putOnTop($senator);
                    $this->party[$user_id]->hand->putOnTop($concession);
-                   array_push($messages , array('The Land commissioner can only be played while Land bills are enacted.','error',$user_id));
+                   array_push($messages , array(_('The Land commissioner can only be played while Land bills are enacted.'),'error',$user_id));
                    return $messages ;
                 } else {
                     $senator->controls->putOnTop($concession);
                     $this->party[$user_id]->senators->putOnTop($senator);
-                    array_push($messages , array($this->party[$user_id]->fullName().' plays Concession '.$concession->name.' on Senator '.$senator->name));
+                    array_push($messages , array( sprintf(_('{%s} plays Concession %s on Senator %s') , $user_id , $concession->name , $senator->name) ));
                     return $messages ;
                 }
             }
