@@ -1166,31 +1166,39 @@ class Game
      * - Party leader<br>
      * - Where senator and controlled cards go (forum, curia, discard)
      * @param string $senatorID The SenatorID of the dead senator
+     * @param specificID TRUE if the Senator with this specific ID should be killed,<BR> FALSE if the ID is a family, and Statesmen must be tested
      * @return array messages
      */
-    public function mortality_killSenator($senatorID) {
+    public function mortality_killSenator($senatorID , $specificID=FALSE) {
         $message = '' ;
-        // $deadSenator needs to be an array, as 2 brothers could be in play
-        $deadSenators = array() ;
-        foreach($this->party as $party) {
-            foreach ($party->senators->cards as $senator) {
-                if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $senatorID ) ) {
-                    array_push($deadSenators , $senator) ;
-                } elseif ( ($senator->type == 'Family') && ($senator->senatorID == $senatorID) ) {
-                    array_push($deadSenators , $senator) ;
+        
+        // Case of a random mortality chit
+        if (!$specificID) {
+            $deadSenators = array() ;
+            foreach($this->party as $party) {
+                foreach ($party->senators->cards as $senator) {
+                    if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $senatorID ) ) {
+                        array_push($deadSenators , $senator) ;
+                    } elseif ( ($senator->type == 'Family') && ($senator->senatorID == $senatorID) ) {
+                        array_push($deadSenators , $senator) ;
+                    }
                 }
             }
-        }
-        // Returns either no dead (Senator not in play), 1 dead (found just 1 senator matching the chit), or pick 1 of two brothers if they are both legally in play
-        if (count($deadSenators)==0) {
-            return array(_('This senator is not in Play, nobody dies.')) ;
-        } elseif (count($deadSenators)>1) {
-            // Pick one of two brothers
-            $deadSenator = array_rand($deadSenators) ;
-            $senatorID=$deadSenator->senatorID ;
-            $message.=_(' The two brothers are in play. ') ;
+            // Returns either no dead (Senator not in play), 1 dead (found just 1 senator matching the chit), or pick 1 of two brothers if they are both legally in play
+            if (count($deadSenators)==0) {
+                return array(_('This senator is not in Play, nobody dies.')) ;
+            } elseif (count($deadSenators)>1) {
+                // Pick one of two brothers
+                $deadSenator = array_rand($deadSenators) ;
+                $senatorID=$deadSenator->senatorID ;
+                $message.=_(' The two brothers are in play. ') ;
+            } else {
+                $deadSenator = $deadSenators[0];
+            }
+            
+        // Case of a specific Senator being targeted
         } else {
-            $deadSenator = $deadSenators[0];
+            $deadSenator = $this->getSenatorWithID($senatorID) ;
         }
         $party = $this->getPartyOfSenator($deadSenator) ;
         if ($party === FALSE) {
@@ -1231,7 +1239,7 @@ class Game
                     $message.=sprintf(_('%s goes to the curia. ') , $card->name);
                 }
             } else {
-                return array(_('Error - A card controlled by the dead Senator was not a Family, a Concession nor a Province.'),'error');
+                return array(_('Error - A card controlled by the dead Senator was neither a Family, a Concession nor a Province.'),'error');
             }
         }
         return array($message) ;
@@ -1328,7 +1336,7 @@ class Game
             array_push($messages , $message);
             switch($outcome) {
                 case 'killed' :
-                    $this->mortality_killSenator($senator->senatorID);
+                    $this->mortality_killSenator($senator->senatorID , TRUE);
                     array_push($messages , array(sprintf(_('%s is killed by the barbaric barbarians.') , $senator->name) , 'alert'));
                     break ;
                 case 'captured' :
@@ -1361,7 +1369,7 @@ class Game
         } else {
             // Revolt : Kill Senator, garrisons, and move Province to the Active War deck
             array_push($messages , array($message.sprintf(_(' which is not greater than %d') , ($internalDisorder == 1 ? '4' : '5')) , 'alert'));
-            $this->mortality_killSenator($senator->senatorID);
+            $this->mortality_killSenator($senator->senatorID , TRUE);
             // Note : The war is now in the forum, because of the mortality_killSenator function, so $revoltedProvince['deck'] should be $this->forum
             $revoltedProvince = $this->getSpecificCard('id', $province->id);
             $this->activeWars->putOnTop($this->$revoltedProvince['deck']->drawCardWithValue('id', $province->id));
@@ -3453,8 +3461,7 @@ class Game
                     $this->proposals[count($this->proposals)-1]->outcome = FALSE ;
                 } elseif ($appealEffects['special']=='killed') {
                     array_push($messages , _('The disgusted populace kills him themselves')) ;
-                    // TO DO : Check what happens when the ID is alphanumerical
-                    array_push($messages , $this->mortality_killSenator($accused->senatorID)) ;
+                    array_push($messages , $this->mortality_killSenator($accused->senatorID , TRUE)) ;
                     $this->proposals[count($this->proposals)-1]->parameters[4] = 'killed' ;
                     $this->proposals[count($this->proposals)-1]->outcome = TRUE ;
                 } else {
@@ -3476,13 +3483,23 @@ class Game
         if ($latestProposal->type=='Prosecutions' && $latestProposal->outcome==TRUE) {
             $accused = $this->getSenatorWithID($latestProposal->parameters[0]) ;
             $prosecutor = $this->getSenatorWithID($latestProposal->parameters[2]) ;
+            $INFloss = min(5 , $accused->INF) ;
+            $priorConsulMarker = $accused->priorConsul ;
+            
             // This was a major prosecution
-            // TO DO 
             if ($latestProposal->parameters[1]=='major') {
+                array_push ($messages , array( sprintf(_('Major prosecution successful : %s is executed for his wrongdoings. ') , $accused->name ) ));
+                array_push ($messages , $this->mortality_killSenator($accused->senatorID , TRUE) );
+                $prosecutor->changeINF($INFloss) ;
+                $message2 = sprintf(_('The prosecutor %s gains %d INF.') , $prosecutor->name , $INFloss);
+                if ($priorConsulMarker) {
+                    $prosecutor->priorConsul = TRUE ;
+                    $message2.=' As well as the accused\'s prior consul marker.';
+                }
+                array_push($messages , array($message2)) ;
+                
             // This was a minor prosecution
             } else {
-                $INFloss = min(5 , $accused->INF) ;
-                $priorConsulMarker = $accused->priorConsul ;
                 $accused->changePOP(-5) ;
                 $accused->changeINF(-5) ;
                 $accused->priorConsul = FALSE ;
