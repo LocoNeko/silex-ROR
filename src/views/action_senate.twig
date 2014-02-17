@@ -74,6 +74,23 @@
             </select><br>
             <input type="hidden" name="proposalHow" value="Censor"></input>
         {#
+            Governors
+        #}
+        {% elseif output['type']=='Governors' %}
+            Governorships :<br>
+            <input type="hidden" name="type" value="Governors">
+            {% for detail in output['list']%}
+                Propose :
+                <select name="parameters[{{loop.index0 * 2}}]" style="width:400px;">
+                    <option>N/A</option>
+                    <option>John Doe</option>
+                </select>
+                as governor of :
+                <input type="text" name="parameters[{{loop.index0 * 2 + 1}}]" value="{{detail['province_id']}}">
+                {{detail['province_name']}}{{detail['senator_name']!=NULL ? ' (recall of ' ~ detail['senator_name'] ~ ')' : ' (currently vacant)'}}<br>
+            {% endfor %}
+            <br>
+        {#
         TO DO : 15 other types of proposals
         #}
         {% endif %}

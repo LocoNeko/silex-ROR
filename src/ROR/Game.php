@@ -3315,13 +3315,13 @@ class Game
     public function senate_endProscutions($user_id) {
         $messages = array() ;
         if ($this->phase == 'Senate' && $this->subPhase == 'Prosecutions') {
-            $censor = $this->senate_findOfficial('censor') ;
+            $censor = $this->senate_findOfficial('Censor') ;
             if ($censor['user_id']!=$user_id) {
                 return array(array(_('ERROR - Only the Censor can end prosecutions') , 'error' , $user_id));
             } else {
-                array_push($messages , array( sprintf(_('The Censor %s returns the floor to the Presiding Magistrate') , $censor->name) ));
+                array_push($messages , array( sprintf(_('The Censor %s returns the floor to the Presiding Magistrate') , $censor['senator']->name) ));
                 // Sub phase will turn either to 'Governors' or 'Other business'
-                array_push($messages , senate_setSubPhaseAfterProsecutions($user_id));
+                array_push($messages , $this->senate_setSubPhaseAfterProsecutions($user_id));
             }
         }
         return $messages ;
@@ -3784,6 +3784,13 @@ class Game
                     $output['type'] = 'Prosecutions';
                     $output['list'] = $this->senate_getListPossibleProsecutions() ;
                     $output['possibleProsecutors'] = $this->senate_getListPossibleProsecutors() ;
+                /*
+                 * Governors
+                 */
+                } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Governors') ) {
+                    $output['state'] = 'Proposal';
+                    $output['type'] = 'Governors';
+                    $output['list'] = $this->senate_getListAvailableProvinces();
                 // TO DO : All the rest...
                 } else {
                     $output['state'] = 'Error';
@@ -4223,6 +4230,44 @@ class Game
     }
     
     /**
+     * Returns information on available provinces as an array of arrays<br>
+     * 
+     * Each element array is of the form : 'province_name' , 'province_id' , 'senator_name' , 'senator_id' , 'user_id'<br>
+     * - 'senator_name' , 'senator_id' , 'user_id' : can be NULL<br>
+     * - 'user_id' : can be 'forum'<br>
+     * @return array an array of arrays
+     */
+    public function senate_getListAvailableProvinces() {
+        $result = array() ;
+        // TO DO : remove this - for testing purpose
+        array_push($result , array ('province_name' => 'SICILIA' , 'province_id' => 160 , 'senator_name' => 'CORNELIUS' , 'senator_id' => 1 , 'user_id' => 13 ));
+        array_push($result , array ('province_name' => 'SARDINIA & CORSICA' , 'province_id' => 161 , 'senator_name' => 'FABIUS' , 'senator_id' => 2 , 'user_id' => 13 ));
+        array_push($result , array ('province_name' => 'HISPANIA CITERIOR' , 'province_id' => 162 , 'senator_name' => NULL , 'senator_id' => NULL , 'user_id' => NULL ));
+        foreach ($this->party as $party) {
+            foreach ($party->senators->cards as $senator) {
+                foreach ($senator->controls->cards as $card) {
+                    if ($card->type == 'Province') {
+                        array_push($result , array ('province_name' => $card->name , 'province_id' => $card->id , 'senator_name' => $senator->name , 'senator_id' => $senator->senatorID , 'user_id' => $party->user_id ));
+                    }
+                }
+            }
+        }
+        foreach ($this->forum->cards as $card) {
+            if ($card->type == 'Province') {
+                array_push($result , array ('province_name' => $card->name , 'province_id' => $card->id , 'senator_name' => NULL , 'senator_id' => NULL , 'user_id' => NULL ));
+            }
+            if ($card->type=='Family' || $card->type=='Statesman') {
+                foreach ($card->controls->cards as $card2) {
+                    if ($card2->type == 'Province') {
+                        array_push($result , array ('province_name' => $card2->name , 'province_id' => $card2->id , 'senator_name' => $card->name , 'senator_id' => $card->senatorID , 'user_id' => 'forum'));
+                    }
+                }
+            }
+        }
+        return $result ;
+    }
+    
+    /**
      * This function sets the Senate subPhase to either 'Governors' or 'Other business' based on the situation
      * If there is at least one province in play (even with a governor), set the phase to 'Governors', otherwise set it to 'Other business'
      * @param string $user_id Current user id
@@ -4230,29 +4275,8 @@ class Game
      */
     public function senate_setSubPhaseAfterProsecutions($user_id) {
         if ($this->phase=='Senate' && $this->subPhase=='Prosecutions') {
-            $provinceFound = FALSE ;
-            foreach ($this->party as $party) {
-                foreach ($party->senators->cards as $senator) {
-                    foreach ($senator->controls->cards as $card) {
-                        if ($card->type == 'Province') {
-                            $provinceFound = TRUE ;
-                        }
-                    }
-                }
-            }
-            foreach ($this->forum->cards as $card) {
-                if ($card->type == 'Province') {
-                    $provinceFound = TRUE ;
-                }
-                if ($card->type=='Family' || $card->type=='Statesman') {
-                    foreach ($card->controls->cards as $card2) {
-                        if ($card2->type == 'Province') {
-                            $provinceFound = TRUE ;
-                        }
-                    }
-                }
-            }
-            if ($provinceFound) {
+            $listOfAvailableProvinces = $this->senate_getListAvailableProvinces() ;
+            if (count($listOfAvailableProvinces) >0) {
                 $message = array(_('Senate sub phase - Governorships') , 'alert');
                 $this->subPhase='Governors';
             } else {
