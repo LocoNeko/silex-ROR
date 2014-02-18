@@ -3,8 +3,8 @@ namespace ROR;
 
 class Proposal {
     // Proposal types MUST be matched with game->subPhase, as the subPhase can be set to the type by some functions
-    public static $VALID_PROPOSAL_TYPES = array ('Consuls' , 'Pontifex Maximus' , 'Dictator' , 'Censor' , 'Prosecutions' , 'Governors' , 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall Proconsul' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor');
-    public static $DEFAULT_PROPOSAL_DESCRIPTION = array('Consuls Election' , 'Pontifex Maximus Election' , 'Dictator Election' , 'Censor Election' , 'Prosecutions' , 'Governorships' , 'Assignment of Concessions' , 'Passage & Repeal of Land Bills' , 'Raising & Disbanding Forces' , 'Assignment & Recall of Legions to a Garrison' , 'Assignment & Recall of Legions to fight a Conflict' , 'Recall Proconsul' , 'Recall Pontifex' , 'Appointment of Priests' , 'Election of Consul for life' , '') ;
+    public static $VALID_PROPOSAL_TYPES = array ('Consuls' , 'Pontifex Maximus' , 'Dictator' , 'Censor' , 'Prosecutions' , 'Governors' , 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall Proconsul' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Assassin prosecution' , 'Minor');
+    public static $DEFAULT_PROPOSAL_DESCRIPTION = array('Consuls Election' , 'Pontifex Maximus Election' , 'Dictator Election' , 'Censor Election' , 'Prosecutions' , 'Governorships' , 'Assignment of Concessions' , 'Passage & Repeal of Land Bills' , 'Raising & Disbanding Forces' , 'Assignment & Recall of Legions to a Garrison' , 'Assignment & Recall of Legions to fight a Conflict' , 'Recall Proconsul' , 'Recall Pontifex' , 'Appointment of Priests' , 'Election of Consul for life' , 'Special prosecution for assassin' , '') ;
     
     public $type ;
     public $description ;

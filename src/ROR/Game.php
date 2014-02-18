@@ -3333,7 +3333,6 @@ class Game
      * @param array $request
      */
     public function senate_vote($user_id , $request) {
-        // TO DO : Veto
         $messages = array() ;
         $ballotMessage = array();
         $ballotMessage[-1] = _('votes AGAINST the proposal');
@@ -3356,6 +3355,12 @@ class Game
                 if (isset($request['wholeParty'])) {
                     $latestProposal->voting[$key]['ballot'] = (int)$request['wholeParty'] ;
                     $votingMessage = sprintf(_('{%s} %s') , $user_id , $ballotMessage[$request['wholeParty']]);
+                // A veto has been used
+                } elseif($request['useVeto'] == 'YES') {
+                    /*
+                     * TO DO : Veto
+                     */
+                    $latestProposal->outcome=FALSE ;
                 // Per senator vote : set the senator's ballot to the value given through POST & handle talents spent
                 } else {
                     // Ignore senators with 0 votes (not in Rome)
@@ -3366,7 +3371,7 @@ class Game
                             $amount = (int)$request[$voting['senatorID'].'_talents'];
                             $senator = $this->getSenatorWithID($voting['senatorID']) ;
                             if ($senator->treasury < $amount) {
-                                return array(array(sprintf(_('%s tried to spent talents he doesn\'t have.') , $voting['name']) , 'error' , $user_id));
+                                return array(array(sprintf(_('%s tried to spend talents he doesn\'t have.') , $voting['name']) , 'error' , $user_id));
                             } else {
                                 $senator->treasury -= $amount ;
                                 $latestProposal->voting[$key]['talents'] = $amount ;
@@ -3384,8 +3389,8 @@ class Game
         // Remove the voting party from the voting order, as they have now voted.
         array_shift($latestProposal->votingOrder);
         
-        // Vote is finished
-        if (count($latestProposal->votingOrder)==0) {
+        // Vote is finished : no one left to vote, or outcome has been set to FALSE by a Veto
+        if (count($latestProposal->votingOrder)==0 || $latestProposal->outcome===FALSE) {
             $total = 0 ; $for = 0 ; $against = 0 ; $abstention = 0 ;
             $unanimous = TRUE ;
             $HRAO = $this->getHRAO(TRUE) ;
@@ -3420,7 +3425,7 @@ class Game
              * - Consuls : Only one pair of senators left
              * - Censor : Only one prior consul left
              */
-            if ($latestProposal->outcome == FALSE) {
+            if ($latestProposal->outcome === FALSE) {
                 if ($latestProposal->type=='Consuls') {
                     $possiblePairs = $this->senate_consulsPairs() ;
                     if (count($possiblePairs)==1) {
@@ -3440,11 +3445,19 @@ class Game
                         $this->subPhase='Prosecutions';
                     }
                 }
-            } else {
-                if ($latestProposal->type=='Prosecutions') {
+            /*
+             * TO DO : Results of succesful votes that don't require a decision
+             */
+            } elseif ($latestProposal->outcome === TRUE) {
+                if ($latestProposal->type=='Censor') {
+                    $this->senate_appointOfficial('Censor', $latestProposal->parameters[0]) ;
+                    array_push($messages , array(sprintf(_('%s is elected Censor.') , $this->getSenatorWithID($latestProposal->parameters[0])->name )) );
+                    $this->subPhase='Prosecutions';
+                } elseif ($latestProposal->type=='Prosecutions') {
                     $this->senate_prosecutionSuccessful($user_id) ;
                 }
-                // TO DO : all other vote results
+            } else {
+                return array(array(_('Error on vote outcome.') , 'error' , $user_id));
             }
         }
         return $messages ;
@@ -3524,7 +3537,7 @@ class Game
                 }
                 array_push($messages , array($message2)) ;
                 // Sub phase will turn either to 'Governors' or 'Other business'
-                array_push($messages , senate_setSubPhaseAfterProsecutions($user_id));
+                array_push($messages , $this->senate_setSubPhaseAfterProsecutions($user_id));
             // This was a minor prosecution
             } else {
                 $accused->changePOP(-5) ;
@@ -3556,7 +3569,7 @@ class Game
                 array_push($messages , array($message2)) ;
                 if ($this->senate_getFinishedProsecutions()['minor']==2) {
                     // Sub phase will turn either to 'Governors' or 'Other business'
-                    array_push($messages , senate_setSubPhaseAfterProsecutions($user_id));
+                    array_push($messages , $this->senate_setSubPhaseAfterProsecutions($user_id));
                 }
             }
         }
@@ -3614,7 +3627,7 @@ class Game
         $output = array() ;
         /* TO DO : Check if the following 2 actions are available (they almost always are) :
          * - Assassination
-         * - Tribune
+         * - Veto (tribune)
          */
         $latestProposal = $this->senate_getLatestProposal() ;
         /*
@@ -3716,9 +3729,10 @@ class Game
             // This is not your turn to vote
             if ($output['votingOrder'][0]!=$user_id) {
                 $output['canVote'] = FALSE ;
-            // This is your turn to vote
+            // This is your turn to vote. Also give a list of possible vetos
             } else {
                 $output['canVote'] = TRUE ;
+                $output['possibleVetos'] = $this->senate_getVetoList($user_id) ;
             }
 
         /*
@@ -4061,6 +4075,29 @@ class Game
         }
     }
     
+    /**
+     * Return an array of the possible vetos for the user<br>
+     * Vetos are impossible for : Consul for Life , Special prosecution of assassins , Any proposal by a Dictator
+     * @param string $user_id The user
+     * @return array 'Tribune Card'|free Tribune array ('senatorID' , 'name')
+     */
+    public function senate_getVetoList($user_id) {
+        $result=array() ;
+        $latestProposal = $this->senate_getLatestProposal() ;
+        if ($latestProposal->outcome==NULL) {
+            if ( $latestProposal->type!='Consul for life' && $latestProposal->type!='Assassin prosecution' && $this->getHRAO(TRUE)['senator']->office!='Dictator' ) {
+                foreach ($this->party[$user_id]->freeTribunes as $freeTribune) {
+                    $result[] = $freeTribune;
+                }
+                foreach ($this->party[$user_id]->hand->cards as $card) {
+                    if ($card->name == 'TRIBUNE') {
+                        $result[] = 'Tribune card';
+                    }
+                }
+            }
+        }
+        return $result ;
+    }
     
     /**
      * Returns a list of all possible consul pairs :
@@ -4268,8 +4305,9 @@ class Game
     }
     
     /**
-     * This function sets the Senate subPhase to either 'Governors' or 'Other business' based on the situation
-     * If there is at least one province in play (even with a governor), set the phase to 'Governors', otherwise set it to 'Other business'
+     * This function sets the Senate subPhase to either 'Governors' or 'Other business' based on the situation<br>
+     * If there is at least one province in play (even with a governor, because a recall is possible),<br>
+     * set the phase to 'Governors', otherwise set it to 'Other business'<br>
      * @param string $user_id Current user id
      * @return array One message array (Not an arrray of array like many other functions)
      */

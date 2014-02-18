@@ -140,6 +140,9 @@ You cannot make a proposal at the moment
             <button type="submit" class="btn-danger">APPEAL</button>
         </form>
     {% endif %}
+    {#
+        Cast Vote as whole party
+    #}
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_vote'} ) }}">
         Whole party vote :<br>
         <select name="wholeParty" id="wholeParty">
@@ -149,6 +152,9 @@ You cannot make a proposal at the moment
         </select><br>
         <button type="submit" class="btn-danger">CAST VOTE FOR WHOLE PARTY</button>
     </form>
+    {#
+        Cast Vote Senator per Senator
+    #}
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_vote'} ) }}">
         Vote by Senator :<br>
         {% for voter in output['voting']%}
@@ -173,6 +179,24 @@ You cannot make a proposal at the moment
         {% endfor%}
         <button type="submit" class="btn-danger">CAST VOTE BY SENATORS</button>
     </form>
+    {#
+        Veto
+    #}
+    {% if output['possibleVetos']|length >0%}
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_vote'} ) }}">
+            Veto the proposal using :<br>
+            <input type="hidden" name="useVeto" value="YES">
+            <select name="veto" id="veto">
+                {% for veto in output['possibleVetos']%}
+                    {% if veto=='Tribune card' %}
+                        <option value="Card">Tribune Card</option>
+                    {% else %}
+                        <option value="{{veto['senatorID']}}">{{veto['name'] ~ '\'s free tribune.'}}</option>
+                    {% endif %}
+                {% endfor%}
+            </select>
+        </form>
+    {% endif %}
     {% else %}
     Currently voting : {{output['votingOrderNames'][0]}}<br>
     {# Cannot vote #}
