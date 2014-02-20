@@ -204,9 +204,14 @@ function log ( Application $app , $game_id , $user_id , $logs , $playerNames) {
                 }
                 if ($log[1] == 'chat') {
                     $recipients = str_replace(':', ' says to ', $recipients) ;
-                    $recipients = str_replace(';', ' , ', $recipients) ;
-                    $recipients = substr($recipients, 0 , -3);
-                    $text = $recipients.' : "'.$text.'"' ;
+                    $nbPeople = substr_count($recipients, ';') +1 ;
+                    if ($nbPeople==count($playerNames)) {
+                        $text = substr ($recipients , 0 , strpos($recipients , ' says to ') ).' says to everyone : "'.$text.'"';
+                    } else {
+                        $recipients = str_replace(';', ' , ', $recipients) ;
+                        $recipients = substr($recipients, 0 , -3);
+                        $text = $recipients.' : "'.$text.'"' ;
+                    }
                 }
 
                 $app['session']->getFlashBag()->add($flashType,$text);

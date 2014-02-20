@@ -870,10 +870,6 @@ class Game
                 array_push( $result , array('captiveOf' => $senator->captive , 'senatorID' => $senator->senatorID , 'treasury' => $senator->treasury , 'ransom' => max(10 , 2 * $senator->INF)));
             }
         }
-        $senator = $this->getSenatorWithID('18');
-        array_push( $result , array('captiveOf' => 'barbarians' , 'senatorID' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury , 'ransom' => max(10 , 2 * $senator->INF)));
-        $senator = $this->getSenatorWithID('16');
-        array_push( $result , array('captiveOf' => 'barbarians' , 'senatorID' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury , 'ransom' => max(10 , 2 * $senator->INF)));
         if (count($result)==0) {
             $result = FALSE ;
         }
@@ -4493,14 +4489,16 @@ class Game
         $listOfCaptives = $this->getListOfCaptives($user_id) ;
         foreach ($listOfCaptives as $captive) {
             if (isset($request[$captive['senatorID'].'_SCREWYOU']) && ($request[$captive['senatorID'].'_SCREWYOU'] == 'on') ) {
-                array_push($messages , array( sprintf(_('{%s} decides not to pay the ransom of %s at the moment') , $user_id , $captive['name'])  ) ) ;
+                array_push($messages , array( sprintf(_('You decide not to pay the ransom of %s at the moment.') , $user_id , $captive['name']) , 'message' , $user_id ) ) ;
             } else {
                 $fromPersonalTreasury = min ($request[$captive['senatorID']] , $captive['ransom']) ;
                 $fromPartyTreasury = $captive['ransom'] - $fromPersonalTreasury ;
                 if ( ($fromPartyTreasury > $this->party[$user_id]->treasury) || ($fromPersonalTreasury > $this->getSenatorWithID($captive['senatorID'])->treasury) ) {
-                    array_push($messages , array( sprintf(_('{%s} decides to pay the ransom of %s but fails at basic math.') , $user_id , $captive['name'])  ) ) ;
+                    array_push($messages , array( sprintf(_('{%s} decides to pay the ransom of %s but fails at basic math.') , $user_id , $captive['name']) , 'error' , $user_id ) ) ;
                 } else {
-                    // TO DO
+                    $this->party[$user_id]->treasury -= $fromPartyTreasury ;
+                    $this->getSenatorWithID($captive['senatorID'])->treasury -= $fromPersonalTreasury ;
+                    $this->getSenatorWithID($captive['senatorID'])->captive = FALSE ;
                     array_push($messages , array( sprintf(_('{%s} decides to pay the %dT ransom of %s : %d from personal treasury and %d from party treasury') , $user_id , $captive['ransom'] , $captive['name'] , $fromPersonalTreasury , $fromPartyTreasury)  ) ) ;
                 }
             }
