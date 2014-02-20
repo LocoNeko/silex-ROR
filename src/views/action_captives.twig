@@ -1,8 +1,14 @@
 Some of your senators are captives :<br>
-<div class="row">
-{% for captive in content['game'].listOfCaptives(user_id) %}
-    <div class="span3">
-        {{captive['senatorID']}} is held by {{captive['captiveOf']}} for a ransom of {{captive['ransom']}} T.
-    </div>
-{% endfor %}
-</div>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'other_payRansom'} ) }}">
+    {% for captive in content['game'].listOfCaptives(user_id) %}
+            {{captive['name']}} is held by {{captive['captiveOf']}} for a ransom of {{captive['ransom']}} T. Pay 
+            <select name="{{captive['senatorID']}}" id="{{captive['senatorID']}}" style="width:75px;">
+                {% for i in 0.. captive['treasury']%}
+                    <option>{{i}}</option>
+                {% endfor %}
+            </select> from Personal treasury (The rest, if any, will be paid from Party treasury) or don't pay at all 
+            <input type="checkbox" name="{{captive['senatorID']}}_SCREWYOU" id="{{captive['senatorID']}}_SCREWYOU">
+            <br>
+    {% endfor %}
+    <button type="submit" class="btn-danger">PAY</button>
+</form>

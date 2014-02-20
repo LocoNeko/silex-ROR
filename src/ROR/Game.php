@@ -861,15 +861,19 @@ class Game
      * This is a global function, called from the main view interface to allow for payment at any time.<br>
      * TO DO : Killing of captives should be checked when needed (defeat of the war if captured during battle, or Forum phase if captured by Barbarians)
      * @param string $user_id the user id
-     * @return array 'captiveOf' , 'senatorID' , 'ransom'
+     * @return array 'captiveOf' , 'senatorID' , 'treasury' , 'ransom'
      */
     public function getListOfCaptives($user_id) {
         $result = array () ;
         foreach($this->party[$user_id]->senators->cards as $senator) {
             if($senator->captive!==FALSE) {
-                array_push( array('captiveOf' => $senator->captive , 'senatorID' => $senator->senatorID , 'ransom' => max(10 , 2 * $senator->INF)));
+                array_push( $result , array('captiveOf' => $senator->captive , 'senatorID' => $senator->senatorID , 'treasury' => $senator->treasury , 'ransom' => max(10 , 2 * $senator->INF)));
             }
         }
+        $senator = $this->getSenatorWithID('18');
+        array_push( $result , array('captiveOf' => 'barbarians' , 'senatorID' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury , 'ransom' => max(10 , 2 * $senator->INF)));
+        $senator = $this->getSenatorWithID('16');
+        array_push( $result , array('captiveOf' => 'barbarians' , 'senatorID' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury , 'ransom' => max(10 , 2 * $senator->INF)));
         if (count($result)==0) {
             $result = FALSE ;
         }
@@ -1396,7 +1400,7 @@ class Game
         $result['provinces'] = array() ;
         $result['rebels'] = array() ;
         foreach ($this->party[$user_id]->senators->cards as $senator) {
-            if (!$senator->rebel && !$senator->captive) {
+            if (!$senator->rebel && $senator->captive===FALSE) {
                 if ($this->party[$user_id]->leader->senatorID == $senator->senatorID) {
                     $result['total']+=3 ;
                     $result['leader']=$senator->name ;
@@ -1590,10 +1594,10 @@ class Game
         $result=array() ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             foreach($this->party[$user_id]->senators->cards as $senator) {
-                if ($senator->treasury > 0 && !$senator->captive && !$senator->rebel) {
+                if ($senator->treasury > 0 && $senator->captive===FALSE && !$senator->rebel) {
                     array_push($result , array('list' => 'from' , 'type' => 'senator' , 'id' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury ));
                 }
-                if (!$senator->captive && !$senator->rebel) {
+                if ($senator->captive===FALSE && !$senator->rebel) {
                     array_push($result , array('list' => 'to' , 'type' => 'senator' , 'id' => $senator->senatorID , 'name' => $senator->name ));
                 }
             }
@@ -4459,7 +4463,7 @@ class Game
             }
         }
     }
-    
+   
      /************************************************************
      * Functions used by Views
      ************************************************************/
@@ -4470,6 +4474,38 @@ class Game
             $result[] = $senator ;
         }
         return $result ;
+    }
+
+     /************************************************************
+     * Other functions
+     ************************************************************/
+
+    /**
+     * Function for paying captives' ransoms.
+     * @param string $user_id The user_id of the player paying the ransom
+     * @param array $request the POST data (list of 'senator_ID' and  'senator_ID_SCREWYOU')<br>
+     * The value of 'senator_ID' is equal to the number of talents spent from the senator's personal treasury<br>
+     * 'senator_ID_SCREWYOU' is 'on' if the user doesn't pay the ransom for this senator at the moment<br>
+     * @return array messages
+     */
+    public function other_payRansom($user_id , $request) {
+        $messages = array () ;
+        $listOfCaptives = $this->getListOfCaptives($user_id) ;
+        foreach ($listOfCaptives as $captive) {
+            if (isset($request[$captive['senatorID'].'_SCREWYOU']) && ($request[$captive['senatorID'].'_SCREWYOU'] == 'on') ) {
+                array_push($messages , array( sprintf(_('{%s} decides not to pay the ransom of %s at the moment') , $user_id , $captive['name'])  ) ) ;
+            } else {
+                $fromPersonalTreasury = min ($request[$captive['senatorID']] , $captive['ransom']) ;
+                $fromPartyTreasury = $captive['ransom'] - $fromPersonalTreasury ;
+                if ( ($fromPartyTreasury > $this->party[$user_id]->treasury) || ($fromPersonalTreasury > $this->getSenatorWithID($captive['senatorID'])->treasury) ) {
+                    array_push($messages , array( sprintf(_('{%s} decides to pay the ransom of %s but fails at basic math.') , $user_id , $captive['name'])  ) ) ;
+                } else {
+                    // TO DO
+                    array_push($messages , array( sprintf(_('{%s} decides to pay the %dT ransom of %s : %d from personal treasury and %d from party treasury') , $user_id , $captive['ransom'] , $captive['name'] , $fromPersonalTreasury , $fromPartyTreasury)  ) ) ;
+                }
+            }
+        }
+        return $messages ;
     }
     
 }

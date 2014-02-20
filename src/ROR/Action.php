@@ -141,6 +141,9 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                 case 'senate_decision' :
                     log ($app , $game_id , $user_id , $game->senate_decision($user_id , $request->request->all() )  , $playerNames);
                     break ;
+                case 'other_payRansom' :
+                    log ($app , $game_id , $user_id , $game->other_payRansom($user_id , $request->request->all() )  , $playerNames);
+                    break ;
                 case 'chat' :
                     $recipients = implode(';', $request->request->get('recipients')).';';
                     log ($app , $game_id , $user_id , array(array($request->request->get('message') , 'chat' , $user_id.':'.$recipients)) , $playerNames) ;

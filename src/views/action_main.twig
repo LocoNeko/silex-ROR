@@ -46,6 +46,7 @@ YOUR PARTY :<br>
 
 {# IF THERE IS CAPTIVES, SHOW THEM AND GIVE A CHANCE TO PAY THE RANSOM #}
 {% if content['game'].listOfCaptives(user_id) %}
+    <hr>
     {% embed 'action_captives.twig' %}
     {% endembed %}
 {% endif %}
