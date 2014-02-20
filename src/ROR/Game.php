@@ -1421,9 +1421,9 @@ class Game
                 $nbVeteransLoyal = 0 ;
                 $nbVeteransNotLoyal = 0 ;
                 $legionList = array() ;
-                foreach($this->legion as $legion) {
+                foreach($this->legion as $key=>$legion) {
                     if ($legion->location == $senator->senatorID) {
-                        array_push($legionList , $legion) ;
+                        array_push($legionList , array('number' => $key , 'name' => $legion->name , 'veteran' => $legion->veteran , 'loyalty' => $legion->loyalty)) ;
                         $nbLegions++ ;
                         if ($legion->veteran) {
                             if ($legion->loyalty == $senator->senatorID) {
@@ -1550,21 +1550,23 @@ class Game
                 array_push ($messages , array($message)) ;
             }
             if ($request['rebel']=='YES') {
-                // Pick up each LEGION_XXX_YYY (XXX is the legion's name, YYY is the rebel senator's senatorID), check which option was picked : A,B,C,D,E
+                // Pick up each LEGION_XXX_YYY (XXX is the legion's name, YYY is the rebel senator's senatorID), check which option was picked : PARTY, PERSONAL, DISBAND
                 // TO DO : Pay maintenance or disband
                 // TO DO : If legions are released, If the HRAO does not wish to pay the maintenance costs of these troops or if the senate cannot afford them, they are immediately disbanded.
                 // This specific HRAO decision should be moved to the HRAO's redistribution function.
+                // The $key is in the form LEGION_XXX_YYY : XXX is the legion's name, YYY is the rebel senator's senatorID
                 foreach($request as $key=>$value) {
                     if (substr($key,0,6)=='LEGION') {
                         $itemised = explode('_' , $key) ;
-                        $legionName = $itemised[1] ;
+                        $legionNumber = $itemised[1] ;
                         $rebelID = $itemised[2] ;
+                        // $value can be PARTY, PERSONAL, DISBAND
                         switch($value) {
-                            case 'A' :
-                            case 'B' :
-                            case 'C' :
-                            case 'D' :
-                            case 'E' :
+                            case 'PARTY' :
+                                
+                                break ;
+                            case 'PERSONAL' :
+                            case 'DISBAND' :
                         }
                     }
                 }
