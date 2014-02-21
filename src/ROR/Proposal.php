@@ -93,37 +93,6 @@ class Proposal {
     }
     
     /**
-     * Casts the vote of a single Senator or a whole party
-     * 
-     * @param string $type 'Senator' or 'Party', so this function can be used to have the whole party vote or just one Senator
-     * @param string $id user_id in case of a Party, senatorID in case of a Senator
-     * @param int $ballot Against : -1 , For : 1 , Abstain : 0 , Default : NULL (hasn't voted yet)
-     * @return array messages
-     */
-    public function castVote ($type , $id , $ballot) {
-        $ballot = (int)$ballot ;
-        if ($ballot<-1 || $ballot>1) {
-            return array(sprintf(_('Error with ballot, it should be for(1), against(-1) or abstain(0), not %d') , $ballot) , 'error');
-        }
-        if ($type=='Senator') {
-            foreach ($this->voting as $key => $vote) {
-                if ($vote['SenatorID']==$id && $vote['ballot']===NULL) {
-                    $this->voting['key']['ballot'] = $ballot*$vote['votes'];
-                }
-            }
-        } elseif ($type=='Party') {
-            foreach ($this->voting as $key => $vote) {
-                if ($vote['party']==$id && $vote['ballot']===NULL) {
-                    $this->voting['key']['ballot'] = $ballot*$vote['votes'];
-                }
-            }
-        } else {
-            return array(sprintf(_('Error with type of voting, only Senators or Parties can vote, not %s') , $type) , 'error');
-        }
-        // TO DO : Test if this was the last vote, and if it was, set outcome to TRUE
-    }
-    
-    /**
      * Returns TRUE if everything that needs to be done with this proposal has been dealt with. Which means either:
      * - The proposal has been rejected
      * - The proposal has been adopted and all parameters are known

@@ -3415,10 +3415,13 @@ class Game
                     $votingMessage = sprintf(_('{%s} %s') , $user_id , $ballotMessage[$request['wholeParty']]);
                 // A veto has been used
                 } elseif($request['useVeto'] == 'YES') {
-                    /*
-                     * TO DO : Veto
-                     */
-                    $latestProposal->outcome=FALSE ;
+                    $vetoResult = $this->senate_useVeto($user_id , $request['veto']) ;
+                    if ($vetoResult!==FALSE) {
+                        array_push($messages , sprintf(_('{%s} vetoes the proposal %s') , $user_id , $vetoResult) );
+                        $latestProposal->outcome=FALSE ;
+                    } else {
+                        array_push($messages , _('Error when trying to veto the proposal.') );
+                    }
                 // Per senator vote : set the senator's ballot to the value given through POST & handle talents spent
                 } else {
                     // Ignore senators with 0 votes (not in Rome)
@@ -3447,36 +3450,39 @@ class Game
         // Remove the voting party from the voting order, as they have now voted.
         array_shift($latestProposal->votingOrder);
         
-        // Vote is finished : no one left to vote, or outcome has been set to FALSE by a Veto
-        if (count($latestProposal->votingOrder)==0 || $latestProposal->outcome===FALSE) {
-            $total = 0 ; $for = 0 ; $against = 0 ; $abstention = 0 ;
-            $unanimous = TRUE ;
-            $HRAO = $this->getHRAO(TRUE) ;
-            foreach ($latestProposal->voting as $voting) {
-                // The $unanimous flag is set to FALSE as soon as we find ONE Senator not from the Presiding magistrate party, with non-0 votes, who voted For or Abstained
-                if ($voting['user_id']!=$HRAO['user_id'] && $voting['votes']>0 && $voting['ballot']!=-1) {
-                    $unanimous = FALSE ;
+        // Vote is finished : no one left to vote, or Veto has been used
+        if (count($latestProposal->votingOrder)==0 || $latestProposal->outcome==FALSE) {
+            // Handle normal voting process if Veto has not been used.
+            if ($latestProposal->outcome==NULL) {
+                $total = 0 ; $for = 0 ; $against = 0 ; $abstention = 0 ;
+                $unanimous = TRUE ;
+                $HRAO = $this->getHRAO(TRUE) ;
+                foreach ($latestProposal->voting as $voting) {
+                    // The $unanimous flag is set to FALSE as soon as we find ONE Senator not from the Presiding magistrate party, with non-0 votes, who voted For or Abstained
+                    if ($voting['user_id']!=$HRAO['user_id'] && $voting['votes']>0 && $voting['ballot']!=-1) {
+                        $unanimous = FALSE ;
+                    }
+                    $total += $voting['ballot'] * ($voting['votes'] + $voting['talents']) ;
+                    switch($voting['ballot']) {
+                        case -1 :
+                            $against+=($voting['votes'] + $voting['talents']) ;
+                            break ;
+                        case 0 :
+                            $abstention+=($voting['votes'] + $voting['talents']) ;
+                            break ;
+                        case 1 :
+                            $for+=($voting['votes'] + $voting['talents']) ;
+                            break ;
+                    }
                 }
-                $total += $voting['ballot'] * ($voting['votes'] + $voting['talents']) ;
-                switch($voting['ballot']) {
-                    case -1 :
-                        $against+=($voting['votes'] + $voting['talents']) ;
-                        break ;
-                    case 0 :
-                        $abstention+=($voting['votes'] + $voting['talents']) ;
-                        break ;
-                    case 1 :
-                        $for+=($voting['votes'] + $voting['talents']) ;
-                        break ;
+                $latestProposal->outcome = ( $total > 0 ) ;
+                $votingMessage = ($latestProposal->outcome ? _('The proposal is adopted') : _('The proposal is rejected')) ;
+                $votingMessage .= sprintf(_(' by %d votes for, %d against, and %d abstentions.') , $for , $against , $abstention);
+                array_push($messages , array($votingMessage)) ;
+                if ($unanimous && $latestProposal->proposedBy==$HRAO['user_id']) {
+                    array_push($messages , array(sprintf(_('The presiding magistrate %s has been unanimously defeated.') , $HRAO['senator']->name))) ;
+                    $this->subPhase = 'Unanimous defeat' ;
                 }
-            }
-            $latestProposal->outcome = ( $total > 0 ) ;
-            $votingMessage = ($latestProposal->outcome ? _('The proposal is adopted') : _('The proposal is rejected')) ;
-            $votingMessage .= sprintf(_(' by %d votes for, %d against, and %d abstentions.') , $for , $against , $abstention);
-            array_push($messages , array($votingMessage)) ;
-            if ($unanimous && $latestProposal->proposedBy==$HRAO['user_id']) {
-                array_push($messages , array(sprintf(_('The presiding magistrate %s has been unanimously defeated.') , $HRAO['senator']->name))) ;
-                $this->subPhase = 'Unanimous defeat' ;
             }
             /* 
              * Deal with automatic nominations if the outcome was FALSE
@@ -4135,7 +4141,7 @@ class Game
     
     /**
      * Return an array of the possible vetos for the user<br>
-     * Vetos are impossible for : Consul for Life , Special prosecution of assassins , Any proposal by a Dictator
+     * Vetos are impossible for : Consul for Life , Special prosecution of assassins , any proposal by a Dictator
      * @param string $user_id The user
      * @return array 'Tribune Card'|free Tribune array ('senatorID' , 'name')
      */
@@ -4155,6 +4161,34 @@ class Game
             }
         }
         return $result ;
+    }
+    
+    /**
+     * Uses a Veto in a vote.<br>
+     * The POST data is either 'Card' (Tribune card) or a SenatorID (Statesman with a free tribune)
+     * @param string $user_id The user_id of the player playing the Veto
+     * @param array $vetoRequest POST data
+     * @return string message or FALSE if it failed
+     */
+    public function senate_useVeto($user_id , $vetoRequest) {
+        if ($vetoRequest=='Card') {
+            $tribuneCard = $this->party[$user_id]->hand->drawCardWithValue('name' , 'TRIBUNE') ;
+            if ($tribuneCard !==FALSE) {
+                $this->discard->putOnTop($tribuneCard);
+                return _('using a Tribune card') ;
+            } else {
+                return FALSE ;
+            }
+        } else {
+            foreach ($this->party[$user_id]->freeTribunes as $key=>$value) {
+                if ($value['senatorID'] == $vetoRequest) {
+                    unset ($this->party[$user_id]->freeTribunes[$key]) ;
+                    return sprintf(_('using the Tribune ability of %s') , $value['name']);
+                }
+            }
+            return FALSE ;
+        }
+        return FALSE ;
     }
     
     /**
