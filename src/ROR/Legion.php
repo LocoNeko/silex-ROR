@@ -29,6 +29,7 @@ class Legion
         $this->name = ( (strlen($romanName)>0) ? $romanName : NULL) ;
         $this->veteran = FALSE ;
         $this->loyalty = NULL ;
+        // location is 'rome','released' or a SenatorID
         $this->location = NULL ;
     }
         

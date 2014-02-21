@@ -1550,25 +1550,9 @@ class Game
                 array_push ($messages , array($message)) ;
             }
             if ($request['rebel']=='YES') {
-                // Pick up each LEGION_XXX_YYY (XXX is the legion's name, YYY is the rebel senator's senatorID), check which option was picked : PARTY, PERSONAL, DISBAND
-                // TO DO : Pay maintenance or disband
-                // TO DO : If legions are released, If the HRAO does not wish to pay the maintenance costs of these troops or if the senate cannot afford them, they are immediately disbanded.
-                // This specific HRAO decision should be moved to the HRAO's redistribution function.
-                // The $key is in the form LEGION_XXX_YYY : XXX is the legion's name, YYY is the rebel senator's senatorID
-                foreach($request as $key=>$value) {
-                    if (substr($key,0,6)=='LEGION') {
-                        $itemised = explode('_' , $key) ;
-                        $legionNumber = $itemised[1] ;
-                        $rebelID = $itemised[2] ;
-                        // $value can be PARTY, PERSONAL, DISBAND
-                        switch($value) {
-                            case 'PARTY' :
-                                
-                                break ;
-                            case 'PERSONAL' :
-                            case 'DISBAND' :
-                        }
-                    }
+                $rebelLegionsMaintenanceMessages = $this->revenue_rebelLegionsMaintenance ($request) ;
+                foreach ($rebelLegionsMaintenanceMessages as $message) {
+                    array_push($messages , $rebelLegionsMaintenanceMessages) ;
                 }
             }
             // Phase done for this player. If all players are done, move to redistribution subPhase
@@ -1583,8 +1567,67 @@ class Game
     }
 
     /**
-    * Lists all the possible "from" and "to" (Senators and Parties) for redistribution of wealth
-    * @param string $user_id the player's user_id
+     * Pick up each LEGION_XXX_YYY (XXX is the legion's name, YYY is the rebel senator's senatorID)<br>
+     * check which option was picked : PARTY, PERSONAL, DISBAND, FREE<br>
+     * Then pay maintenance or disband the legion. If disbanded, its location is set to 'released'<br>
+     * If legions are released and the HRAO does not wish to pay the maintenance costs of these troops or if the senate cannot afford them, they are immediately disbanded.<br>
+     * This specific HRAO decision is in the HRAO's redistribution function.<br>
+     * In the POST data, the $key is in the form LEGION_XXX_YYY : XXX is the legion's name, YYY is the rebel senator's senatorID<br>     * 
+     * @param type $request the POST data
+     * @return array messages
+     */
+    private function revenue_rebelLegionsMaintenance ($request) {
+        $messages = array() ;
+        foreach($request as $key=>$value) {
+            if (substr($key,0,6)=='LEGION') {
+                $itemised = explode('_' , $key) ;
+                $legionNumber = $itemised[1] ;
+                $rebelID = $itemised[2] ;
+                $rebel = $this->getSenatorWithID($rebelID) ;
+                // TO DO : maybe I should include user_id in the function, and check that it's equal to rebelParty
+                $rebelParty = $this->getPartyOfSenatorWithID($rebelID) ;
+                if ($this->legion[$legionNumber]->location != $rebelID) {
+                    array_push($messages , array( sprintf(_('Rebel legion maintenance error - Legion %s is not commanded by %s') , $this->legion[$legionNumber]->name , $rebel->name) ));
+                } else {
+                    // $value can be PARTY, PERSONAL, DISBAND, FREE
+                    switch($value) {
+                        case 'PARTY' :
+                            if ($rebelParty->treasury>=2) {
+                                $rebelParty->treasury-=2 ;
+                                array_push($messages , array( sprintf(_('The party pays 2T for the maintenance of %s\' rebel legion %s.') , $rebel->name , $this->legion[$legionNumber]->name ) ));
+                            } else {
+                                array_push($messages , array( sprintf(_('The party cannot pay for the maintenance of %s\' rebel legion %s, it is released.') , $rebel->name , $this->legion[$legionNumber]->name ) ));
+                                $this->legion[$legionNumber]->location = 'released';
+                            }
+                            break ;
+                        case 'PERSONAL' :
+                            if ($rebel->treasury>=2) {
+                                $rebel->treasury-=2 ;
+                                array_push($messages , array( sprintf(_('%s pays 2T for the maintenance of rebel legion %s.') , $rebel->name , $this->legion[$legionNumber]->name ) ));
+                            } else {
+                                array_push($messages , array( sprintf(_('%s cannot pay for the maintenance of his rebel legion %s, it is released.') , $rebel->name , $this->legion[$legionNumber]->name ) ));
+                                $this->legion[$legionNumber]->location = 'released';
+                            }
+                            break ;
+                        case 'FREE' :
+                            array_push($messages , array( sprintf(_('%s is loyal to %s, no maintenance required.') , $this->legion[$legionNumber]->name , $rebel->name ) ));
+                            break ;
+                        case 'DISBAND' :
+                        default :
+                            array_push($messages , array( sprintf(_('Legion %s isreleased.') , $this->legion[$legionNumber]->name) ));
+                            break ;
+                    }
+                }
+            }
+        }
+        return $messages ;
+    }
+    
+    /**
+    * Lists all the possible "from" and "to" (Senators and Parties) for redistribution of wealth<br>
+    * Also, if legions were released by a rebel, this function gives the option to the HRAO not to pay the maintenance costs of these troops<br>
+    * or if the senate cannot afford them, they are immediately disbanded.<br>
+    * @param string $user_id the player's user_id<br>
     * @return array A list of 'from' & 'to' <br>
     * 'list' => 'from'|'to' ,<br> 'type' => 'senator'|'party' ,<br> 'id' => senatorID|user_id ,<br> 'name' => senator or party name ,<br> 'treasury' => senator or party treasury (only for 'from')
     */
@@ -1602,6 +1645,14 @@ class Game
             array_push($result , array('list' => 'from' , 'type' => 'party' , 'id' => $user_id , 'name' => $this->party[$user_id]->name , 'treasury' => $this->party[$user_id]->treasury ));
             foreach($this->party as $key=>$value) {
                 array_push($result , array('list' => 'to' , 'type' => 'party' , 'id' => $key , 'name' => $this->party[$key]->name ));
+            }
+            // For the HRAO only, give a list of released legions to let him chose if they are maintained or disbanded.
+            if ($this->getHRAO['party']==$user_id) {
+                foreach($this->legion as $key => $legion) {
+                    if ($legion->location =='released') {
+                        array_push($result , array('list' => 'releasedLegions' , 'number' => $key , 'name' => $legion->name)) ;
+                    }
+                }
             }
         }
         return $result ;
@@ -1662,6 +1713,11 @@ class Game
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $this->party[$user_id]->phase_done=TRUE ;
             array_push($messages , array(sprintf(_('{%s} has finished redistributing wealth.') , $user_id))) ;
+            /*
+             * TO DO :
+             * For the HRAO only, there might be released legions maintenance POST data.
+             * Implement it.
+             */
             if ($this->whoseTurn()===FALSE) {
                 array_push($messages , array(_('The redistribution sub phase is finished.'))) ;
                 array_push($messages , array(_('State revenues.'))) ;

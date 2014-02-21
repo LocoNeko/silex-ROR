@@ -93,6 +93,7 @@
                     {{legion['name']}}, {{legion['veteran'] ? 'Veteran' : 'Regular'}}, {{legion['loyalty']==rebel['senatorID'] ? 'Loyal to him' : 'Not loyal to him'}}
                     {% if legion['loyalty']==rebel['senatorID'] %}
                         Maintenance free
+                        <input type="hidden" name="LEGION_{{legion['number']}}_{{rebel['senatorID']}}" id="LEGION_{{legion['number']}}_{{rebel['senatorID']}}" value="FREE">
                     {% else %}
                         Maintain from  :
                         <select name="LEGION_{{legion['number']}}_{{rebel['senatorID']}}" id="LEGION_{{legion['number']}}_{{rebel['senatorID']}}">
@@ -146,6 +147,18 @@
     <button type="submit" class="btn btn-sucess">TRANSFER</button>
     </form>
     <form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_RedistributionFinished'} ) }}">
+        {# For the HRAO only, this gives a list of released legions so he can decide either to Disband or Maintain them #}
+        <fieldset>
+            {% for listRedistribute in output['redistribution'] %}
+                {% if listRedistribute['list']=='releasedLegions' %}
+                    Released legion {{listRedistribute['name']}} should be 
+                    <select name="LEGION_{{listRedistribute['number']}}" id="LEGION_{{listRedistribute['number']}}">
+                        <option>DISBANDED</option>
+                        <option>MAINTAINED</option>
+                    </select><br>
+                {% endif %}
+            {% endfor %}
+        </fieldset>
         <button type="submit" class="btn btn-danger">DONE</button>
     </form>
     

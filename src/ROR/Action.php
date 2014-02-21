@@ -87,7 +87,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                     log ($app , $game_id , $user_id , $game->revenue_Redistribution ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) , $playerNames ) ;
                     break ;
                 case 'revenue_RedistributionFinished' :
-                    log ($app , $game_id , $user_id , $game->revenue_RedistributionFinished ($user_id , $request->request->get('fromRaw') , $request->request->get('toRaw') , $request->request->get('amount') ) , $playerNames ) ;
+                    log ($app , $game_id , $user_id , $game->revenue_RedistributionFinished ($user_id) , $playerNames ) ;
                     break ;
                 case 'revenue_Contributions' :
                     log ($app , $game_id , $user_id , $game->revenue_Contributions ($user_id , $request->request->get('senator') , $request->request->get('amount') ) , $playerNames ) ;
