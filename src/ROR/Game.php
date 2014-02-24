@@ -859,7 +859,8 @@ class Game
     /**
      * This adds the ability to pay ransom of Senators captured during battle or barbarian raids<br>
      * This is a global function, called from the main view interface to allow for payment at any time.<br>
-     * TO DO : Killing of captives should be checked when needed (defeat of the war if captured during battle, or Forum phase if captured by Barbarians)
+     * TO DO : Killing of captives should be checked when a war is defeated (captured during battle).<br>
+     * DONE : Killing by barbarians has been implemented already (beginning of forum phase).
      * @param string $user_id the user id
      * @return array 'captiveOf' , 'senatorID' , 'treasury' , 'ransom'
      */
@@ -877,7 +878,8 @@ class Game
     }
     
     /**
-     * 
+     * Returns the number of matched active Conflicts :<br>
+     * Either in the active wars or unprosecuted wars deck
      * @param Conflict $conflict
      * @return int|boolean
      */
@@ -1167,7 +1169,7 @@ class Game
      * - Where senator and controlled cards go (forum, curia, discard)
      * @param string $senatorID The SenatorID of the dead senator
      * @param specificID TRUE if the Senator with this specific ID should be killed,<BR> FALSE if the ID is a family, and Statesmen must be tested
-     * @return array messages
+     * @return array Just one message-array, not an array of messages
      */
     public function mortality_killSenator($senatorID , $specificID=FALSE) {
         $message = '' ;
@@ -1840,6 +1842,7 @@ class Game
      * - Forces maintenance
      * - Returning governors
      * - Moving to Forum phase
+     * - Barbarians kill senators whose ransom was not paid
      * @param string $user_id The player's user_id
      * @return array
      */
@@ -1927,6 +1930,16 @@ class Game
                         if ( ($number != 174) && ($number != 175) && ($number != 176) ) {
                             $this->events[$number]['level'] = 0 ;
                             array_push($messages , array(sprintf(_('Event %s is removed.') , $event['name'])));
+                        }
+                    }
+                }
+                // Barbarians kill captives
+                foreach ($this->party as $key=>$party) {
+                    $captiveList = $this->getListOfCaptives($key) ;
+                    foreach ($captiveList as $captive) {
+                        if ($captive['captiveOf'] == 'barbarians') {
+                            array_push($messages , array( sprintf(_('The barbarians slaughter %s, whose ransom was not paid by {%s}') , $this->getSenatorWithID($captive['senatorID'])->name , $key ) ,'alert'));
+                            array_push($messages , $this->mortality_killSenator($captive['senatorID'], TRUE) );
                         }
                     }
                 }
@@ -2257,21 +2270,32 @@ class Game
                             // Card goes to forum
                             // TO DO : Wars and Leaders don't go to forum
                             /*
-                             * Whenever a war card is drawn from the deck that would match another war or revolt card (see revolts below)
-                             *  already located anywhere in the Forum, the drawn card is placed in the Imminent Wars slot for the remainder of the current turn, 
-                             * and it does not multiply any active wars until it itself becomes active. 
-                             * If the already existing war card in the Forum is currently located in an Inactive War slot, 
-                             * it is immediately moved to an Active War slot; otherwise, nothing else happens.
+                             * A War card (card A) is drawn :
+                             * - If a matching war (card B) is already active, card A is placed in the imminent wars
+                             * - If a matching war (card B) is inactive, card A is placed in the imminent wars and card B becomes active.
+                             * - If no matching war is in place, the active/inactive icon on card A determines if it is active or inactive.
+                             * - If there is a leader (card C) in the curia who matches card A, card C is placed with card A which is now active if it wasn't. However, if card A was imminent, it stays imminent.
                              * 
-                             * If, while an inactive or active war is in play, a matching leader card is drawn 
-                             * (e.g., Hannibal is drawn while Punic Wars are active or inactive) the leader is 
-                             * immediately placed with the war and the war is considered active. 
-                             * If a leader resides in the Curia and a war matching that leader is drawn both the leader and the war are immediately considered active, 
-                             * even if the war would normally be considered inactive.
-                             * EXCEPTION: Leaders cannot activate imminent wars.
+                             * A Leader (card D) is drawn :
+                             * - If a matching war (card E) is already in play, active or inactive, card D is placed with card E which is now active if it wasn't.
+                             * - If no matching war is in play, card D is placed in the curia.
                              */
-                            $this->forum->putOnTop($card) ;
-                            array_push($messages , array(sprintf(_('{%s} draws %s that goes to the forum.') , $user_id , $card->name)));
+                            if ($card->type == 'Conflict') {
+                                $matchedConflicts = $this->getNumberOfMatchedConflicts($card) ;
+                                // There is a matched active conflict : War goes to imminent deck
+                                if ($matchedConflicts !== FALSE) {
+                                    $this->imminentWars->putOnTop($card) ;
+                                } else {
+                                    $matchedInactiveWar = $this->getSpecificCard('matches', $card->matches) ;
+                                    // There is a matched inactive war.
+                                    if ($matchedInactiveWar!==FALSE && $matchedInactiveWar['where'] == 'inactiveWars') {
+                                        //TO DO
+                                    }
+                                }
+                            } else {
+                                $this->forum->putOnTop($card) ;
+                                array_push($messages , array(sprintf(_('{%s} draws %s that goes to the forum.') , $user_id , $card->name)));
+                            }
                         }
                     }
                 } else {
