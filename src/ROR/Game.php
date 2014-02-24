@@ -1549,6 +1549,7 @@ class Game
                 }
                 array_push ($messages , array($message)) ;
             }
+            // Rebel legions maintenance
             if ($request['rebel']=='YES') {
                 $rebelLegionsMaintenanceMessages = $this->revenue_rebelLegionsMaintenance ($request) ;
                 foreach ($rebelLegionsMaintenanceMessages as $message) {
@@ -1706,18 +1707,36 @@ class Game
      * - Provinces<br>
      * Then move to Contributions subphase<br>
      * @param string $user_id The player's user_id
+     * @param array $request The POST request used only for the HRAO's decisions on released legions.
      * @return array
      */
-    public function revenue_RedistributionFinished ($user_id) {
+    public function revenue_RedistributionFinished ($user_id , $request) {
         $messages = array () ;
         if ( ($this->phase=='Revenue') && ($this->subPhase=='Redistribution') && ($this->party[$user_id]->phase_done==FALSE) ) {
             $this->party[$user_id]->phase_done=TRUE ;
             array_push($messages , array(sprintf(_('{%s} has finished redistributing wealth.') , $user_id))) ;
-            /*
-             * TO DO :
-             * For the HRAO only, there might be released legions maintenance POST data.
-             * Implement it.
-             */
+            // For the HRAO only, there might be released legions maintenance POST data.
+            $flag = FALSE ;
+            if ($this->getHRAO()['user_id'] == $user_id) {
+                $disbandedLegions = 0;
+                $maintainedLegions = 0;
+                foreach($this->legion as $key=>$legion) {
+                    if ($legion->location == 'released') {
+                        $flag = TRUE ;
+                        if ( ($request['LEGION_'.$key] == 'MAINTAINED') && ($this->treasury>=2) ) {
+                            $maintainedLegions++;
+                            $this->treasury-- ;
+                            $this->legion[$key]->location = 'Rome' ;
+                        } else {
+                            $disbandedLegions++;
+                            $this->legion[$key]->location = NULL ;
+                        }
+                    }
+                }
+                if ($flag) {
+                    array_push($messages , array(sprintf(_('The HRAO disbanded %d and maintained %d (for a cost of %dT) of the legions released by rebels.') , $disbandedLegions , $maintainedLegions , 2*$maintainedLegions))) ;
+                }
+            }
             if ($this->whoseTurn()===FALSE) {
                 array_push($messages , array(_('The redistribution sub phase is finished.'))) ;
                 array_push($messages , array(_('State revenues.'))) ;
