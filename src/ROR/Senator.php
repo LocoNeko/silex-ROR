@@ -42,6 +42,7 @@ class Senator extends Card
     public $rebel ;
     public $captive ;
     public $freeTribune ;
+    public $returningGovernor ;
 
     /*
      * Creates a Senator card from an array
@@ -76,6 +77,7 @@ class Senator extends Card
             $this->freeTribune = 0 ;
             $this->rebel = FALSE ;
             $this->captive = FALSE ;
+            $this->returningGovernor = FALSE ;
     }
 
     public function resetSenator() {
@@ -88,6 +90,12 @@ class Senator extends Card
             $this->POP = 0 ;
             $this->office = NULL ;
             $this->priorConsul = false ;		
+            $this->corrupt = FALSE ;
+            $this->major = FALSE ;
+            $this->freeTribune = 0 ;
+            $this->rebel = FALSE ;
+            $this->captive = FALSE ;
+            $this->returningGovernor = FALSE ;
     }
     
     public function statesmanFamily () {

@@ -1888,6 +1888,8 @@ class Game
                 // Return of provinces governors
                 foreach($this->party as $party) {
                     foreach ($party->senators->cards as $senator) {
+                        // returningGovernor is used during the Senate phase : returning governors cannot be appointed governor again on the turn of their return without their approval
+                        $senator->returningGovernor = FALSE ;
                         foreach ($senator->controls->cards as $card) {
                             if ($card->type=='province') {
                                 $card->mandate++;
@@ -1895,6 +1897,7 @@ class Game
                                     array_push($messages , array(sprintf(_('%s returns from %s which is placed in the Forum.') , $senator->name , $card->name)));
                                     $card->mandate=0;
                                     $this->forum->putOnTop($senator->controls->drawCardWithValue('id',$card->id));
+                                    $senator->returningGovernor = TRUE ;
                                 } else {
                                     array_push( $messages , array(sprintf(_('%s spends %s game turn in %s') , $senator->name , ( ($card->mandate==1) ? _('First') : _('Second') ) , $card->name)) );
                                 }
@@ -1905,6 +1908,7 @@ class Game
                 // Handle unaligned senators who are governors
                 foreach($this->forum->cards as $senator) {
                     if ($senator->type=='Family') {
+                        $senator->returningGovernor = FALSE ;
                         foreach ($senator->controls->cards as $card) {
                             if ($card->type=='Province') {
                                 $card->mandate++;
@@ -1912,6 +1916,7 @@ class Game
                                     array_push( $messages , array(sprintf(_('%s (unaligned) returns from %s which is placed in the Forum.') , $senator->name , $card->name)) );
                                     $card->mandate=0;
                                     $this->forum->putOnTop($senator->controls->drawCardWithValue('id',$card->id));
+                                    $senator->returningGovernor = TRUE ;
                                 } else {
                                     array_push( $messages , array(sprintf(_('%s (unaligned) spends %s game turn in %s.') , $senator->name , ( ($card->mandate==1) ? _('First') : _('Second') ) , $card->name)) );
                                 }
@@ -4485,6 +4490,24 @@ class Game
                         array_push($result , array ('province_name' => $card2->name , 'province_id' => $card2->id , 'senator_name' => $card->name , 'senator_id' => $card->senatorID , 'user_id' => 'forum'));
                     }
                 }
+            }
+        }
+        return $result ;
+    }
+    
+    // TO DO : Now doing this function...
+    public function senate_getListAvailableGovernors() {
+        $result = array() ;
+        foreach ($this->party as $party) {
+            foreach ($party->senators->cards as $senator) {
+                if ($senator->inRome()) {
+                    array_push($result , array('senatorID' => $senator->senatorID , 'user_id' => $party->user_id , 'returning' => $senator->returningGovernor) ) ;
+                }
+            }
+        }
+        foreach ($this->forum->cards as $card) {
+            if ( ($card->type=='Family' || $card->type=='Statesman') && ($card->inRome()) ) {
+                array_push($result , array('senatorID' => $card->senatorID , 'user_id' => 'forum' , 'returning' => $card->returningGovernor) ) ;
             }
         }
         return $result ;
