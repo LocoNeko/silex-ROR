@@ -2282,6 +2282,7 @@ class Game
                         /*
                          *  There is a matched active conflict : War goes to imminent deck
                          */
+                        $activateInCaseOfLeader = FALSE ;
                         if ($matchedConflicts !== FALSE) {
                             $this->imminentWars->putOnTop($card) ;
                             array_push($messages , array(sprintf(_('{%s} draws %s, there is %d matched conflicts, the card goes to the imminent deck.') , $user_id , $card->name , $matchedConflicts)));
@@ -2304,9 +2305,23 @@ class Game
                             } else {
                                 $this->inactiveWars->putOnTop($card) ;
                                 array_push($messages , array(sprintf(_('{%s} draws %s, there are no matched conflicts, so based on the card\'s icon, the war is inactive.') , $user_id , $card->name)));
+                                $activateInCaseOfLeader = TRUE ;
                             }
                         }
-                        // TO DO : check matched leader in curia
+                        // Move any matched leaders from the curia to the Conflict card
+                        foreach ($this->curia->cards as $curiaCard) {
+                            if ($curiaCard->type=='Leader' && $curiaCard->matches==$card->matches) {
+                                $pickedLeader = $this->curia->drawCardWithValue('id' , $curiaCard->id) ;
+                                $card->leaders->putOnTop($pickedLeader) ;
+                                $completeMessage = sprintf(_('The leader %s is matched with %s, so moves from the Curia to the card.') , $pickedLeader->name , $card->name) ;
+                                // A leader activates an inactive conflict
+                                if ($activateInCaseOfLeader) {
+                                    $this->activeWars->putOnTop($this->inactiveWars->drawCardWithValue('id' , $card->id)) ;
+                                    $completeMessage.=_(' This activates the conflict.');
+                                }
+                                array_push($messages , array($completeMessage)) ;
+                            }
+                        }
                     /*
                     * A Leader is drawn
                     */
@@ -2318,9 +2333,14 @@ class Game
                             array_push($messages , array(sprintf(_('{%s} draws %s, without a matched conflicts, the card goes to the Curia.') , $user_id , $card->name)));
                         // There is a matching conflict.
                         } else {
-                            $matchedWar->leaders->putOnTop($card) ;
-                            // TO DO : message
-                            // TO DO : activate the war if it was not
+                            $matchedWar['card']->leaders->putOnTop($card) ;
+                            $completeMessage = sprintf(_('{%s} draws %s, which is placed on the matched conflict %s.') , $user_id , $card->name , $matchedWar['card']->name) ;
+                            // Activate the war if it was not
+                            if ($matchedWar['where'] == 'inactiveWars') {
+                                $this->activeWars->putOnTop($this->inactiveWars->drawCardWithValue('id' , $matchedWar['card']->id)) ;
+                                $completeMessage.=_(' This activates the conflict.');
+                            }
+                            array_push($messages , array($completeMessage));
                         }
                     /*
                     * Another type of card is drawn
