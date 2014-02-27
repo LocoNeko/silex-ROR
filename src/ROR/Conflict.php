@@ -49,8 +49,8 @@ class Conflict extends Card {
                 $this->disaster = $data[14];
                 $this->standoff = $data[15];
                 $this->spoils = (int)$data[16] ;
-                $this->leaders = null ;
-                $this->commanders = null ;
+                $this->leaders = new Deck() ;
+                $this->commanders = new Deck() ;
 
 	}
 }

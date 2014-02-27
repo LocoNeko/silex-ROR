@@ -2219,9 +2219,6 @@ class Game
             if ($roll['total']==7) {
                 // Event
                 $eventRoll = $this->rollDice(3,0) ;
-                
-                
-                
                 array_push($messages , array( sprintf(_('{%s} rolls a 7, then rolls a %d on the events table.') , $user_id , $eventRoll['total']) ));
                 $eventNumber = $this->eventTable[(int)$eventRoll['total']][$this->scenario] ;
                 $message = $this->forum_putEventInPlay('number' , $eventNumber) ;
@@ -2236,67 +2233,101 @@ class Game
                         $this->party[$user_id]->hand->putOnTop($card);
                         array_push($messages , array(sprintf(_('{%s} draws a faction card and keeps it.') , $user_id),'message',$this->getAllButOneUserID($user_id)));
                         array_push($messages , array(sprintf(_('You draw %s and put it in your hand.') , $card->name),'message',$user_id));
-                    } else {
-                        // If a Family has been drawn check if a corresponding Statesman is in play
-                        if ($card->type=='Family') {
-                            $possibleStatemen = array() ;
-                            foreach ($this->party as $party) {
-                                foreach ($party->senators->cards as $senator) {
-                                    if ($senator->type=='Statesman' && $senator->statesmanFamily() == $card->senatorID) {
-                                        array_push($possibleStatemen , array('senator' => $senator , 'party' => $party)) ;
-                                    }
+                    // If a Family has been drawn check if a corresponding Statesman is in play
+                    } elseif ($card->type=='Family') {
+                        $possibleStatemen = array() ;
+                        foreach ($this->party as $party) {
+                            foreach ($party->senators->cards as $senator) {
+                                if ($senator->type=='Statesman' && $senator->statesmanFamily() == $card->senatorID) {
+                                    array_push($possibleStatemen , array('senator' => $senator , 'party' => $party)) ;
                                 }
-                            }
-                            // No corresponding statesman : Family goes to the Forum
-                            if (count($possibleStatemen)==0) {
-                                $this->forum->putOnTop($card) ;
-                                array_push($messages , array( sprintf(_('{%s} draws %s that goes to the forum.') , $user_id , $card->name) ));
-                            // Found one or more (in case of brothers) corresponding Statesmen : put the Family under them
-                            // Case 1 : only one Statesman
-                            } elseif (count($possibleStatemen)==1) {
-                                $possibleStatemen[0]['senator']->controls->putOnTop($card) ;
-                                array_push($messages , array( sprintf(_('{%s} has %s so the family joins him.') , $possibleStatemen[0]['party']->user_id , $possibleStatemen[0]['senator']->name) ));
-                            // Case 2 : brothers are in play
-                            } else {
-                                // Sorts the possibleStatemen in SenatorID order, so 'xxA' is before 'xxB'
-                                // This is only relevant to brothers
-                                usort ($possibleStatemen, function($a, $b) {
-                                    return strcmp($a['senator']->senatorID , $b['senator']->senatorID);
-                                });
-                                $possibleStatemen[0]['senator']->controls->putOnTop($card) ;
-                                array_push($messages , array( sprintf(_('{%s} has %s (who has the letter "A" and takes precedence over his brother) so the family joins him.') , $possibleStatemen[0]['party']->user_id , $possibleStatemen[0]['senator']->name) ));
-                            }
-                        } else {
-                            // Card goes to forum
-                            // TO DO : Wars and Leaders don't go to forum
-                            /*
-                             * A War card (card A) is drawn :
-                             * - If a matching war (card B) is already active, card A is placed in the imminent wars
-                             * - If a matching war (card B) is inactive, card A is placed in the imminent wars and card B becomes active.
-                             * - If no matching war is in place, the active/inactive icon on card A determines if it is active or inactive.
-                             * - If there is a leader (card C) in the curia who matches card A, card C is placed with card A which is now active if it wasn't. However, if card A was imminent, it stays imminent.
-                             * 
-                             * A Leader (card D) is drawn :
-                             * - If a matching war (card E) is already in play, active or inactive, card D is placed with card E which is now active if it wasn't.
-                             * - If no matching war is in play, card D is placed in the curia.
-                             */
-                            if ($card->type == 'Conflict') {
-                                $matchedConflicts = $this->getNumberOfMatchedConflicts($card) ;
-                                // There is a matched active conflict : War goes to imminent deck
-                                if ($matchedConflicts !== FALSE) {
-                                    $this->imminentWars->putOnTop($card) ;
-                                } else {
-                                    $matchedInactiveWar = $this->getSpecificCard('matches', $card->matches) ;
-                                    // There is a matched inactive war.
-                                    if ($matchedInactiveWar!==FALSE && $matchedInactiveWar['where'] == 'inactiveWars') {
-                                        //TO DO
-                                    }
-                                }
-                            } else {
-                                $this->forum->putOnTop($card) ;
-                                array_push($messages , array(sprintf(_('{%s} draws %s that goes to the forum.') , $user_id , $card->name)));
                             }
                         }
+                        // No corresponding statesman : Family goes to the Forum
+                        if (count($possibleStatemen)==0) {
+                            $this->forum->putOnTop($card) ;
+                            array_push($messages , array( sprintf(_('{%s} draws %s that goes to the forum.') , $user_id , $card->name) ));
+                        // Found one or more (in case of brothers) corresponding Statesmen : put the Family under them
+                        // Case 1 : only one Statesman
+                        } elseif (count($possibleStatemen)==1) {
+                            $possibleStatemen[0]['senator']->controls->putOnTop($card) ;
+                            array_push($messages , array( sprintf(_('{%s} has %s so the family joins him.') , $possibleStatemen[0]['party']->user_id , $possibleStatemen[0]['senator']->name) ));
+                        // Case 2 : brothers are in play
+                        } else {
+                            // Sorts the possibleStatemen in SenatorID order, so 'xxA' is before 'xxB'
+                            // This is only relevant to brothers
+                            usort ($possibleStatemen, function($a, $b) {
+                                return strcmp($a['senator']->senatorID , $b['senator']->senatorID);
+                            });
+                            $possibleStatemen[0]['senator']->controls->putOnTop($card) ;
+                            array_push($messages , array( sprintf(_('{%s} has %s (who has the letter "A" and takes precedence over his brother) so the family joins him.') , $possibleStatemen[0]['party']->user_id , $possibleStatemen[0]['senator']->name) ));
+                        }
+                    // Card goes to forum
+                    /*
+                     * A War card (card A) is drawn :
+                     * - If a matching war (card B) is already active, card A is placed in the imminent wars
+                     * - If a matching war (card B) is inactive, card A is placed in the imminent wars and card B becomes active.
+                     * - If no matching war is in place, the active/inactive icon on card A determines if it is active or inactive.
+                     * - If there is a leader (card C) in the curia who matches card A, card C is placed with card A which is now active if it wasn't. However, if card A was imminent, it stays imminent.
+                     * 
+                     * A Leader (card D) is drawn :
+                     * - If a matching war (card E) is already in play, active or inactive, card D is placed with card E which is now active if it wasn't.
+                     * - If no matching war is in play, card D is placed in the curia.
+                     */
+                    /*
+                     * A Conflict is drawn
+                     */
+                    } elseif ($card->type == 'Conflict') {
+                        $matchedConflicts = $this->getNumberOfMatchedConflicts($card) ;
+                        /*
+                         *  There is a matched active conflict : War goes to imminent deck
+                         */
+                        if ($matchedConflicts !== FALSE) {
+                            $this->imminentWars->putOnTop($card) ;
+                            array_push($messages , array(sprintf(_('{%s} draws %s, there is %d matched conflicts, the card goes to the imminent deck.') , $user_id , $card->name , $matchedConflicts)));
+                        } else {
+                            $matchedInactiveWar = $this->getSpecificCard('matches', $card->matches) ;
+                            /*
+                             *  There is a matched inactive war.
+                             */
+                            if ($matchedInactiveWar!==FALSE && $matchedInactiveWar['where'] == 'inactiveWars') {
+                                $cardPicked = $this->inactiveWars->drawCardWithValue('id' , $matchedInactiveWar['card']->id);
+                                $this->activeWars->putOnTop($cardPicked) ;
+                                $this->imminentWars->putOnTop($card) ;
+                                array_push($messages , array(sprintf(_('{%s} draws %s, the card goes to the imminent deck and the inactive card %s is now active.') , $user_id , $card->name , $cardPicked->name)));
+                            /*
+                             *  The active/inactive icon determines where the card goes
+                             */
+                            } elseif ($card->active) {
+                                $this->activeWars->putOnTop($card) ;
+                                array_push($messages , array(sprintf(_('{%s} draws %s, there are no matched conflicts, so based on the card\'s icon, the war is now active.') , $user_id , $card->name)));
+                            } else {
+                                $this->inactiveWars->putOnTop($card) ;
+                                array_push($messages , array(sprintf(_('{%s} draws %s, there are no matched conflicts, so based on the card\'s icon, the war is inactive.') , $user_id , $card->name)));
+                            }
+                        }
+                        // TO DO : check matched leader in curia
+                    /*
+                    * A Leader is drawn
+                    */
+                    } elseif ($card->type == 'Leader') {
+                        $matchedWar = $this->getSpecificCard('matches', $card->matches) ;
+                        // There is no matching conflict, the leader goes to the Curia
+                        if ($matchedWar===FALSE) {
+                            $this->curia->putOnTop($card) ;
+                            array_push($messages , array(sprintf(_('{%s} draws %s, without a matched conflicts, the card goes to the Curia.') , $user_id , $card->name)));
+                        // There is a matching conflict.
+                        } else {
+                            $matchedWar->leaders->putOnTop($card) ;
+                            // TO DO : message
+                            // TO DO : activate the war if it was not
+                        }
+                    /*
+                    * Another type of card is drawn
+                    */
+                    } else {
+                        $this->forum->putOnTop($card) ;
+                        array_push($messages , array(sprintf(_('{%s} draws %s that goes to the forum.') , $user_id , $card->name)));
                     }
                 } else {
                     array_push($messages , array(_('There is no more cards in the deck.'),'alert'));
