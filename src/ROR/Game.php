@@ -3340,6 +3340,10 @@ class Game
             array_push($messages , array(sprintf(_('The Censor {%s} accuses %s, appointing %s as prosecutor. Reason : %s') , $user_id , $this->getSenatorFullName($parameters[0]) , $this->getSenatorFullName($parameters[2]) , $reasonText )) );
             array_push($this->proposals , $proposal) ;
         
+        // Governorships
+        } elseif ($type=='Governors') {
+            // TO DO : governors proposal
+            
         // TO DO : 15 other types of proposals... 
         } else {
             return array(array(_('Error with proposal type.') , 'error' , $user_id)) ;
@@ -3423,40 +3427,72 @@ class Game
                     return strcmp($a, $b);
                 });
                 if ($parameters[0] == $parameters[1]) {
-                    return 'This is a pair of one. Please stop drinking.';
+                    return _('This is a pair of one. Please stop drinking.');
                 }
                 foreach ($this->proposals as $proposal) {
                     if ($proposal->type=='Consuls' && $proposal->outcome==FALSE && $proposal->parameters[0]==$parameters[0] && $proposal->parameters[1]==$parameters[1]) {
-                        return 'This pair has already been rejected';
+                        return _('This pair has already been rejected');
                     }
                 }
                 return TRUE ;
             case 'inRome' :
-                return ( $this->getSenatorWithID($parameters[$index])->inRome() ? TRUE : 'Senator is not in Rome.' ) ;
+                return ( $this->getSenatorWithID($parameters[$index])->inRome() ? TRUE : _('Senator is not in Rome.') ) ;
             case 'office' :
                 $senator = $this->getSenatorWithID($parameters[$index]) ;
                 if (!in_array('Tradition Erodes' , $this->laws)) {
                     if ( ($senator->office == 'Dictator') || ($senator->office == 'Rome Consul') || ($senator->office == 'Field Consul') ) {
-                        return 'Before the \'Tradition Erodes\' law is in place, Senators cannot be proposed if they are already Dictator or Consul.';
+                        return _('Before the \'Tradition Erodes\' law is in place, Senators cannot be proposed if they are already Dictator or Consul.');
                     }
                 }
-                return ( ($senator->office == 'Pontifex Maximus') ? 'The Pontifex Maximus cannot be proposed.' : TRUE ) ;
+                return ( ($senator->office == 'Pontifex Maximus') ? _('The Pontifex Maximus cannot be proposed.') : TRUE ) ;
             case 'censorRejected' :
                 foreach ($this->proposals as $proposal) {
                     if ($proposal->type=='Censor' && $proposal->outcome==FALSE && $proposal->parameters[0]==$parameters[0]) {
-                        return 'Proposing this Senator as Censor has already been rejected';
+                        return _('Proposing this Senator as Censor has already been rejected');
                     }
                 }
                 return TRUE ;
             case 'cantProsecuteSelf' :
-                return ($parameters[0]==$parameters[2] ? 'A Senator cannot prosecute himself' : TRUE) ;
+                return ($parameters[0]==$parameters[2] ? _('A Senator cannot prosecute himself') : TRUE) ;
             case 'censorCantBeProsecutor' :
                 $senator = $this->getSenatorWithID($parameters[2]) ;
-                return ($senator->office=='Censor' ? 'The Censor cannot be prosecutor' : TRUE) ;
+                return ($senator->office=='Censor' ? _('The Censor cannot be prosecutor') : TRUE) ;
             case 'prosecutionRejected' :
                 foreach ($this->proposals as $proposal) {
                     if ($proposal->type=='Prosecutions' && $proposal->outcome==FALSE && $proposal->parameters[0]==$parameters[0] && $proposal->parameters[1]==$parameters[1]) {
-                        return 'This prosecution has already been rejected';
+                        return _('This prosecution has already been rejected');
+                    }
+                }
+                return TRUE ;
+            case 'possibleGovernors' :
+                // Make a list of all possible governors
+                $possibleGovernorsRaw = $this->senate_getListAvailableGovernors() ;
+                $possibleGovernorsList = array() ;
+                foreach($possibleGovernorsRaw as $item) {
+                    array_push($possibleGovernorsList , $item['senatorID']) ;
+                }
+                // Check if parameters 0 modulo 3 are in the list
+                foreach ($parameters as $key=>$parameter) {
+                    if ( ($key % 3) == 0 ) {
+                        if (!in_array($parameter , $possibleGovernorsList)) {
+                            return sprintf(_('%s cannot be a governor.') , $this->getSenatorWithID($parameter)->name ) ;
+                        }
+                    }
+                }
+                return TRUE ;
+            case 'possibleProvinces' :
+                // Make a list of all possible provinces
+                $possibleProvincesRaw = $this->senate_getListAvailableProvinces() ;
+                $possibleProvincesList = array() ;
+                foreach ($possibleProvincesRaw as $item) {
+                    array_push($possibleProvincesList , $item['province_id']);
+                }
+                // Check if parameters 2 modulo 3 are in the list
+                foreach ($parameters as $key=>$parameter) {
+                    if ( ($key % 3) == 2 ) {
+                        if (!in_array($parameter , $possibleProvincesList)) {
+                            return _('Unknown province.') ;
+                        }
                     }
                 }
                 return TRUE ;
@@ -4468,10 +4504,6 @@ class Game
      */
     public function senate_getListAvailableProvinces() {
         $result = array() ;
-        // TO DO : remove this - for testing purpose
-        array_push($result , array ('province_name' => 'SICILIA' , 'province_id' => 160 , 'senator_name' => 'CORNELIUS' , 'senator_id' => 1 , 'user_id' => 13 ));
-        array_push($result , array ('province_name' => 'SARDINIA & CORSICA' , 'province_id' => 161 , 'senator_name' => 'FABIUS' , 'senator_id' => 2 , 'user_id' => 13 ));
-        array_push($result , array ('province_name' => 'HISPANIA CITERIOR' , 'province_id' => 162 , 'senator_name' => NULL , 'senator_id' => NULL , 'user_id' => NULL ));
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 foreach ($senator->controls->cards as $card) {

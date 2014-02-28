@@ -43,6 +43,7 @@ class Proposal {
      * @return type
      */
     public function init ($type , $proposedBy , $description , $parties , $parameters , $votingOrder) {
+        
         //type
         $key = array_search($type, self::$VALID_PROPOSAL_TYPES) ;
         if ($key===FALSE) {
@@ -58,6 +59,7 @@ class Proposal {
                 return array(_('Minor proposals must have a valid description.') , 'error') ;
             }
         } else {
+            
             // Default descriptions
             $this->description = self::$DEFAULT_PROPOSAL_DESCRIPTION[$key] ;
         }
@@ -76,17 +78,19 @@ class Proposal {
         $this->votingOrder = $votingOrder ;
         $this->outcome = NULL ;
         $this->proposedBy = $proposedBy ;
-        /**
-         * Check number of parameters
-         */
+
+        // Check number of parameters. FALSE means a variable number
         $nbParameters = $this->nbOfParameters() ;
-        if ($nbParameters['given']!=count($parameters)) {
+        if ($nbParameters!==FALSE && $nbParameters['given']!=count($parameters)) {
             return array(sprintf(_('Received %d parameters, expected %d.') , count($parameters) , $nbParameters) , 'error') ;
         }
         $this->parameters = $parameters ;
+
         // Set all remaining parameters to NULL
-        for ($i=$nbParameters['given'];$i<$nbParameters['total'];$i++) {
-            $this->parameters[$i] = NULL ;
+        if ($nbParameters!==FALSE) {
+            for ($i=$nbParameters['given'];$i<$nbParameters['total'];$i++) {
+                $this->parameters[$i] = NULL ;
+            }
         }
 
         return TRUE;
@@ -166,6 +170,11 @@ class Proposal {
                 $result[2] = array('cantProsecuteSelf' , NULL) ;
                 $result[3] = array('censorCantBeProsecutor' , NULL) ;
                 $result[4] = array('prosecutionRejected' , NULL) ;
+                break ;
+            case 'Governors' :
+                $result[0] = array('possibleGovernors',NULL) ;
+                $result[1] = array('possibleProvinces',NULL) ;
+                break ;
         }
         return $result ;
     }
