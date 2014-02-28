@@ -81,12 +81,18 @@
             <input type="hidden" name="type" value="Governors">
             {% for detail in output['list']%}
                 Propose :
-                <select name="parameters[{{loop.index0 * 2}}]" style="width:400px;">
-                    <option>N/A</option>
-                    <option>John Doe</option>
+                <select name="parameters[{{loop.index0 * 3}}]" style="width:400px;">
+                    <option>No change</option>
+                    {% for possibleGovernor in output['possibleGovernors']%}
+                    <option value="{{possibleGovernor['senatorID']}}">
+                        {{possibleGovernor['name']}}
+                        {{possibleGovernor['user_id']=='forum' ? ' who is unaligned' : ''}}
+                        {{possibleGovernor['returning'] ? ' (returning)' : ''}}
+                    </option>
+                    {% endfor %}
                 </select>
                 as governor of :
-                <input type="text" name="parameters[{{loop.index0 * 2 + 1}}]" value="{{detail['province_id']}}">
+                <input type="hidden" name="parameters[{{loop.index0 * 3 + 2}}]" value="{{detail['province_id']}}">
                 {{detail['province_name']}}{{detail['senator_name']!=NULL ? ' (recall of ' ~ detail['senator_name'] ~ ')' : ' (currently vacant)'}}<br>
             {% endfor %}
             <br>

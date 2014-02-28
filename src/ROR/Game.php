@@ -3968,6 +3968,7 @@ class Game
                     $output['state'] = 'Proposal';
                     $output['type'] = 'Governors';
                     $output['list'] = $this->senate_getListAvailableProvinces();
+                    $output['possibleGovernors'] = $this->senate_getListAvailableGovernors();
                 // TO DO : All the rest...
                 } else {
                     $output['state'] = 'Error';
@@ -4495,19 +4496,22 @@ class Game
         return $result ;
     }
     
-    // TO DO : Now doing this function...
+    /**
+     * Returns an array of possible governors. The value 'user_id' is equal to 'forum' for non-aligned senators.
+     * @return array ('senatorID' , 'user_id' , 'returning')
+     */
     public function senate_getListAvailableGovernors() {
         $result = array() ;
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 if ($senator->inRome()) {
-                    array_push($result , array('senatorID' => $senator->senatorID , 'user_id' => $party->user_id , 'returning' => $senator->returningGovernor) ) ;
+                    array_push($result , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'returning' => $senator->returningGovernor) ) ;
                 }
             }
         }
         foreach ($this->forum->cards as $card) {
             if ( ($card->type=='Family' || $card->type=='Statesman') && ($card->inRome()) ) {
-                array_push($result , array('senatorID' => $card->senatorID , 'user_id' => 'forum' , 'returning' => $card->returningGovernor) ) ;
+                array_push($result , array('senatorID' => $card->senatorID , 'name' => $card->name , 'user_id' => 'forum' , 'returning' => $card->returningGovernor) ) ;
             }
         }
         return $result ;
