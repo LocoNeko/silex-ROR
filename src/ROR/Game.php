@@ -3295,13 +3295,25 @@ class Game
             $compressedParameter = explode(',' , $parameters[0]);
             $parameters[0] = $compressedParameter[0] ;
             $parameters[1] = $compressedParameter[1] ;
-        }
+        } 
+        
         foreach ($rules as $rule) {
             $validation = $this->senate_validateParameter($rule[0] , $parameters , $rule[1]) ;
             if ($validation !== TRUE) {
                 return array(array($validation , 'error' , $user_id)) ;
             }
         }
+
+        // For Governors, the 'SenatorAccepts' parameters are set to 'PENDING' if the proposed governor is a returning governor, and to 'NA' otherwise
+        if ($type=='Governors') {
+            foreach ($parameters as $key => $parameter) {
+                // This is the 'SenatorAccepts' parameter
+                if ($key % 3 == 1) {
+                    $parameters[$key] = ( $this->getSenatorWithID($parameters[$key-1])->returningGovernor ? 'PENDING' : 'NA' ) ;
+                }
+            }
+        }
+        
         /*
          * Create the proposal, return error if initialisation fails although this is unlikely
          * (can only be caused by description error, freak type error, etc...)
@@ -3894,6 +3906,12 @@ class Game
             $output['prosecutorID'] = $prosecutor -> senatorID ;
             $output['prosecutorParty'] = $this->getPartyOfSenator($prosecutor)->user_id ;
             $output['canDecide'] = ( $output['prosecutorParty'] == $user_id ) ;
+        // Governors : Returning governors agreeing to be nominated for governorships
+        } elseif($this->phase=='Senate' && $this->subPhase=='Governors' && $latestProposal->outcome===NULL && in_array('PENDING' , $latestProposal->parameters) && $this->senate_getReturningGovernorsCanChoose($latestProposal->parameters) ) {
+            $output['state'] = 'Decision' ;
+            $output['type'] = 'Governors' ;
+            $output['list'] = $this->senate_getListReturningGovernors($latestProposal->parameters , $user_id) ;
+            $output['canDecide'] = ( $output['list']!==FALSE ) ;
         /*
          *  TO DO - other decisions :
          * - Dictator appoints Master of horse
@@ -4144,7 +4162,7 @@ class Game
                     $this->proposals[count($this->proposals)-1]->parameters[3] = TRUE ;
                     array_push($messages , sprintf(_('%s accepts to be prosecutor.') , $prosecutor->name)) ;
                 } else {
-                    // Since this proposal was never actually put forward, simply destroy it
+                    // Since this proposal was never actually put forward, simply discard it
                     unset ($this->proposals[count($this->proposals)-1]) ;
                     return array(array(sprintf(_('The appointed prosecutor %s chickens out.') , $prosecutor->name)));
                 }
@@ -4152,7 +4170,29 @@ class Game
                 return array(array(_('You cannot take such a decision at this moment.')  , 'error' , $user_id));
             }
         /*
+         * Governors decision (returning governors agrreing to go again on the same turn)
+         */
+        } elseif ($this->phase=='Senate' && $this->subPhase=='Governors' && $latestProposal->outcome===NULL && $request['type']=='governors') {
+            if ($request['accept']=='YES') {
+                // Set all this user_id's SenatorAccepts to TRUE
+                foreach ($latestProposal->parameters as $key => $parameter) {
+                    if ($key % 3 == 0) {
+                        if ($this->getPartyOfSenatorWithID($parameter)->user_id == $user_id) {
+                            $latestProposal->parameters[$key+1] = TRUE ;
+                        }
+                    }
+                }
+                return array(array(sprintf(_('{%s} agrees that his return governor(s) go to a province again this turn.') , $user_id)));
+            } else {
+                // Since this proposal was never actually put forward, simply discard it
+                unset ($this->proposals[count($this->proposals)-1]) ;
+                return array(array(sprintf(_('{%s} doesn\'t want his return governor(s) to go to a province again this turn. The proposal is discarded.') , $user_id)));
+            }
+        /*
          * TO DO : Other decision types
+         * - Dictator appoints Master of horse
+         * - Accused calls Popular Appeal
+         * etc
          */
         } else {
             
@@ -4495,6 +4535,29 @@ class Game
     }
     
     /**
+     * This function sets the Senate subPhase to either 'Governors' or 'Other business' based on the situation<br>
+     * If there is at least one province in play (even with a governor, because a recall is possible),<br>
+     * set the phase to 'Governors', otherwise set it to 'Other business'<br>
+     * @param string $user_id Current user id
+     * @return array One message array (Not an arrray of array like many other functions)
+     */
+    public function senate_setSubPhaseAfterProsecutions($user_id) {
+        if ($this->phase=='Senate' && $this->subPhase=='Prosecutions') {
+            $listOfAvailableProvinces = $this->senate_getListAvailableProvinces() ;
+            if (count($listOfAvailableProvinces) >0) {
+                $message = array(_('Senate sub phase - Governorships') , 'alert');
+                $this->subPhase='Governors';
+            } else {
+                $message = array(_('Senate sub phase - Other business') , 'alert');
+                $this->subPhase='Other business';
+            }
+        } else {
+            $message = array(_('Error - This is not the prosecutions sub phase') , 'error' , $user_id);
+        }
+        return $message ;
+    }
+    
+    /**
      * Returns information on available provinces as an array of arrays<br>
      * 
      * Each element array is of the form : 'province_name' , 'province_id' , 'senator_name' , 'senator_id' , 'user_id'<br>
@@ -4550,28 +4613,52 @@ class Game
     }
     
     /**
-     * This function sets the Senate subPhase to either 'Governors' or 'Other business' based on the situation<br>
-     * If there is at least one province in play (even with a governor, because a recall is possible),<br>
-     * set the phase to 'Governors', otherwise set it to 'Other business'<br>
-     * @param string $user_id Current user id
-     * @return array One message array (Not an arrray of array like many other functions)
+     * This function returns TRUE if returning governors can choose not to go to a province
+     * @param array $parameters
+     * @return boolean
      */
-    public function senate_setSubPhaseAfterProsecutions($user_id) {
-        if ($this->phase=='Senate' && $this->subPhase=='Prosecutions') {
-            $listOfAvailableProvinces = $this->senate_getListAvailableProvinces() ;
-            if (count($listOfAvailableProvinces) >0) {
-                $message = array(_('Senate sub phase - Governorships') , 'alert');
-                $this->subPhase='Governors';
-            } else {
-                $message = array(_('Senate sub phase - Other business') , 'alert');
-                $this->subPhase='Other business';
+    public function senate_getReturningGovernorsCanChoose($parameters) {
+        // Step 1 : go through the proposal's parameters and check if there is any SenatorAccepts parameter equal to 'PENDING'
+        $dontBother = TRUE ;
+        foreach ($parameters as $key => $parameter) {
+            // This is the 'SenatorAccepts' parameter
+            if ($key % 3 == 1) {
+                if ($parameter==='PENDING') {
+                    $dontBother = FALSE ;
+                }
             }
-        } else {
-            $message = array(_('Error - This is not the prosecutions sub phase') , 'error' , $user_id);
         }
-        return $message ;
+        if ($dontBother) {
+            return FALSE ;
+        }
+        // Step 2 : If there is, check if there is only one possible Governor
+        $availableGovernors = $this->senate_getListAvailableGovernors() ;
+        return (count($availableGovernors) >1 ) ;
     }
     
+    /**
+     * Returns a list (string) of governors who are :<br>
+     * > part of the current governor proposal<br>
+     * > returning governors<br>
+     * > in user_id's party<br><br>
+     * or FALSE if the array is empty
+     * @param array $parameters The parameters array from the governors proposal
+     * @param string $user_id The user_id
+     * @return string|FALSE
+     */
+    public function senate_getListReturningGovernors($parameters , $user_id) {
+        $result = '' ;
+        foreach ($parameters as $key => $parameter) {
+            // This is the 'SenatorID' parameter
+            if ($key % 3 == 0) {
+                $senator = $this->getSenatorWithID($parameter) ;
+                if ($senator!==FALSE && $senator->returningGovernor && $this->getPartyOfSenator($senator) == $user_id) {
+                    $result.=$senator->name.', ';
+                }
+            }
+        }
+        return ( ($result == '') ? FALSE : substr($result , 0 , -2) ) ;
+    }
 
     
     /************************************************************

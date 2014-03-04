@@ -254,6 +254,20 @@ You cannot make a proposal at the moment
         {% else %}
             Waiting for the appointed prosecutor to decide if he accepts the appointment.
         {% endif %}
+    {% elseif output['type'] =='Governors'%}
+        {% if output['canDecide']%}
+            You have returning governor(s) ({{output['list']}}) in the current proposal. Do you agree for them to go govern a province again this turn ?<br>
+            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_decision'} ) }}">
+                <input type="hidden" name="type" id="type" value="governors">
+                <select name="accept">
+                    <option value="YES">YES</option>
+                    <option value="NO">NO</option>
+                </select><br>
+                <button type="submit" class="btn-danger">OK</button>
+            </form>
+        {% else %}
+            Waiting for returning governors to decide if they agree to go govern a province again this turn.
+        {% endif %}
     {% else %}
     {% endif %}
 
