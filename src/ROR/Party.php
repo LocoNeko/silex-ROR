@@ -27,6 +27,8 @@ class Party
     public $phase_done ;
     public $bid , $bidDone , $bidWith  ;
     public $freeTribunes ;
+    public $assassinationAttempt ;
+    public $assassinationTarget ;
     
     public function __construct() {
     }
@@ -37,7 +39,7 @@ class Party
         $this->user_name = (is_string($user_name) ? $user_name : '' );
         $this->hand = new Deck ;
         $this->hand->name = sprintf(_('%s \'s cards') , $this->name) ;
-        $this->senators = new Deck() ;
+        $this->senators = new Deck ;
         $this->senators->name = sprintf(_('%s \'s senators') , $this->name) ;
         $this->leader = NULL ;
         $this->treasury = 0 ;
@@ -46,6 +48,8 @@ class Party
         $this->bidDone = NULL ;
         $this->bidWith = NULL ;
         $this->freeTribunes = array() ;
+        $this->assassinationAttempt = FALSE ;
+        $this->assassinationTarget = FALSE ;
     }
     
     public function fullName() {

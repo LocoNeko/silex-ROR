@@ -2,6 +2,23 @@
 {% set output = content['game'].senate_view(user_id) %}
 
 {#
+    Give the opportunity to slaughter other senators
+#}
+
+{% if output['assassinate']!=FALSE and output['assassinate']|count > 0%}
+    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_assassination'} ) }}">
+    Assassinate
+        <select name="target" id="target">
+            {% for victim in output['assassinate']%}
+                <option value="{{victim['senatorID']}}">
+                    {{victim['name']}} ({{victim['party_name']}})
+                </option>
+            {% endfor %}
+        </select><br>
+        <button type="submit" class="btn-danger">DIE SWINE !</button>
+    </form>
+{% endif %}
+{#
     Make a Proposal
 #}
 {% if output['state']=='Proposal' %}

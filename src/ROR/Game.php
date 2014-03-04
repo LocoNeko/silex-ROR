@@ -3229,6 +3229,8 @@ class Game
         // Free tribunes per party, based on Senators inRome & specialAbility
         foreach ($this->party as $party) {
             unset($party->freeTribunes) ; $party->freeTribunes = array() ;
+            $party->assassinationAttempt = FALSE ;
+            $party->assassinationTarget = FALSE ;
             foreach ($party->senators->cards as $senator) {
                 if ($senator->inRome() && $senator->specialAbility!==NULL) {
                     $abilities = explode(',' , $senator->specialAbility) ;
@@ -3567,7 +3569,7 @@ class Game
                         array_push($messages , sprintf(_('{%s} vetoes the proposal %s') , $user_id , $vetoResult) );
                         $latestProposal->outcome=FALSE ;
                     } else {
-                        array_push($messages , _('Error when trying to veto the proposal.') );
+                        array_push($messages , _('Error when trying to veto the proposal.' , 'error') );
                     }
                 // Per senator vote : set the senator's ballot to the value given through POST & handle talents spent
                 } else {
@@ -3838,7 +3840,6 @@ class Game
         $output = array() ;
         /* TO DO : Check if the following 2 actions are available (they almost always are) :
          * - Assassination
-         * - Veto (tribune)
          */
         $latestProposal = $this->senate_getLatestProposal() ;
         /*
@@ -4027,6 +4028,14 @@ class Game
                 } else {
                     $output['state'] = 'Error';
                 }
+            }
+        }
+        // Finally, give the possibility to assassissassnate. Not possible if the state is 'Error' or 'Decision' (TO DO : confirm the latter)
+        if ($output['state']!='Error' && $output['state']!='Decision') {
+            if (!$this->party[$user_id]->assassinationAttempt) {
+                $output['assassinate'] = $this->senate_getListAssassinationTargets($user_id) ;
+            } else {
+                $output['assassinate'] = FALSE ;
             }
         }
         return $output ;
@@ -4367,6 +4376,11 @@ class Game
         return FALSE ;
     }
     
+    // TO DO
+    public function senate_assassination($user_id , $target) {
+        
+    }
+    
     /**
      * Returns a list of all possible consul pairs :
      * - Both in Rome
@@ -4453,6 +4467,26 @@ class Game
         } else {
             return FALSE ;
         }
+    }
+    
+    /**
+     * Returns an array of all the Senators that can be assassinated by $user_id, which means :<br>
+     * Not his own, not in a party that was already the target of an assassination this turn, in Rome.
+     * @param string $user_id The user_id of the would be assassin
+     * @return array Array of arrays ('senatorID' , 'name' , 'user_id' , 'party_name')
+     */
+    public function senate_getListAssassinationTargets($user_id) {
+        $result = array() ;
+        foreach ($this->party as $party) {
+            if ($party->user_id!=$user_id && $party->assassinationTarget===FALSE) {
+                foreach ($party->senators as $senator) {
+                    if ($senator->inRome()) {
+                        $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName());
+                    }
+                }
+            }
+        }
+        return $result ;
     }
     
     /**
