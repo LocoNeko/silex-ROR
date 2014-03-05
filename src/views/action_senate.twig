@@ -5,7 +5,7 @@
     Give the opportunity to slaughter other senators
 #}
 
-{% if output['assassinate']!=FALSE and output['assassinate']|count > 0%}
+{% if output['assassinate']!=FALSE and output['assassinate']|length > 0%}
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_assassination'} ) }}">
     Assassinate
         <select name="target" id="target">

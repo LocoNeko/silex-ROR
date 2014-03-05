@@ -4378,7 +4378,14 @@ class Game
     
     // TO DO
     public function senate_assassination($user_id , $target) {
-        
+        $messages = array() ;
+        if ($this->party[$user_id]->assassinationAttempt) {
+            return array(array(_('You can only make one assassination attempt per turn.' , 'error' , $user_id))) ;
+        }
+        if ($this->getPartyOfSenator($target)->assassinationTarget) {
+            return array(array(_('The party of your victim has already been targeted for assassination once this turn.' , 'error' , $user_id))) ;
+        }
+        return $messages ;
     }
     
     /**
