@@ -92,82 +92,71 @@
 </script>
 {% endblock %}
 
-{# The view controller #}
-{% set output = content['game'].forum_view(user_id) %}
-
 {#-----------------------------------------------------------------------------------------------------
                                  WE DON'T KNOW WHO HAS THE INITIATIVE :
                                            WE ARE BIDDING
 -----------------------------------------------------------------------------------------------------#}
 
-{# THIS USER IS THE CURRENT BIDDER #}
-{% if output['state'] == 'bidding' %}
-    Currently bidding for initiative number {{output['initiative']}}<br>
-    You are the current bidder<br>
-    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bid'} ) }}">
-    The highest bidder is : {{output['highestBidder']['message']}}<br>
-    You need to bid at least {{output['highestBidder']['bid']+1}}<br>
-    Pick a Senator to bid for initiative :<br>
-        <select id='senator' name='senator' onClick="updateBidAmount({{output['highestBidder']['bid']+1}});">
-        {%for senator in output['senatorList'] %}
-            <option value="{{senator['senatorID']}}|{{senator['treasury']}}">{{senator['name']}} ({{senator['treasury']}} T)</option>
-        {% endfor %}
-            <option value="NONE" selected>Don't bid</option>
-        </select><br>
-        {% if output['showAmount'] %}
-            <select id="amount" name="amount" style="width: 50px;">
-            </select>
+{% if content['game'].forum_whoseInitiative()==false %}
+Currently bidding for initiative number {{content['game'].initiative}}<br>
+
+    {# THIS USER IS THE CURRENT BIDDER #}
+    {% if content['game'].currentBidder == user_id %}
+You are the current bidder<br>
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bid'} ) }}">
+{% set highestBidder = content['game'].forum_highestBidder() %}
+{% set showAmount=FALSE %}
+The highest bidder is : {{highestBidder['message']}}<br>
+You need to bid at least {{highestBidder['bid']+1}}<br>
+Pick a Senator to bid for initiative :<br>
+    {# USER CAN ONLY PICK FROM SENATORS IN ROME WHO HAVE MORE MONEY THAN CURRENT HIGHEST BID #}
+    <select id='senator' name='senator' onClick="updateBidAmount({{highestBidder['bid']+1}});">
+    {%for senator in content['game'].party[user_id].senators.cards %}
+        {% if senator.inRome() and senator.treasury>highestBidder['bid'] %}
+            {% set showAmount=TRUE %}
+            <option value="{{senator.senatorID}}|{{senator.treasury}}">{{senator.name}} ({{senator.treasury}} T)</option>
         {% endif %}
-        <button type="submit" class="btn btn-info">OK</button>
-    </form>
-{% elseif output['state'] == 'Waiting for bidding' %}
-    Currently bidding for initiative number {{output['initiative']}}<br>
-    Waiting for {{output['currentBidderName']}} to bid<br>
-    
+    {% endfor %}
+            <option value="NONE" selected>Don't bid</option>
+    </select><br>
+    {% if showAmount %}
+        <select id="amount" name="amount" style="width: 50px;">
+        </select>
+    {% endif %}
+    <button type="submit" class="btn btn-info">OK</button>
+</form>
+    {# WAITING FOR CURRENT BIDDER #}
+    {% else %}
+Waiting for {{content['game'].party[content['game'].currentBidder].fullName()}} to bid<br>
+    {% endif %}
+
 {#-----------------------------------------------------------------------------------------------------
                                     WE KNOW WHO HAS THE INITIATIVE
 -----------------------------------------------------------------------------------------------------#}
 
 {% else %}
-    {{output['Initiative description']}}
+Initiative #{{content['game'].initiative}} ({{content['game'].party[content['game'].forum_whoseInitiative()].fullName()}})
     
-    {% if output['initiativeIsYours'] %}
+    {% if content['game'].forum_whoseInitiative()==user_id %}
     {# THIS USER HAS THE INITIATIVE - GO THROUGH ALL SUBPHASES #}
 - YOU HAVE THE INITIATIVE<br>
-    
+
 {#--------------------------------------------------- 
                ROLL FOR EVENTS
 ---------------------------------------------------#}
 
-        {% if output['subPhase']=='RollEvent' %}
-            Roll for Events :
-            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_rollEvent'} ) }}">
-                <button type="submit" class="btn btn-danger">ROLL</button>
-            </form>
+        {% if content['game'].subPhase=='RollEvent' %}
+Roll for Events :
+<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_rollEvent'} ) }}">
+    <button type="submit" class="btn btn-danger">ROLL</button>
+</form>
 
 {#--------------------------------------------------- 
                  PERSUASION
 ---------------------------------------------------#}
 
-        {% elseif output['subPhase']=='Persuasion' %}
-            Persuasion attempt :<br>
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        {% elseif content['game'].subPhase=='Persuasion' %}
+Persuasion attempt :<br>
 
             {# CHOOSE A TARGET, A PERSUADER, AMOUNT TO SPEND, CARDS TO PLAY OR NO PERSUASION#}
             {% if content['game'].persuasionTarget == NULL%}

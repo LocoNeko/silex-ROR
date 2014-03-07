@@ -1002,7 +1002,7 @@ class Game
      * $output['state'] (Mandatory) : gives the name of the current state to be rendered
      * $output['X'] : an array of values 
      * - X is the name of the component to be rendered
-     * - 'values' is the actual content : text for a text, list of options for select, etc...
+     * - 'values' is the actual content : variables, text, array of options for select, etc...
      * @param string $user_id
      * @return array $output
      */
@@ -1961,7 +1961,7 @@ class Game
      * $output['state'] (Mandatory) : gives the name of the current state to be rendered
      * $output['X'] : an array of values 
      * - X is the name of the component to be rendered
-     * - 'values' is the actual content : text for a text, list of options for select, etc...
+     * - 'values' is the actual content : variables, text, array of options for select, etc...
      * @param string $user_id
      * @return array $output
      */
@@ -3104,6 +3104,54 @@ class Game
         }
     }
     
+    /**
+     * forum_view returns all the data needed to render forum templates. The function returns an array $output :
+     * $output['state'] (Mandatory) : gives the name of the current state to be rendered
+     * $output['X'] : an array of values 
+     * - X is the name of the component to be rendered
+     * - 'values' is the actual content : variables, text, array of options for select, etc...
+     * @param string $user_id
+     * @return array $output
+     */
+    public function forum_view($user_id) {
+        $output = array () ;
+        
+        // We don't know who has the initiative : we are bidding
+        if ($this->forum_whoseInitiative() === FALSE) {
+            if ($this->currentBidder == $user_id) {
+                $output['state'] = 'bidding' ;
+                $output['initiative'] = $this->initiative ;
+                $output['highestBidder'] = $this->forum_highestBidder();
+                $output['senatorList'] = array() ;
+                $output['showAmount'] = FALSE ;
+                foreach ($this->party[$user_id]->senators->cards as $senator) {
+                    if ( $senator->inRome() && $senator->treasury>$output['highestBidder']['bid'] ) {
+                        array_push( $output['senatorList'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'treasury' => $senator->treasury) );
+                        $output['showAmount'] = TRUE ;
+                    }
+                }
+            } else {
+                $output['state'] = 'Waiting for bidding' ;
+                $output['currentBidderName'] = $this->party[$this->currentBidder]->fullName() ;
+            }
+            
+        // We know who has the initiative
+        } else {
+            $output['Initiative description'] = sprintf(_('Initiative %d (%s)') , $this->initiative , $this->party[$this->forum_whoseInitiative()]->fullName());
+            // This user has the initiative
+            if ($this->forum_whoseInitiative() == $user_id) {
+                $output['initiativeIsYours'] = TRUE ;
+                $output['subPhase'] = $this->subPhase ;
+
+            // This user does not have the initiative
+            } else {
+                $output['initiativeIsYours'] = FALSE ;
+            }
+            
+        }
+        return $output ;
+    }
+    
     /************************************************************
      * Functions for POPULATION phase
      ************************************************************/
@@ -3830,7 +3878,7 @@ class Game
      * - Vote : A vote on a proposal is underway
      * - Proposal : Make a proposal
      * - Proposal impossible : Unable to make a proposal
-     * - Agree : Need to agree on a voted proposal (e.g. Consuls decide who does what, Accusator agrees to prosecute, etc)
+     * - Decision : Need to decided on a proposal before/after vote (e.g. Consuls decide who does what, Accusator agrees to prosecute, etc)
      * - Error : A problem occured
      * $output[{other}] : values or array of values based on context
      * @param string $user_id
@@ -4030,7 +4078,7 @@ class Game
                 }
             }
         }
-        // Finally, give the possibility to assassissassnate. Not possible if the state is 'Error' or 'Decision' (TO DO : confirm the latter)
+        // Finally, give the possibility to assissassinasste. Not possible if the state is 'Error' or 'Decision' (TO DO : confirm the latter)
         if ($output['state']!='Error' && $output['state']!='Decision') {
             if (!$this->party[$user_id]->assassinationAttempt) {
                 $output['assassinate'] = $this->senate_getListAssassinationTargets($user_id) ;
