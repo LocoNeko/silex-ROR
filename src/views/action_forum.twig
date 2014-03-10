@@ -151,95 +151,87 @@
 
         {% elseif output['subPhase']=='Persuasion' %}
             Persuasion attempt :<br>
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-            {# CHOOSE A TARGET, A PERSUADER, AMOUNT TO SPEND, CARDS TO PLAY OR NO PERSUASION#}
-            {% if content['game'].persuasionTarget == NULL%}
-Choose your persuasion target :<br><br>
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
-USE :
-    <select id="persuader" name="persuader" onClick="updatePersuasionAmount() ; updateOdds();" style="width: 350px;">
-{% for senator in content['game'].forum_listPersuaders(user_id) %}
-        <option value="{{senator['senatorID']}}|{{senator['treasury']}}|{{senator['INF']}}|{{senator['ORA']}}">{{senator['name']}} - INF {{senator['INF']}} + ORA {{senator['ORA']}} = {{senator['INF']+senator['ORA']}}, Treasury = {{senator['treasury']}} </option>
-{% endfor %}
-    </select><br>
-TO PERSUADE :
-    <select id="target" name="target" onClick="updateOdds();" style="width: 350px;">
-{% for senator in content['game'].forum_listPersuasionTargets(user_id) %}
-        <option value="{{senator['senatorID']}}|{{senator['treasury']}}|{{senator['party']}}|{{senator['LOY']}}">{{senator['name']}} in {{senator['party'] == 'forum' ? 'forum' : content['game'].party[senator['party']].fullname()}} - LOY {{senator['LOY']}} , Treasury = {{senator['treasury']}} </option>
-{% endfor %}
-    </select><br>
-BY SPENDING :
-    <select id="amount" name="amount" onClick="updateOdds();" style="width: 50px;">
-    </select><br>
-{# Also show cards that can be used for persuasion #}
-{% set persuasionCards = content['game'].forum_listPersuasionCards(user_id) %}
-{% if persuasionCards|length > 0 %}
-USING CARD :
-    <select id="card" name="card" style="width: 200px;">
-        <option value="NONE">NONE</option>
-{% for card in persuasionCards %}
-        <option value="{{card.id}}">{{card.name}} </option>
-{% endfor %}
-    </select><br>
-{% else %}
-    <input type="hidden" id="card" name="card" VALUE="NONE">
-{% endif %}
-    <br><br>
-TARGET NUMBER :
-<input id="odds" type="text" readonly style="width: 150px;">
-<br><br>
-    <button type="submit" class="btn btn-info">PERSUADE</button>
-</form>
-
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_noPersuasion'} ) }}">
-    <button type="submit" class="btn btn-danger">NO PERSUASION THIS TURN</button>
-</form>
-
-            {# WAIT FOR COUNTER-BRIBE , INCREASE MONEY SPENT ,  OR ROLL WITH CURRENT ODDS#}
-            {% else %}
-
-                {# Yes, he is the current bidder, so must choose to roll or bid more #}
-                {% if content['game'].currentBidder==user_id %}
-    {% embed 'action_forumPersuasion.twig' %}
-    {% endembed %}
-        {% set persuasionListCurrent = content['game'].forum_persuasionListCurrent() %}
-Add to current bribe or roll with current odds :
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
-    <select id="amount" name="amount" style="width: 200px;" onClick="updateBribeRollButton();">
-        {% for x in 0..persuasionListCurrent['persuader']['treasury']%}
-            {% if x==0 %}
-                <option value='0' selected>0 (Roll with current odds)</option>
-            {% else %}
-                <option>{{x}}</option>
-            {% endif %}
-        {% endfor %}
-    </select>
-    <input type="submit" id="bribeButton" class="btn btn-danger" value="ROLL">
-</form>
-                {# He is not the current bidder, waiting for other to counter-bribe his attempt #}
+                {#
+                    CHOOSE A TARGET, A PERSUADER, AMOUNT TO SPEND, CARDS TO PLAY OR NO PERSUASION
+                #}
+                {% if output['targetKnown']===FALSE %}
+                    Choose your persuasion target :<br><br>
+                    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
+                        USE :
+                        <select id="persuader" name="persuader" onClick="updatePersuasionAmount() ; updateOdds();" style="width: 350px;">
+                            {% for senator in output['listPersuaders'] %}
+                                    <option value="{{senator['senatorID']}}|{{senator['treasury']}}|{{senator['INF']}}|{{senator['ORA']}}">{{senator['name']}} - INF {{senator['INF']}} + ORA {{senator['ORA']}} = {{senator['INF']+senator['ORA']}}, Treasury = {{senator['treasury']}} </option>
+                            {% endfor %}
+                        </select><br>
+                        TO PERSUADE :
+                        <select id="target" name="target" onClick="updateOdds();" style="width: 350px;">
+                            {% for senator in output['listTargets'] %}
+                                    <option value="{{senator['senatorID']}}|{{senator['treasury']}}|{{senator['party']}}|{{senator['LOY']}}">{{senator['name']}} in {{senator['party'] == 'forum' ? 'forum' : content['game'].party[senator['party']].fullname()}} - LOY {{senator['LOY']}} , Treasury = {{senator['treasury']}} </option>
+                            {% endfor %}
+                        </select><br>
+                        BY SPENDING :
+                        <select id="amount" name="amount" onClick="updateOdds();" style="width: 50px;">
+                        </select><br>
+                        {#
+                            Show cards that can be used for persuasion (if any)
+                        #}
+                        {% if output['listCards']|length > 0 %}
+                            USING CARD :
+                                <select id="card" name="card" style="width: 200px;">
+                                    <option value="NONE">NONE</option>
+                                        {% for card in output['listCards'] %}
+                                    <option value="{{card.id}}">{{card.name}} </option>
+                                        {% endfor %}
+                                </select><br>
+                        {% else %}
+                            <input type="hidden" id="card" name="card" VALUE="NONE">
+                        {% endif %}
+                            <br><br>
+                        TARGET NUMBER :
+                        <input id="odds" type="text" readonly style="width: 150px;">
+                        <br><br>
+                            <button type="submit" class="btn btn-info">PERSUADE</button>
+                    </form>
+                    {#
+                        No Persuasion
+                    #}
+                    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_noPersuasion'} ) }}">
+                        <button type="submit" class="btn btn-danger">NO PERSUASION THIS TURN</button>
+                    </form>
                 {% else %}
-Waiting for {{content['game'].party[content['game'].currentBidder].fullName()}} to decide on counter-bribes<br>
-    {% embed 'action_forumPersuasion.twig' %}
-    {% endembed %}
-                {% endif %}
-            {% endif %}
+                    {#
+                        The user is the current bidder, so must choose to roll or bid more
+                    #}
+                    {% if output['briber'] %}
+                        {% embed 'action_forumPersuasion.twig' %}
+                        {% endembed %}
+                        Add to current bribe or roll with current odds :
+                        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
+                            <select id="amount" name="amount" style="width: 200px;" onClick="updateBribeRollButton();">
+                                {% for x in 0..output['persuasionList']['persuader']['treasury']%}
+                                    {% if x==0 %}
+                                        <option value='0' selected>0 (Roll with current odds)</option>
+                                    {% else %}
+                                        <option>{{x}}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <input type="submit" id="bribeButton" class="btn btn-danger" value="ROLL">
+                        </form>
+                    {#
+                        The user is not the current bidder, waiting for other to counter-bribe his attempt
+                    #}
+                    {% else %}
+                        Waiting for {{output['briberFullName']}} to decide on counter-bribes<br>
+                            {% embed 'action_forumPersuasion.twig' %}
+                            {% endembed %}
+                    {% endif %}
+                    
+    
+
+
+
+ 
 
 {#--------------------------------------------------- 
                        KNIGHTS

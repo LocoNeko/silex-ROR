@@ -3142,7 +3142,27 @@ class Game
             if ($this->forum_whoseInitiative() == $user_id) {
                 $output['initiativeIsYours'] = TRUE ;
                 $output['subPhase'] = $this->subPhase ;
-
+                // Persuasion
+                if ($output['subPhase'] == 'Persuasion' ) {
+                    // We don't know the target
+                    if ($this->persuasionTarget === NULL) {
+                        $output['targetKnown'] = FALSE ;
+                        $output['listPersuaders'] = $this->forum_listPersuaders($user_id) ;
+                        $output['listTargets'] = $this->forum_listPersuasionTargets($user_id) ;
+                        $output['listCards'] = $this->forum_listPersuasionCards($user_id) ;
+                    // We know the target
+                    } else {
+                        $output['targetKnown'] = TRUE;
+                        // this user has the initiative, therefore he must choose to roll or bid more
+                        if ($this->currentBidder == $user_id) {
+                            $output['briber'] = TRUE;
+                            $output['persuasionList'] = $this->forum_persuasionListCurrent() ;
+                        } else {
+                            $output['briber'] = FALSE;
+                            $output['briberFullName'] = $this->party[$this->currentBidder].fullName() ;
+                        }
+                    }
+                }
             // This user does not have the initiative
             } else {
                 $output['initiativeIsYours'] = FALSE ;
