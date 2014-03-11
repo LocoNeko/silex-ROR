@@ -7,9 +7,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Silex-ROR\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-01-09 16:30+0900\n"
-"PO-Revision-Date: 2014-01-09 16:32+0900\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"POT-Creation-Date: 2014-03-11 12:57+0900\n"
+"PO-Revision-Date: 2014-03-11 12:57+0900\n"
+"Last-Translator: LocoNeko <loconeko73@gmail.com>\n"
 "Language-Team: The silex ROR team of 1 <loconeko73@gmail.com>\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -19,6 +19,11 @@ msgstr ""
 "X-Poedit-SourceCharset: UTF-8\n"
 "X-Poedit-Basepath: .\n"
 "X-Poedit-SearchPath-0: ../../../../src/ROR\n"
+"X-Poedit-SearchPath-1: ../../../../src/views\n"
+
+#: ../../../../src/ROR/Deck.php:78
+msgid "Could not open the file"
+msgstr ""
 
 #: ../../../../src/ROR/RORControllerProvider.php:47
 msgid "You have joined this game"
@@ -46,76 +51,1693 @@ msgstr ""
 msgid "There was an error. Game %s was not created."
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:136
+#: ../../../../src/ROR/RORControllerProvider.php:138
 msgid "Game loaded"
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:154
+#: ../../../../src/ROR/RORControllerProvider.php:156
 msgid "Game deleted"
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:203
+#: ../../../../src/ROR/RORControllerProvider.php:205
 msgid "This game is full"
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:208
+#: ../../../../src/ROR/RORControllerProvider.php:210
 msgid "You have already joined this game."
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:261
+#: ../../../../src/ROR/RORControllerProvider.php:271
 msgid "The game can't start with less than 3 players."
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:266
+#: ../../../../src/ROR/RORControllerProvider.php:276
 #, php-format
 msgid "The game can't start as party name of %s cannot be blank."
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:272
+#: ../../../../src/ROR/RORControllerProvider.php:282
 msgid "The game can't start as the scenario is invalid."
 msgstr ""
 
-#: ../../../../src/ROR/RORControllerProvider.php:276
+#: ../../../../src/ROR/RORControllerProvider.php:286
 msgid "The game can't start as the game status is invalid."
 msgstr ""
 
-#: ../../../../src/ROR/Game.php:146
+#: ../../../../src/ROR/Senator.php:75
+#, php-format
+msgid "%s 'cards"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:96
+#, php-format
+msgid "The %s variant wasn't recognised and has been removed"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:155
 msgid "Rome starts with 4 Legions"
 msgstr ""
 
-#: ../../../../src/ROR/Game.php:163
+#: ../../../../src/ROR/Game.php:172
 msgid "SETUP PHASE"
 msgstr ""
 
-#: ../../../../src/ROR/Game.php:164
+#: ../../../../src/ROR/Game.php:173
 msgid "The First Punic war is now an inactive war"
 msgstr ""
 
-#: ../../../../src/ROR/Game.php:182
+#: ../../../../src/ROR/Game.php:192
 #, php-format
 msgid "{%s} receives senator %s"
 msgstr ""
 
-#: ../../../../src/ROR/Game.php:207
+#: ../../../../src/ROR/Game.php:217
 #, php-format
 msgid "{%s} receives 3 cards"
 msgstr ""
 
-#: ../../../../src/ROR/Proposal.php:43
+#: ../../../../src/ROR/Game.php:239
+#, php-format
+msgid "%s ({%s}) becomes temporary Rome consul"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:253
+msgid "Could not open the events file"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:261
+msgid "Could not open the event table file"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:281
+msgid "Could not open the Population table file"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:300
+msgid "Could not open the Appeal table file"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:313
+msgid "Could not open the Land Bills table file"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:584
+msgid "ERROR"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:591
+#, php-format
+msgid "The Family is already in party %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:593
+msgid "You have the family"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:599
+#, php-format
+msgid "The related statesman %s is already in play."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:602
+#, php-format
+msgid "%s playable, but the other brother %s is in play."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:609
+msgid "The corresponding family card is in the forum"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:612
+msgid "The corresponding family card is not in play"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:650
+#, php-format
+msgid "Skipping {%s} : not enough talents to bid."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:661
+#, php-format
+msgid "Skipping {%s} : no talents in the party treasury to counter-bribe."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:955
+#, php-format
+msgid " %s is the new leader of party %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:958
+msgid "Undocumented error - party leader not set."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1076
+msgid "Setup phase is finished. Starting Mortality phase."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1078
+msgid "MORTALITY PHASE"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1082
+msgid "There is no imminent conflict to activate."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1096
+#, php-format
+msgid "Imminent conflict %s has been activated."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1114 ../../../../src/ROR/Game.php:3788
+#, php-format
+msgid "Chit drawn : %s. %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1116 ../../../../src/ROR/Game.php:3293
+#: ../../../../src/ROR/Game.php:3791
+#, php-format
+msgid "Chit drawn : %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1119
+msgid "Mortality phase is finished. Starting revenue phase."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1121
+msgid "REVENUE PHASE"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1191
+msgid "This senator is not in Play, nobody dies."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1196
+msgid " The two brothers are in play. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1207
+msgid "ERROR retrieving the party of the dead Senator"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1214
+#, php-format
+msgid "%s of party {%s} dies. The card is discarded. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1219
+#, php-format
+msgid ""
+"%s of party {%s} dies. This senator was party leader, the family stays in "
+"the party. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1223
+#, php-format
+msgid "%s of party {%s} dies. The family goes to the curia. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1231 ../../../../src/ROR/Game.php:1241
+#, php-format
+msgid "%s goes to the curia. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1234
+#, php-format
+msgid "%s goes to the forum. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1238
+#, php-format
+msgid "%s stays in the party. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1244
+msgid ""
+"Error - A card controlled by the dead Senator was neither a Family, a "
+"Concession nor a Province."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1310
+#, php-format
+msgid ""
+"Province %s is attacked by %s Barabarian raids. Military force is %d "
+"(written force) + %d (for %d legions) + %d (%s's MIL), a %d (white die %d, "
+"black die %d) is rolled for a total of %d "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1314
+#, php-format
+msgid " which is greater than %d, the province is safe."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1318
+#, php-format
+msgid " which is not greater than %d, the province is overrun."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1322
+msgid "The Province reverts to undeveloped status"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1325
+#, php-format
+msgid "The black die was a %d, so %d mortality chits are drawn : "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1334
+msgid "captured"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1334
+msgid "killed"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1342
+#, php-format
+msgid "%s is killed by the barbaric barbarians."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1346
+#, php-format
+msgid ""
+"%s is captured by the barbaric barbarians. Ransom must be paid before next "
+"Forum phase or he's BBQ."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1349
+#, php-format
+msgid "%s is safe."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1366
+#, php-format
+msgid ""
+"Province %s faces internal disorder, %s rolls a %d + %d garrisons for a "
+"total of %d"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1368
+#, php-format
+msgid ""
+" which is greater than %d. The province will not generate revenue and cannot "
+"be improved this turn."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1373
+#, php-format
+msgid " which is not greater than %d"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1378
+msgid " with all "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1378
+msgid " garrisons, "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1378
+#, php-format
+msgid "%s is killed %s and %s becomes an active war"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1483
+#, php-format
+msgid ""
+"This includes an extra %dT from %s, earned by %s during the drought, causing "
+"him a loss a %d POP."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1485
+#, php-format
+msgid " %s decided not to earn more from %s during the drought."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1492
+#, php-format
+msgid ""
+"{%s} gains %dT : %dT from leader, %dT from senators, %dT from knights and "
+"%dT from Concessions."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1503
+msgid "Undefined province."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1512
+#, php-format
+msgid "%s takes provincial spoils for %dT."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1518
+msgid " He decides to let the negative amount be paid by Rome. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1523
+msgid " He has to let the negative amount be paid by Rome. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1527
+msgid " He decides to pay the negative amount. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1532
+msgid " He is now corrupt."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1535
+#, php-format
+msgid "%s doesn't take Provincial spoils."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1542
+#, php-format
+msgid " A %d is rolled%s, the province is developed. %s gains 3 INFLUENCE."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1542
+msgid " (modified by +1 since the governor is not corrupt)"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1546
+#, php-format
+msgid " A %d is rolled%s, the province is not developed."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1546
+msgid " (modified by +1 since senator is not corrupt)"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1550
+#, php-format
+msgid ""
+"%s was overrun by Barbarians and/or internal disorder. No revenue nor "
+"development this turn."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1566
+msgid "All revenues collected, parties can now redistribute money."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1593
+#, php-format
+msgid "Rebel legion maintenance error - Legion %s is not commanded by %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1600
+#, php-format
+msgid "The party pays 2T for the maintenance of %s' rebel legion %s."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1602
+#, php-format
+msgid ""
+"The party cannot pay for the maintenance of %s' rebel legion %s, it is "
+"released."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1609
+#, php-format
+msgid "%s pays 2T for the maintenance of rebel legion %s."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1611
+#, php-format
+msgid ""
+"%s cannot pay for the maintenance of his rebel legion %s, it is released."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1616
+#, php-format
+msgid "%s is loyal to %s, no maintenance required."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1620
+#, php-format
+msgid "Legion %s isreleased."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1682
+msgid "You have no talent. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1683
+msgid "Giving from wrong Senator"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1684
+msgid "Giving to wrong Senator"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1685
+msgid "Giving from wrong Party"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1686
+msgid "Giving to wrong Party"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1687 ../../../../src/ROR/Game.php:2173
+msgid "Not enough money"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1688
+msgid "Stop drinking"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1695
+#, php-format
+msgid "%s gives %dT to %s."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1695
+msgid "The party "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1695
+msgid "Party treasury. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1696
+#, php-format
+msgid "{%s} moves some money around"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1699
+#, php-format
+msgid "%s give %dT to %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1702
+msgid "Undocumented Redistribution error"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1719
+#, php-format
+msgid "{%s} has finished redistributing wealth."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1739
+#, php-format
+msgid ""
+"The HRAO disbanded %d and maintained %d (for a cost of %dT) of the legions "
+"released by rebels."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1743
+msgid "The redistribution sub phase is finished."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1744
+msgid "State revenues."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1747
+msgid "Rome collects 100 T."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1763 ../../../../src/ROR/Game.php:1775
+#, php-format
+msgid "%s : Rome's revenue is %dT . "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1781
+msgid "The state revenue sub phase is finished."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1782
+msgid "Contributions."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1822
+msgid "This senator doesn't have enough money"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1824
+msgid "Wrong amount"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1830
+#, php-format
+msgid "%s gives %dT to Rome"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1830
+#, php-format
+msgid " He gains %d influence."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1833
+msgid "Error retrieving Senator"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1853
+#, php-format
+msgid "{%s} has finished contributions to Rome."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1870
+#, php-format
+msgid "Rome pays %dT for %d active Conflicts : "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1876
+#, php-format
+msgid ""
+"Rome pays %dT for land bills (I , II & III): %dT for %d (I) which are then "
+"discarded, %dT for (II) and %dT for (III)."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1886
+#, php-format
+msgid "Rome pays %dT for the maintenance of %d legions and %d fleets. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1897
+#, php-format
+msgid "%s returns from %s which is placed in the Forum."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1902
+#, php-format
+msgid "%s spends %s game turn in %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1902 ../../../../src/ROR/Game.php:1921
+msgid "First"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1902 ../../../../src/ROR/Game.php:1921
+msgid "Second"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1916
+#, php-format
+msgid "%s (unaligned) returns from %s which is placed in the Forum."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1921
+#, php-format
+msgid "%s (unaligned) spends %s game turn in %s."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1928
+#, php-format
+msgid "Revenue phase is finished. Rome now has %dT. Starting Forum phase."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1931
+msgid "FORUM PHASE"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1937
+#, php-format
+msgid "Event %s is removed."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1946
+#, php-format
+msgid "The barbarians slaughter %s, whose ransom was not paid by {%s}"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1953
+msgid "Initiative #1"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1988
+#, php-format
+msgid "Revenue collected from %d senators : %dT."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1988
+msgid ""
+"Currently no Senators in the party : no revenue collected from senators."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1989
+#, php-format
+msgid "Revenue collected from Leader %s : 3T."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1989
+msgid "Currently no leader : no revenue collected from leader."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1990
+#, php-format
+msgid "Revenue collected from %d knights : %dT."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1990
+msgid "Currently no knights : no revenue collected from knights."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1993
+msgid "There is a rebel in the faction"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:1998
+msgid "Revenue collected from concessions : "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2001
+#, php-format
+msgid "%dT from %s (%s)"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2004
+#, php-format
+msgid ""
+"Do you want %s to be a sick bastard and earn more money from %s because of "
+"the drought"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2008
+msgid "Currently no concessions : no revenue collected from concessions."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2010
+#, php-format
+msgid "Total base revenue : %d"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2014
+msgid "Revenue from Provincial spoils :"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2025
+msgid "Currently no provinces : no revenue collected from provinces."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2085
+#, php-format
+msgid " %s with a bid of %dT."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2090
+#, php-format
+msgid "The HRAO (%s) as all bets are 0."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2137
+#, php-format
+msgid "Skipping the HRAO ({%s}): not enough talents to bid."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2161
+#, php-format
+msgid "{%s} cannot or will not bid for this initiative."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2171
+#, php-format
+msgid "{%s} bids %dT with %s for this initiative."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2176 ../../../../src/ROR/Game.php:2807
+msgid "Wrong party"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2200
+#, php-format
+msgid " {%s} wins this initiative. %s spends %dT from his personal treasury."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2202
+#, php-format
+msgid " {%s} wins this initiative since he is the HRAO and no one bid."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2206
+msgid "Cannot bid as this initiative already belongs to another player"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2222
+msgid "Event roll Sub Phase"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2227
+#, php-format
+msgid "{%s} rolls a 7, then rolls a %d on the events table."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2233
+#, php-format
+msgid "{%s} rolls a %d and draws a card."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2239
+#, php-format
+msgid "{%s} draws a faction card and keeps it."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2240
+#, php-format
+msgid "You draw %s and put it in your hand."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2254 ../../../../src/ROR/Game.php:2355
+#, php-format
+msgid "{%s} draws %s that goes to the forum."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2259
+#, php-format
+msgid "{%s} has %s so the family joins him."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2268
+#, php-format
+msgid ""
+"{%s} has %s (who has the letter \"A\" and takes precedence over his brother) "
+"so the family joins him."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2293
+#, php-format
+msgid ""
+"{%s} draws %s, there is %d matched conflicts, the card goes to the imminent "
+"deck."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2303
+#, php-format
+msgid ""
+"{%s} draws %s, the card goes to the imminent deck and the inactive card %s "
+"is now active."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2309
+#, php-format
+msgid ""
+"{%s} draws %s, there are no matched conflicts, so based on the card's icon, "
+"the war is now active."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2312
+#, php-format
+msgid ""
+"{%s} draws %s, there are no matched conflicts, so based on the card's icon, "
+"the war is inactive."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2321
+#, php-format
+msgid "The leader %s is matched with %s, so moves from the Curia to the card."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2325 ../../../../src/ROR/Game.php:2346
+msgid " This activates the conflict."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2338
+#, php-format
+msgid "{%s} draws %s, without a matched conflicts, the card goes to the Curia."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2342
+#, php-format
+msgid "{%s} draws %s, which is placed on the matched conflict %s."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2358
+msgid "There is no more cards in the deck."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2363
+msgid "Persuasion Sub Phase"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2393
+#, php-format
+msgid "Event %s is now in play."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2397
+#, php-format
+msgid "Event %s is already in play at its maximum level (%d)."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2401
+#, php-format
+msgid "Event %s has its level increased to %s (level %d)."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2404
+msgid "Error retrieving event."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2497
+#, php-format
+msgid "{%s} doesn't try to persuade any senator during this initiative."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2499
+msgid "Wrong phase, subphase or player"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2584
+#, php-format
+msgid "%s ({%s}) attempts to persuade %s (%s)"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2584 ../../../../src/ROR/Game.php:2603
+msgid "forum"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2603
+#, php-format
+msgid "%s ({%s}) attempts to persuade %s (%s) using a %s card."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2606
+msgid "You do not have that card in hand."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2610 ../../../../src/ROR/Game.php:2804
+msgid "Amount error"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2613 ../../../../src/ROR/Game.php:2616
+msgid "Error - party mismatch"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2638
+#, php-format
+msgid ""
+"FAILURE - {%s} rolls an unmodified %d, which is greater than 9 and an "
+"automatic failure."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2645
+#, php-format
+msgid "FAILURE - {%s} rolls %d, which is greater than the target number of %d."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2651
+#, php-format
+msgid ""
+"SUCCESS - {%s} rolls %d, which is not greater than the target number of %d."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2655
+#, php-format
+msgid "%s leaves the forum and joins {%s}."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2659
+#, php-format
+msgid "%s leaves {%s} and joins {%s}."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2670
+#, php-format
+msgid "%s takes a total of %dT from bribes and counter-bribes."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2674
+msgid "Knights Sub Phase"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2681
+#, php-format
+msgid "%s bribes more."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2688
+msgid "The senator is too poor"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2695
+#, php-format
+msgid "{%s} doesn't spend money to counter-bribe."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2704
+#, php-format
+msgid "{%s} spends %dT from the party treasury to counter-bribe."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2711
+msgid "Error - not enough money in the party's treasury"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2716
+msgid "Error - this is not your turn to play"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2735
+#, php-format
+msgid "The %s card is discarded."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2742
+#, php-format
+msgid " The failure of the persuasion causes a loss of %d INF and %d POP to %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2747
+msgid "Cannot find this Card"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2750
+msgid "Cannot find this Senator"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2790
+#, php-format
+msgid ""
+"Attracting Knight : SUCCESS - %s ({%s}) spends %dT and rolls %d. The total "
+"is >= 6."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2792
+#, php-format
+msgid ""
+"Attracting Knight : FAILURE - %s ({%s}) spends %dT and rolls %d. The total "
+"is < 6."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2795 ../../../../src/ROR/Game.php:2857
+msgid "Sponsor Games Sub Phase"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2799 ../../../../src/ROR/Game.php:2860
+#, php-format
+msgid "{%s} has no senator who can sponsor games."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2801 ../../../../src/ROR/Game.php:2862
+#: ../../../../src/ROR/Game.php:2909
+msgid "Change Leader Sub Phase"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2810
+msgid "Error retrieving senator data"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2833
+#, php-format
+msgid "%s pressures %d knight%s. Rolls : "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2841
+#, php-format
+msgid ". Earns a total of %dT."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2845
+#, php-format
+msgid "Not enough knights for %s : ignored"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2849
+#, php-format
+msgid "Wrong party for %s : ignored"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2898
+msgid "Slice & Dice"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2898
+msgid "Blood Fest"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2898
+msgid "Gladiator Gala"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2907
+#, php-format
+msgid "%s organises %s, reducing the unrest by %d and gaining %d popularity."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2911
+#, php-format
+msgid "%s doesn't have enough money to sponsor these games."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2914 ../../../../src/ROR/Game.php:2942
+msgid "Error - Wrong party"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2935
+#, php-format
+msgid "%s is now the leader of {%s}"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2938
+msgid "Error - This senator is already the leader"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2949
+#, php-format
+msgid "Initiative #%d"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2958
+msgid "All initiatives have been played, putting Rome in order."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2963
+msgid "POPULATION PHASE"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:2990
+#, php-format
+msgid "%s ({%s}) held a major office and gets a major corruption marker."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3011
+msgid "Rolling for cards in the curia"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3019
+#, php-format
+msgid "A %d is rolled and %s comes back to the forum."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3021 ../../../../src/ROR/Game.php:3029
+#, php-format
+msgid "A %d is rolled and %s stays in the curia."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3027
+#, php-format
+msgid "A %d is rolled and %s is discarded."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3039 ../../../../src/ROR/Game.php:3047
+msgid "Error retrieving card from the curia"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3065 ../../../../src/ROR/Game.php:3074
+#, php-format
+msgid "TAX FARMER %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3092
+#, php-format
+msgid ""
+"%s causes the ruin of a random tax farmer. A %d is rolled : no effect as "
+"this tax farmer is already in the curia."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3095
+#, php-format
+msgid ""
+"%s causes the ruin of a random tax farmer. A %d is rolled : the ruined tax "
+"farmer is removed from %s's control and placed in the curia."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3098
+#, php-format
+msgid ""
+"%s causes the ruin of a random tax farmer. A %d is rolled : the ruined tax "
+"farmer is removed from the forum and placed in the curia."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3100
+#, php-format
+msgid ""
+"%s causes the ruin of a random tax farmer. A %d is rolled : ERROR - the "
+"ruined tax farmer was found in the wrong deck (%s)"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3103
+#, php-format
+msgid ""
+"%s causes the ruin of a random tax farmer. A %d is rolled : no effect as "
+"this tax farmer is not in play."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3140
+#, php-format
+msgid "Initiative %d (%s)"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3201
+msgid "No change in unrest from wars and droughts this turn."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3205
+msgid "Unrest increases because of unprosecuted wars : "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3211
+#, php-format
+msgid " : + %d unrest."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3216
+msgid " And "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3218
+#, php-format
+msgid "%d droughts cause +%d unrest."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3240
+#, php-format
+msgid ""
+"%s rolls %d + current unrest (%d) - HRAO's Popularity (%d)  for a total of "
+"%d."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3265
+#, php-format
+msgid "The unrest is changed by "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3269
+msgid "People revolt - Game over."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3286
+msgid "The Senate is attacked by an angry mob !"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3291
+#, php-format
+msgid "Chit drawn : %s. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3334 ../../../../src/ROR/Game.php:3733
+#, php-format
+msgid "%s and %s are nominated consuls as the only available pair."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3417
+#, php-format
+msgid "%s, {%s} proposes %s and %s as consuls."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3437
+#, php-format
+msgid "The Censor {%s} accuses %s, appointing %s as prosecutor. Reason : %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3446 ../../../../src/ROR/Game.php:3479
+#: ../../../../src/ROR/Proposal.php:50
 msgid "Error with proposal type."
 msgstr ""
 
-#: ../../../../src/ROR/Proposal.php:46
-msgid "Minor proposal must have a valid description."
+#: ../../../../src/ROR/Game.php:3465 ../../../../src/ROR/Game.php:3632
+msgid "Wrong phase."
 msgstr ""
 
-#: ../../../../src/ROR/Proposal.php:74
+#: ../../../../src/ROR/Game.php:3473
+msgid "Error - Another proposal is underway."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3497
+#, php-format
+msgid "Cannot make proposals using %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3501
+msgid "Invalid voting order : not enough parties"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3507
+msgid "Invalid voting order : unknown party"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3527
+msgid "This is a pair of one. Please stop drinking."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3531
+msgid "This pair has already been rejected"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3536
+msgid "Senator is not in Rome."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3541
+msgid ""
+"Before the 'Tradition Erodes' law is in place, Senators cannot be proposed "
+"if they are already Dictator or Consul."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3544
+msgid "The Pontifex Maximus cannot be proposed."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3548
+msgid "Proposing this Senator as Censor has already been rejected"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3553
+msgid "A Senator cannot prosecute himself"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3556
+msgid "The Censor cannot be prosecutor"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3560
+msgid "This prosecution has already been rejected"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3575
+#, php-format
+msgid "%s cannot be a governor."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3591
+msgid "Unknown province."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3610
+msgid "ERROR - Only the Censor can end prosecutions"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3612
+#, php-format
+msgid "The Censor %s returns the floor to the Presiding Magistrate"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3628
+msgid "votes AGAINST the proposal"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3629
+msgid "ABSTAINS"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3630
+msgid "votes FOR the proposal"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3636
+msgid "This is not your turn to vote."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3639
+msgid "The vote on this proposal is already over."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3647
+#, php-format
+msgid "{%s} %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3652
+#, php-format
+msgid "{%s} vetoes the proposal %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3655
+msgid "Error when trying to veto the proposal."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3667
+#, php-format
+msgid "%s tried to spend talents he doesn't have."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3673
+#, php-format
+msgid "%s of party {%s} %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3674
+#, php-format
+msgid " and spends %dT to increase his votes"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3676
+#, php-format
+msgid "On a per senator vote, %s's vote was not set."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3711
+msgid "The proposal is adopted"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3711
+msgid "The proposal is rejected"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3712
+#, php-format
+msgid " by %d votes for, %d against, and %d abstentions."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3715
+#, php-format
+msgid "The presiding magistrate %s has been unanimously defeated."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3739 ../../../../src/ROR/Game.php:4229
+#, php-format
+msgid "Only %s is eligible for Censorship, so he is automatically elected."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3750
+#, php-format
+msgid "%s is elected Censor."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3756
+msgid "Error on vote outcome."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3774
+#, php-format
+msgid "Popular Appeal : %s rolls %d."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3780
 #, php-format
 msgid ""
-"Error with ballot, it should be for(1), against(-1) or abstain(0), not %d"
+"The righteous populace frees him. Since a %d was rolled, %d mortality chits "
+"are drawned to see if they kill the Prosecutor or Censor for this obvious "
+"frame-up."
 msgstr ""
 
-#: ../../../../src/ROR/Proposal.php:89
+#: ../../../../src/ROR/Game.php:3797
+msgid "The disgusted populace kills him themselves"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3803
+msgid "gains"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3803
+msgid "loses"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3803
 #, php-format
-msgid "Error with type of voting, only Senators or Parties can vote, not %s"
+msgid "%s %s %d votes from his popular appeal."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3826
+#, php-format
+msgid "Major prosecution successful : %s is executed for his wrongdoings. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3829 ../../../../src/ROR/Game.php:3860
+#, php-format
+msgid "The prosecutor %s gains %d INF."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3842
+#, php-format
+msgid "Minor prosecution successful : %s loses %d INF, 5 POP%s. "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3842
+msgid " and his prior consul marker"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3847
+msgid "As well as the following concessions : "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3887
+#, php-format
+msgid ""
+"%s stays presiding magistrate after his unanimous defeat, losing 1 Influence."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3890
+#, php-format
+msgid "%s steps down as presiding magistrate after his unanimous defeat."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3900
+msgid "With the Censor stepping down, the Prosecution phase ends."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:3905
+msgid "You are not presiding magistrate, hence cannot step down."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4133
+msgid "Automatic proposal for : "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4135
+#, php-format
+msgid "%s is proposing : "
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4141
+#, php-format
+msgid "%s and %s as consuls."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4145
+#, php-format
+msgid "%s as Censor."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4155
+#, php-format
+msgid "%s. Prosecutor : %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4185 ../../../../src/ROR/Game.php:4262
+msgid "You cannot take such a decision at this moment."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4194
+#, php-format
+msgid "You picked %s to be Rome Consul."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4197
+#, php-format
+msgid "You picked %s to be Field Consul."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4207
+msgid ""
+"As the newly elected pair couldn't agree, the senators are randomely "
+"appointed."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4210 ../../../../src/ROR/Game.php:4215
+#, php-format
+msgid "%s becomes Rome Consul, and %s becomes Field Consul"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4218
+msgid "Now waiting for the other elected consul to pick a position."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4224
+msgid ""
+"A dictator cannot be appointed or elected. Moving on to Censor election."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4238
+msgid "A dictator can be appointed or elected."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4255
+#, php-format
+msgid "%s accepts to be prosecutor."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4259
+#, php-format
+msgid "The appointed prosecutor %s chickens out."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4277
+#, php-format
+msgid ""
+"{%s} agrees that his return governor(s) go to a province again this turn."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4281
+#, php-format
+msgid ""
+"{%s} doesn't want his return governor(s) to go to a province again this "
+"turn. The proposal is discarded."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4337
+msgid "There is 3 or more active conflicts"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4341 ../../../../src/ROR/Game.php:4346
+#, php-format
+msgid "%s has a combined strength equal or greater than 20"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4392
+msgid "Using the Presiding magistrate's ability"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4395
+msgid "Using a Tribune card"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4400
+#, php-format
+msgid "Using the Tribune ability of %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4404 ../../../../src/ROR/Game.php:4406
+msgid "Using an ERROR in the program"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4446
+msgid "using a Tribune card"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4454
+#, php-format
+msgid "using the Tribune ability of %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4466
+msgid "You can only make one assassination attempt per turn."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4469
+msgid ""
+"The party of your victim has already been targeted for assassination once "
+"this turn."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4612
+#, php-format
+msgid "MAJOR prosecution - %s (%s) for holding an office"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4614
+#, php-format
+msgid "Minor prosecution - %s (%s) for holding an office"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4624
+#, php-format
+msgid "Minor prosecution - %s (%s) for governing a province"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4636
+#, php-format
+msgid "Minor prosecution - %s (%s) for profiting from concession %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4672
+msgid "Senate sub phase - Governorships"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4675
+msgid "Senate sub phase - Other business"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4679
+msgid "Error - This is not the prosecutions sub phase"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4803 ../../../../src/ROR/Game.php:4896
+#, php-format
+msgid "The card is not in {%s}'s hand"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4809
+#, php-format
+msgid "\"%s\" is not a statesman"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4818 ../../../../src/ROR/Game.php:4829
+msgid "Weird family."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4847
+#, php-format
+msgid "{%s} plays Statesman %s on top of senator %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4859
+#, php-format
+msgid ""
+"{%s} plays Statesman %s and gets the matching unaligned family from the "
+"Forum."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4866
+#, php-format
+msgid "{%s} plays Statesman %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4885
+msgid "This senator is not in play"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4890
+#, php-format
+msgid "The senator is not in {%s}'s party"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4902
+#, php-format
+msgid "\"%s\" is not a concession"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4907
+msgid "The Land commissioner can only be played while Land bills are enacted."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4912
+#, php-format
+msgid "{%s} plays Concession %s on Senator %s"
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4948
+#, php-format
+msgid "You decide not to pay the ransom of %s at the moment."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4953
+#, php-format
+msgid "{%s} decides to pay the ransom of %s but fails at basic math."
+msgstr ""
+
+#: ../../../../src/ROR/Game.php:4958
+#, php-format
+msgid ""
+"{%s} decides to pay the %dT ransom of %s : %d from personal treasury and %d "
+"from party treasury"
+msgstr ""
+
+#: ../../../../src/ROR/Action.php:45 ../../../../src/ROR/Action.php:54
+#: ../../../../src/ROR/Action.php:266
+msgid " [you]"
+msgstr ""
+
+#: ../../../../src/ROR/Action.php:64
+msgid ""
+"Your feeble attempts at re-posting the same data have been thwarted by the "
+"shrewdness of the creator of this program."
+msgstr ""
+
+#: ../../../../src/ROR/Party.php:41
+#, php-format
+msgid "%s 's cards"
+msgstr ""
+
+#: ../../../../src/ROR/Party.php:43
+#, php-format
+msgid "%s 's senators"
+msgstr ""
+
+#: ../../../../src/ROR/Proposal.php:59
+msgid "Minor proposals must have a valid description."
+msgstr ""
+
+#: ../../../../src/ROR/Proposal.php:85
+#, php-format
+msgid "Received %d parameters, expected %d."
 msgstr ""

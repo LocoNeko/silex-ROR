@@ -154,7 +154,7 @@
                 {#
                     CHOOSE A TARGET, A PERSUADER, AMOUNT TO SPEND, CARDS TO PLAY OR NO PERSUASION
                 #}
-                {% if output['targetKnown']===FALSE %}
+                {% if output['targetKnown']==FALSE %}
                     Choose your persuasion target :<br><br>
                     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
                         USE :
