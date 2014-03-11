@@ -2756,8 +2756,8 @@ class Game
     /**
      * Returns a list of senatorID, name , knights, treasury and inRome by senator
      * Useful for attracking and pressuring knights
-     * @param type $user_id
-     * @return array
+     * @param string $user_id The user_id of the current player
+     * @return array ( 'senatorID' , 'name' , 'knights' , 'treasury' , 'inRome' )
      */
     public function forum_listKnights($user_id) {
         $result = array () ;
@@ -2868,8 +2868,8 @@ class Game
     
     /**
      * Lists all the senators who are able to sponsor games in party user_id 
-     * @param type $user_id
-     * @return array
+     * @param string $user_id The user_id of the current player
+     * @return array ('senatorID' , 'name' , 'treasury')
      */
     public function forum_listSponsorGames ($user_id) {
         $result = array() ;
@@ -3162,6 +3162,21 @@ class Game
                             $output['briberFullName'] = $this->party[$this->currentBidder].fullName() ;
                         }
                     }
+                } elseif ($output['subPhase'] == 'Knights' ) {
+                    $output['listKnights'] = $this->forum_listKnights($user_id) ;
+                    $output['canPressure'] = FALSE ;
+                    $output['evilOmens'] = $this->getEventLevel('name','Evil Omens') ;
+                    foreach ($output['listKnights'] as $item) {
+                        if ($item['knights']> 0) {
+                            $output['canPressure'] = TRUE ;
+                        }
+                    }
+                } elseif ($output['subPhase'] == 'SponsorGames' ) {
+                    $output['listGames'] = $this->forum_listSponsorGames($user_id) ;
+                }  elseif ($output['subPhase'] == 'ChangeLeader' ) {
+                    $output['leaderName'] = $this->party[$user_id]->leader->name ;
+                    $output['leaderSenatorID'] = $this->party[$user_id]->leader->senatorID ;
+                    $output['listSenators'] = $this->party[$user_id]->senators->cards ;
                 }
             // This user does not have the initiative
             } else {

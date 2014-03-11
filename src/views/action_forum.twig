@@ -227,121 +227,117 @@
                             {% endembed %}
                     {% endif %}
                     
-    
-
-
-
- 
-
 {#--------------------------------------------------- 
                        KNIGHTS
 ---------------------------------------------------#}
-
-        {% elseif content['game'].subPhase=='Knights' %}
-{% set list = content['game'].forum_listKnights(user_id) %}
-{% set canPressure = FALSE %}
-Knights :<br>
-Attract a knight for :<br>
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_knights'} ) }}">
-    {#
-    Note : the updateKnightPersuasionAmount(x) function gets the current evilOmens level as a parameter
-    This way, should evil omens be in play and attract roll reduced, the player has the option to spend more than 5T
-    Otherwise, the function caps the amount spent at 5
-    #}
-    <select id="senator" name="senator" style="width: 420px;" onClick="updateKnightPersuasionAmount({{content['game'].getEventLevel('name','Evil Omens')}})">
-{% for senator in list %}
-        {% if senator['knights']>0 %}
-            {% set canPressure = TRUE %}
-        {% endif %}
-        {% if senator['inRome']%}
-            <option value="{{senator['senatorID']}}|{{senator['treasury']}}">{{senator['name']}} : {{senator['knights']}} knights, {{senator['treasury']}}T</option>
-        {% endif %}
-{% endfor %}
-    </select>
-    By spending :
-    <select id="amount" name="amount" style="width: 50px;">
-        <option>0</option>
-    </select>
     
-    <input type="submit" class="btn btn-info" value="ROLL">
-</form>
-{% if canPressure%}
-OR Pressure Knights :<br>
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_pressureKnights'} ) }}">
-    {% for senator in list %}
-        {% if senator['knights']>0 %}
-            {{senator['name']}} :
-            <select id="{{senator['senatorID']}}" name="{{senator['senatorID']}}" style="width: 50px;">
-                {% for nb in 0..senator['knights']%}
-                    <option>{{nb}}</option>                        
-                {% endfor %}
-            </select><br>
-        {% endif %}
-    {% endfor %}
-    <input type="submit" class="btn btn-info" value="PRESSURE">
-</form>
-{% else %}
-This party has no knights to pressure
-{% endif %}
+        {% elseif output['subPhase']=='Knights' %}
+            Knights :<br>
+            Attract a knight for :<br>
+            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_knights'} ) }}">
+                {#
+                    Note : the updateKnightPersuasionAmount(x) function gets the current evilOmens level as a parameter
+                    This way, should evil omens be in play and attract roll reduced, the player has the option to spend more than 5T
+                    Otherwise, the function caps the amount spent at 5
+                #}
+                <select id="senator" name="senator" style="width: 420px;" onClick="updateKnightPersuasionAmount({{output['evilOmens']}})">
+                    {% for senator in output['listKnights'] %}
+                        {% if senator['inRome']%}
+                            <option value="{{senator['senatorID']}}|{{senator['treasury']}}">{{senator['name']}} : {{senator['knights']}} knights, {{senator['treasury']}}T</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                By spending :
+                <select id="amount" name="amount" style="width: 50px;">
+                    <option>0</option>
+                </select>
+                <input type="submit" class="btn btn-info" value="ROLL">
+            </form>
+            {% if output['canPressure'] %}
+                OR Pressure Knights :<br>
+                <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_pressureKnights'} ) }}">
+                    {% for senator in output['listKnights'] %}
+                        {% if senator['knights']>0 %}
+                            {{senator['name']}} :
+                            <select id="{{senator['senatorID']}}" name="{{senator['senatorID']}}" style="width: 50px;">
+                                {% for nb in 0..senator['knights']%}
+                                    <option>{{nb}}</option>                        
+                                {% endfor %}
+                            </select><br>
+                        {% endif %}
+                    {% endfor %}
+                    <input type="submit" class="btn btn-info" value="PRESSURE">
+                </form>
+            {% else %}
+                This party has no knights to pressure
+            {% endif %}
 
 {#--------------------------------------------------- 
                  SPONSOR GAMES
 ---------------------------------------------------#}
 
-        {% elseif content['game'].subPhase=='SponsorGames' %}
-{% set list = content['game'].forum_listSponsorGames(user_id) %}
-{% if list|length > 0 %}
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_sponsorGames'} ) }}">
-    <select id="senator" name="senator" style="width: 300px;" onClick="updateGames();">
-        {% for senator in list %}
-            {% if senator['treasury']>=7 %}
-                <option value="{{list['senatorID']}}|{{list['name']}}|{{list['treasury']}}">{{list['name']}}</option>
+        {% elseif output['subPhase']=='SponsorGames' %}
+            {% if output['listGames']|length > 0 %}
+                <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_sponsorGames'} ) }}">
+                    <select id="senator" name="senator" style="width: 300px;" onClick="updateGames();">
+                        {% for senator in output['listGames'] %}
+                            {% if senator['treasury']>=7 %}
+                                <option value="{{senator['senatorID']}}|{{senator['name']}}|{{senator['treasury']}}">{{senator['name']}}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                    Sponsors :
+                    <select id="type" name="type" style="width: 200px;">
+                        <option>Slice & Dice</option>
+                    </select>
+                    <input type="submit" class="btn btn-info" value="SPONSOR GAMES">
+                </form>
+            {% else %}
+                Error - no senator can sponsor game. 
             {% endif %}
-        {% endfor %}
-    </select>
-    Sponsors :
-    <select id="type" name="type" style="width: 200px;">
-        <option>Slice & Dice</option>
-    </select>
-    <input type="submit" class="btn btn-info" value="SPONSOR GAMES">
-</form>
-{% else %}
-Error - no senator can sponsor game. 
-{% endif %}
 
 {#--------------------------------------------------- 
                  CHANGE LEADER
 ---------------------------------------------------#}
 
-        {% elseif content['game'].subPhase=='ChangeLeader' %}
-Change party Leader :
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_changeLeader'} ) }}">
-    <select id="senatorID" name="senatorID" style="width: 350px;">
-        <option value="NO">Keep {{content['game'].party[user_id].leader.name}}</option>
-        {% for senator in content['game'].party[user_id].senators.cards%}
-            {% if senator.senatorID!=content['game'].party[user_id].leader.senatorID %}
-            <option value="{{senator.senatorID}}">Appoint {{senator.name}}</option>
-            {% endif %}
-        {% endfor %}
-    </select>
-    <input type="submit" class="btn btn-info" value="OK">
-</form>
-
+        {% elseif output['subPhase']=='ChangeLeader' %}
+                
+            Change party Leader :
+            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_changeLeader'} ) }}">
+                <select id="senatorID" name="senatorID" style="width: 350px;">
+                    <option value="NO">Keep {{output['leaderName']}}</option>
+                    {% for senator in output['listSenators']%}
+                        {% if senator.senatorID!=output['leaderSenatorID'] %}
+                        <option value="{{senator.senatorID}}">Appoint {{senator.name}}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                <input type="submit" class="btn btn-info" value="OK">
+            </form>
+                
 {#--------------------------------------------------- 
                CURIA (FORUM END)
 ---------------------------------------------------#}
-
-        {% elseif content['game'].subPhase=='curia' %}
-Putting Rome in order :
+                
+        {% elseif output['subPhase']=='ChangeLeader' %}
+            Putting Rome in order :
         {% else %}
-ERROR - strange forum subphase.
+            ERROR - strange forum subphase.
         {% endif %}
 
     {% else %}
-
+                
 {#---------------------------------------------------
     THIS USER DOES NOT HAVE THE INITIATIVE - but he might have to play to spend money to resist the persuasion attempt of the player who has the initiative
 ---------------------------------------------------#}
+                
+                
+                
+                
+
+
+
+
 
 - Waiting for this player to finish his initiative<br>
 {#--------------------------------------------------- 
@@ -349,7 +345,10 @@ ERROR - strange forum subphase.
 ---------------------------------------------------#}
         {% if content['game'].subPhase=='Persuasion' %}
 
-            {# This player does NOT have the initiative, is it his turn to counter bribe ? #}
+            {# 
+                This player does NOT have the initiative, is it his turn to counter bribe ?
+                This is useless ! already tested above !
+            #}
             {% if content['game'].forum_whoseInitiative()!=user_id %}
 
                 {# Yes, he is the current counter-briber#}
