@@ -3138,10 +3138,11 @@ class Game
         // We know who has the initiative
         } else {
             $output['Initiative description'] = sprintf(_('Initiative %d (%s)') , $this->initiative , $this->party[$this->forum_whoseInitiative()]->fullName());
+            $output['subPhase'] = $this->subPhase ;
             // This user has the initiative
             if ($this->forum_whoseInitiative() == $user_id) {
                 $output['initiativeIsYours'] = TRUE ;
-                $output['subPhase'] = $this->subPhase ;
+                
                 // Persuasion
                 if ($output['subPhase'] == 'Persuasion' ) {
                     // We don't know the target
@@ -3181,6 +3182,19 @@ class Game
             // This user does not have the initiative
             } else {
                 $output['initiativeIsYours'] = FALSE ;
+                // Persuasion counter-bribe by players without the initiative
+                if ($output['subPhase'] == 'Persuasion' ) {
+                    // He is the current counter-briber
+                    if ($this->currentBidder == $user_id) {
+                        $output['counterBribe'] = TRUE ;
+                        $output['treasury'] = $this->party[$user_id]->treasury ;
+                    // He is not the current counter-briber
+                    } else {
+                        $output['counterBribe'] = FALSE ;
+                        $output['currentBidderName'] = $this->party[$this->currentBidder]->fullName();
+                        $output['waitingFor'] = ( ($this->currentBidder == $this->forum_whoseInitiative() ) ? 'persuasion' : 'counterBribes') ;
+                    }
+                }
             }
             
         }

@@ -206,10 +206,10 @@ function log ( Application $app , $game_id , $user_id , $logs , $playerNames) {
                     $recipients = str_replace($key, $playerName, $recipients) ;
                 }
                 if ($log[1] == 'chat') {
-                    $recipients = str_replace(':', ' says to ', $recipients) ;
+                    $recipients = str_replace(':', _(' says to '), $recipients) ;
                     $nbPeople = substr_count($recipients, ';') +1 ;
                     if ($nbPeople==count($playerNames)) {
-                        $text = substr ($recipients , 0 , strpos($recipients , ' says to ') ).' says to everyone : "'.$text.'"';
+                        $text = substr ($recipients , 0 , strpos($recipients , _(' says to ')) )._(' says to everyone : "').$text.'"';
                     } else {
                         $recipients = str_replace(';', ' , ', $recipients) ;
                         $recipients = substr($recipients, 0 , -3);
@@ -275,7 +275,7 @@ function getLogs ( Application $app , $game_id , $user_id) {
             $recipients = str_replace($key, $playerName, $recipients) ;
         }
         if ($log['type'] == 'chat') {
-            $recipients = str_replace(':', ' says to ', $recipients) ;
+            $recipients = str_replace(':', _(' says to '), $recipients) ;
             $recipients = str_replace(';', ' , ', $recipients) ;
             $recipients = substr($recipients, 0 , -3);
             $text = $recipients.' : "'.$text.'"' ;

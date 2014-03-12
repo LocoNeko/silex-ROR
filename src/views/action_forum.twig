@@ -226,6 +226,8 @@
                             {% embed 'action_forumPersuasion.twig' %}
                             {% endembed %}
                     {% endif %}
+                
+                {% endif %}
                     
 {#--------------------------------------------------- 
                        KNIGHTS
@@ -324,61 +326,48 @@
         {% else %}
             ERROR - strange forum subphase.
         {% endif %}
-
-    {% else %}
                 
 {#---------------------------------------------------
     THIS USER DOES NOT HAVE THE INITIATIVE - but he might have to play to spend money to resist the persuasion attempt of the player who has the initiative
 ---------------------------------------------------#}
-                
-                
-                
-                
 
+    {% else %}
 
-
-
-
-- Waiting for this player to finish his initiative<br>
 {#--------------------------------------------------- 
        PERSUASION FOR COUNTER-BRIBING PLAYERS
 ---------------------------------------------------#}
-        {% if content['game'].subPhase=='Persuasion' %}
+        {% if output['subPhase']=='Persuasion' %}
+            
+            {# He is the current counter-briber#}
+            {%if output['counterBribe'] %}
 
-            {# 
-                This player does NOT have the initiative, is it his turn to counter bribe ?
-                This is useless ! already tested above !
-            #}
-            {% if content['game'].forum_whoseInitiative()!=user_id %}
-
-                {# Yes, he is the current counter-briber#}
-                {% if content['game'].currentBidder==user_id %}
-It's your turn to counter-bribe :<br>
-    {% embed 'action_forumPersuasion.twig' %}
-    {% endembed %}
-Counter-bribe (from party treasury) : 
-<form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
-    <select id="amount" name="amount" onClick="updateCounterBribeRollButton();" style="width: 50px;">
-        {% for x in 0..content['game'].party[user_id].treasury%}
-            <option>{{x}}</option>
-        {% endfor %}
-    </select>
-    <input type="submit" id="counterBribeButton" type="submit" class="btn btn-danger" value="NO COUNTER-BRIBE">
-</form>
-                {# No, he is not the current counter-briber#}
+                It's your turn to counter-bribe :<br>
+                    {% embed 'action_forumPersuasion.twig' %}
+                    {% endembed %}
+                Counter-bribe (from party treasury) : 
+                <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
+                    <select id="amount" name="amount" onClick="updateCounterBribeRollButton();" style="width: 50px;">
+                        {% for x in 0..output['treasury'] %}
+                            <option>{{x}}</option>
+                        {% endfor %}
+                    </select>
+                    <input type="submit" id="counterBribeButton" type="submit" class="btn btn-danger" value="NO COUNTER-BRIBE">
+                </form>
+            
+            {# He is not the current counter-briber#}
+            {% else %}
+                {% if output['waitingFor'] %}
+                    Waiting for {{output['currentBidderName']}} to decide on persuasion
                 {% else %}
-                    {% if content['game'].currentBidder == content['game'].forum_whoseInitiative() %}
-Waiting for {{content['game'].party[content['game'].currentBidder].fullName()}} to decide on persuasion
-                    {% else %}
-Waiting for {{content['game'].party[content['game'].currentBidder].fullName()}} to decide on counter-bribes
+                    Waiting for {{output['currentBidderName']}} to decide on counter-bribes
                         {% embed 'action_forumPersuasion.twig' %}
                         {% endembed %}
-                    {% endif %}
                 {% endif %}
             {% endif %}
+
         {% else %}
+            Waiting for this player to finish his initiative<br>
         {% endif %}
     {% endif %}
-    
     
 {% endif %}
