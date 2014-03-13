@@ -7,15 +7,7 @@
 
 {% if output['assassinate']!=FALSE and output['assassinate']|length > 0%}
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_assassination'} ) }}">
-    Assassinate
-        <select name="target" id="target">
-            {% for victim in output['assassinate']%}
-                <option value="{{victim['senatorID']}}">
-                    {{victim['name']}} ({{victim['party_name']}})
-                </option>
-            {% endfor %}
-        </select><br>
-        <button type="submit" class="btn-danger">DIE SWINE !</button>
+        <button type="submit" class="btn-danger">ASSASSINATION !</button>
     </form>
 {% endif %}
 {#

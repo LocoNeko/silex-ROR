@@ -41,6 +41,7 @@ namespace ROR;
  * $steppedDown : array of SenatorIDs of Senators who have stepped down during this Senate phase
  * $proposals : array of proposals for the turn, see proposal class
  * $laws : array of laws in play
+ * $assassination : array of parameters for an assassination (assassin ID , target ID , cards played)
  */
 class Game 
 {
@@ -64,7 +65,7 @@ class Game
     public $events , $eventTable ;
     public $populationTable , $appealTable , $landBillsTable ;
     public $legion, $fleet ;
-    public $steppedDown, $proposals, $laws ;
+    public $steppedDown, $proposals, $laws , $assassination ;
     
      /************************************************************
      * General functions
@@ -156,6 +157,7 @@ class Game
         $this->steppedDown = array() ;
         $this->proposals = array() ;
         $this->laws = array() ;
+        $this->assassination = array() ;
         /*
          *  Creating parties
          */
@@ -3960,6 +3962,29 @@ class Game
             }
             return $output ;
         }
+        /**
+         * Short-circuit the normal view if the state is 'Assassination'
+         * - Allows the assassin to chose a victim, a Senator to make the attempt and cards to play
+         * - Roll (don't resolve yet)
+         * - Allows the victim to play bodyguard cards
+         * - Resolve assassination & bodyguards catching the assassin
+         */
+        if (($this->phase=='Senate') && ($this->subPhase=='Assassination') ) {
+            $output['state'] = 'Assassination' ;
+            // Pick this assassin & the cards played
+            if ($this->assassination['assassinID'] === NULL) {
+                if ($user_id == $this->assassination['assassinParty']) {
+                    $output['subState'] = 'choose assassin' ;
+                    $output['potentialVictims'] = $this->senate_getListAssassinationTargets($user_id) ;
+                    $output['potentialAssassins'] = $this->senate_getListPotentialAssassins($user_id) ;
+                    $output['cards'] = $this->senate_getListAssassinationCards($user_id)  ;
+                } else {
+                    $output['subState'] = 'waiting for assassin' ;
+                }
+            } elseif ($this->assassination['roll'] !== NULL) {
+                
+            }
+        }
         /*
          *  There is a proposal underway : Either a decision has to be made (before or after a vote), or a vote is underway
          */
@@ -4474,14 +4499,14 @@ class Game
     }
     
     // TO DO
-    public function senate_assassination($user_id , $target) {
+    public function senate_assassination($user_id) {
         $messages = array() ;
         if ($this->party[$user_id]->assassinationAttempt) {
             return array(array(_('You can only make one assassination attempt per turn.' , 'error' , $user_id))) ;
         }
-        if ($this->getPartyOfSenator($target)->assassinationTarget) {
-            return array(array(_('The party of your victim has already been targeted for assassination once this turn.' , 'error' , $user_id))) ;
-        }
+        unset ($this->assassination) ;
+        $this->assassination = array('assassinID' => NULL , 'assassinParty' => $user_id , 'victimID' => NULL , 'victimParty' => NULL , 'roll' => NULL , 'assassinCards' => array() , 'victimCards' => array()) ;
+        $this->subPhase = 'Assassination' ;
         return $messages ;
     }
     
@@ -4571,26 +4596,6 @@ class Game
         } else {
             return FALSE ;
         }
-    }
-    
-    /**
-     * Returns an array of all the Senators that can be assassinated by $user_id, which means :<br>
-     * Not his own, not in a party that was already the target of an assassination this turn, in Rome.
-     * @param string $user_id The user_id of the would be assassin
-     * @return array Array of arrays ('senatorID' , 'name' , 'user_id' , 'party_name')
-     */
-    public function senate_getListAssassinationTargets($user_id) {
-        $result = array() ;
-        foreach ($this->party as $party) {
-            if ($party->user_id!=$user_id && $party->assassinationTarget===FALSE) {
-                foreach ($party->senators as $senator) {
-                    if ($senator->inRome()) {
-                        $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName());
-                    }
-                }
-            }
-        }
-        return $result ;
     }
     
     /**
@@ -4798,7 +4803,56 @@ class Game
         return ( ($result == '') ? FALSE : substr($result , 0 , -2) ) ;
     }
 
+    /**
+     * Returns an array of all the Senators that can be assassinated by $user_id, which means :<br>
+     * Not his own, not in a party that was already the target of an assassination this turn, in Rome.
+     * @param string $user_id The user_id of the would be assassin
+     * @return array Array of arrays ('senatorID' , 'name' , 'user_id' , 'party_name')
+     */
+    public function senate_getListAssassinationTargets($user_id) {
+        $result = array() ;
+        foreach ($this->party as $party) {
+            if ($party->user_id!=$user_id && $party->assassinationTarget===FALSE) {
+                foreach ($party->senators as $senator) {
+                    if ($senator->inRome()) {
+                        $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'party_name' => $party->fullName());
+                    }
+                }
+            }
+        }
+        return $result ;
+    }
     
+    /**
+     * Returns a list of senators who can be assassins
+     * @param string $user_id The user_id
+     * @return array of ('senatorID' , 'name')
+     */
+    private function senate_getListPotentialAssassins($user_id) {
+        $result = array () ;
+        foreach($this->party[$user_id]->senators->cards as $senator) {
+            if ($senator->inRome()) {
+                array_push ($result , array('senatorID' => $senator->senatorID , 'name' => $senator->name ));
+            }
+        }
+        return $result ;
+    }
+
+    /**
+     * Returns a list of cards that can be used for assassination
+     * @param string $user_id The user_id
+     * @return array of ('id' , 'name')
+     */
+    private function senate_getListAssassinationCards($user_id) {
+        $result = array () ;
+        foreach($this->party[$user_id]->hand->cards as $card) {
+            if ($card->name === 'ASSASSIN') {
+                array_push ($result , array('id' => $card->id , 'name' => $card->name ));
+            }
+        }
+        return $result ;
+    }
+
     /************************************************************
      * Functions for REVOLUTION phase
      ************************************************************/

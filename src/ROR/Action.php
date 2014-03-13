@@ -142,7 +142,7 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                     log ($app , $game_id , $user_id , $game->senate_decision($user_id , $request->request->all() )  , $playerNames);
                     break ;
                 case 'senate_assassination' :
-                    log ($app , $game_id , $user_id , $game->senate_assassination($user_id , $request->request->get('target') )  , $playerNames);
+                    log ($app , $game_id , $user_id , $game->senate_assassination($user_id)  , $playerNames);
                     break ;
                 case 'other_payRansom' :
                     log ($app , $game_id , $user_id , $game->other_payRansom($user_id , $request->request->all() )  , $playerNames);
