@@ -303,6 +303,39 @@ You cannot make a proposal at the moment
         Waiting for him to decide how to handle his unanimous defeat.<br>
     {% endif %}
 {#
+    Assassination interface
+#}
+{% elseif output['state']=='Assassination' %}
+    {# Assinating player much choose assassin #}
+    {% if output['subState']=='choose assassin'%}
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_chooseAssassin'} ) }}">
+            Target of assassination :
+            <select name="target" id="target" style="width:750px;">
+                {% for victim in output['potentialVictims']%}
+                    <option value="{{victim['senatorID']}}">{{victim['name']}} ({{victim['party_name']}})</option>
+                {% endfor %}
+            </select><br>
+            Assassin :
+            <select name="assassin" id="assassin" style="width:750px;">
+                {% for assassin in output['potentialAssassins']%}
+                    <option value="{{assassin['senatorID']}}">{{assassin['name']}}</option>
+                {% endfor %}
+            </select><br>
+            {% if output['cards']|length >0%}
+                <select name="card" id="card" style="width:450px;">
+                    {% for card in output['cardsautoescape']%}
+                        <option value="{{card['id']}}">{{card['name']}}</option>
+                    {% endfor %}
+                </select><br>
+            {% else %}
+                No assassination cards to play
+                <input type="hidden" name="card" id="card" value="NONE">
+            {% endif %}
+            <button type="submit" class="btn-danger">VAE VICTIS</button>
+        </form>
+    {% else %}
+    {% endif %}
+{#
     Error
 #}
 {% else %}
