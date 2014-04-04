@@ -4244,7 +4244,7 @@ class Game
             return array(array(_('You can only make one assassination attempt per turn.' , 'error' , $user_id))) ;
         }
         unset ($this->assassination) ;
-        $this->assassination = array('assassinID' => NULL , 'assassinParty' => $user_id , 'victimID' => NULL , 'victimParty' => NULL , 'roll' => NULL , 'assassinCards' => array() , 'victimCards' => array()) ;
+        $this->assassination = array('assassinID' => NULL , 'assassinParty' => $user_id , 'victimID' => NULL , 'victimParty' => NULL , 'roll' => NULL , 'assassinCards' => NULL , 'victimCards' => array()) ;
         $this->subPhase = 'Assassination' ;
         return $messages ;
     }
@@ -4252,9 +4252,10 @@ class Game
     // TO DO
     public function senate_chooseAssassin($user_id , $target , $assassin , $card) {
         $messages = array() ;
-        if ($this->phase=='Senate' && $this->subPhase == 'Assassination') {
+        if ($this->phase=='Senate' && $this->subPhase == 'Assassination' && $user_id==$this->assassination['assassinParty']) {
+            // Heavy-handed validation
             if ($this->party[$user_id]->assassinationAttempt) {
-                return array(array(_('You can only make one assassination attempt per turn.' , 'error' , $user_id))) ;
+                return array(array(_('You can only make one assassination attempt per turn.') , 'error' , $user_id)) ;
             }
             $error1 = TRUE ;
             foreach ($this->senate_getListAssassinationTargets($user_id) as $potentialTarget) {
@@ -4279,20 +4280,33 @@ class Game
                 $error3=FALSE ;
             }
             if ($error1) {
-                array_push($messages , array(_('Wrong assassination target.' , 'error' , $user_id))) ;
+                array_push($messages , array(_('Wrong assassination target.') , 'error' , $user_id)) ;
                 array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
                 return $messages ;
             }
             if ($error2) {
-                array_push($messages , array(_('Wrong assassin.' , 'error' , $user_id))) ;
+                array_push($messages , array(_('Wrong assassin.') , 'error' , $user_id)) ;
                 array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
                 return $messages ;
             }
             if ($error3) {
-                array_push($messages , array(_('Wrong assassination card.' , 'error' , $user_id))) ;
+                array_push($messages , array(_('Wrong assassination card.') , 'error' , $user_id)) ;
                 array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
                 return $messages ;
             }
+            //$this->assassination = array('assassinID' => NULL , 'assassinParty' => $user_id , 'victimID' => NULL , 'victimParty' => NULL , 'roll' => NULL , 'assassinCards' => NULL , 'victimCards' => array()) ;
+            $this->assassination['assassinID'] = $assassin ;
+            $this->assassination['victimID'] = $target ;
+            $this->assassination['victimParty'] = $this->getPartyOfSenatorWithID($target) ;
+            $assassinCard = $this->getSenatorWithID($assassin) ;
+            $victimCard =  $this->getSenatorWithID($target) ;
+            array_push($messages , array(sprintf(_('%s ({%s}) makes an assassination attempt on %s ({%s})') , $assassinCard->name , $user_id , $victimCard->name , $this->assassination['victimParty']) , 'alert')) ;
+            if ($card!='NONE') {
+                $this->assassination['assassinCards'] = $card ;
+                $this->discard->putOnTop($assassinCard->controls->drawCardWithValue('id' , $card)) ;
+            }
+            $this->assassination['roll'] = $this->rollOneDie(-1) ;
+
         }
         return $messages ;
     }
