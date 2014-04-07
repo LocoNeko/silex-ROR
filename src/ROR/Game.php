@@ -4249,7 +4249,15 @@ class Game
         return $messages ;
     }
 
-    // TO DO
+    /**
+     * Function processing the target, assassin, and card played at the beginning of an assassination attempt<br>
+     * Rolls the die and sets $this->assassination properly
+     * @param string $user_id The assassinating player
+     * @param string $target The senator ID of the target
+     * @param string $assassin The senator ID of the assassin
+     * @param string $card The card ID of the assassin card played or 'NONE'
+     * @return array Messages
+     */
     public function senate_chooseAssassin($user_id , $target , $assassin , $card) {
         $messages = array() ;
         if ($this->phase=='Senate' && $this->subPhase == 'Assassination' && $user_id==$this->assassination['assassinParty']) {
@@ -4294,19 +4302,37 @@ class Game
                 array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
                 return $messages ;
             }
-            //$this->assassination = array('assassinID' => NULL , 'assassinParty' => $user_id , 'victimID' => NULL , 'victimParty' => NULL , 'roll' => NULL , 'assassinCards' => NULL , 'victimCards' => array()) ;
             $this->assassination['assassinID'] = $assassin ;
             $this->assassination['victimID'] = $target ;
             $this->assassination['victimParty'] = $this->getPartyOfSenatorWithID($target) ;
-            $assassinCard = $this->getSenatorWithID($assassin) ;
-            $victimCard =  $this->getSenatorWithID($target) ;
-            array_push($messages , array(sprintf(_('%s ({%s}) makes an assassination attempt on %s ({%s})') , $assassinCard->name , $user_id , $victimCard->name , $this->assassination['victimParty']) , 'alert')) ;
+            $assassinSenator = $this->getSenatorWithID($assassin) ;
+            $victimSenator =  $this->getSenatorWithID($target) ;
+            $assassinationMessage = sprintf(_('%s ({%s}) makes an assassination attempt on %s ({%s})') , $assassinSenator->name , $user_id , $victimSenator->name , $this->assassination['victimParty']) ;
             if ($card!='NONE') {
                 $this->assassination['assassinCards'] = $card ;
-                $this->discard->putOnTop($assassinCard->controls->drawCardWithValue('id' , $card)) ;
+                $assassinationCard = $assassinSenator->controls->drawCardWithValue('id' , $card) ;
+                $assassinationMessage.= sprintf(_(' and plays %s from his hand.') , $assassinationCard->name );
+                $this->discard->putOnTop($assassinationCard) ;
             }
+            array_push($messages , array( $assassinationMessage , 'alert')) ;
             $this->assassination['roll'] = $this->rollOneDie(-1) ;
-
+            $modifiedRoll = $this->assassination['roll'] + ($this->assassination['assassinCards']===NULL ? 0 : 1 ) ;
+            $rollMessage =  sprintf(_('He rolls a %d%s%s') , 
+                                $this->assassination['roll'] ,
+                                ($this->getEventLevel('name' , 'Evil Omens')>0 ? _(' (including the effects of evil omens)') : '') ,
+                                ($this->assassination['assassinCards']===NULL ? '' : _(' +1 by playing an assassin card') ) 
+                            ) ;
+            // TO DO
+            // Killed
+            if ($modifiedRoll>=5) {
+                
+            // Caught
+            } elseif ($modifiedRoll<=2) {
+            
+            // No effect
+            } else {
+                
+            }
         }
         return $messages ;
     }
