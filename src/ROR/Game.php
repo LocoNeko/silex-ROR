@@ -1236,14 +1236,16 @@ class Game
                 $message.=sprintf(_('%s goes to the forum. ') , $card->name);
             } elseif ($card->type=='Family') {
                 if ($party->leader->senatorID == $deadStatesman->senatorID) {
+                    // Now that the Satesman is dead, the family is the party leader
+                    $party->leader = $card ;
                     $party->senators->putOnTop($card);
-                    $message.=sprintf(_('%s stays in the party. ') , $card->name);
+                    $message.=sprintf(_('%s stays in the party and is now leader. ') , $card->name);
                 } else {
                     $this->curia->putOnTop($card);
                     $message.=sprintf(_('%s goes to the curia. ') , $card->name);
                 }
             } else {
-                return array(_('Error - A card controlled by the dead Senator was neither a Family, a Concession nor a Province.'),'error');
+                return array(_('Error - A card controlled by the dead Senator was neither a Family, a Concession nor a Province.') , 'error');
             }
         }
         return array($message) ;
@@ -3344,9 +3346,11 @@ class Game
         if (count($possiblePairs)==1) {
             $senator1 = $this->getSenatorWithID($possiblePairs[0][0]) ;
             $senator2 = $this->getSenatorWithID($possiblePairs[0][1]) ;
+            // Automatically put this proposal in the array of proposals
             $proposal = new Proposal ;
             $proposal->init('Consuls' , NULL , NULL , $this->party , array($possiblePairs[0][0] , $possiblePairs[0][1]) , NULL) ;
             $proposal->outcome = TRUE ;
+            $this->proposals[] = $proposal ;
             array_push($messages , array(sprintf(_('%s and %s are nominated consuls as the only available pair.') , $senator1->name , $senator2->name)) );
         }
         return $messages ;
@@ -4152,6 +4156,7 @@ class Game
                 $result[] = 'Tribune card';
             }
         }
+        // TO DO : The censor MUST make a proposal if this is a Special Major Prosecution for Assassination, as he MUST choose a voting order
         return $result ;
     }
     
@@ -4244,7 +4249,7 @@ class Game
             return array(array(_('You can only make one assassination attempt per turn.' , 'error' , $user_id))) ;
         }
         unset ($this->assassination) ;
-        $this->assassination = array('assassinID' => NULL , 'assassinParty' => $user_id , 'victimID' => NULL , 'victimParty' => NULL , 'roll' => NULL , 'assassinCards' => NULL , 'victimCards' => array()) ;
+        $this->assassination = array('assassinID' => NULL , 'assassinParty' => $user_id , 'victimID' => NULL , 'victimPOP' => 0 , 'victimParty' => NULL , 'roll' => NULL , 'assassinCards' => NULL , 'victimCards' => array()) ;
         $this->subPhase = 'Assassination' ;
         return $messages ;
     }
@@ -4304,7 +4309,8 @@ class Game
             }
             $this->assassination['assassinID'] = $assassin ;
             $this->assassination['victimID'] = $target ;
-            $this->assassination['victimParty'] = $this->getPartyOfSenatorWithID($target) ;
+            $this->assassination['victimPOP'] = $this->getSenatorWithID($target)->POP ;
+            $this->assassination['victimParty'] = $this->getPartyOfSenatorWithID($target)->user_id ;
             $assassinSenator = $this->getSenatorWithID($assassin) ;
             $victimSenator =  $this->getSenatorWithID($target) ;
             $assassinationMessage = sprintf(_('%s ({%s}) makes an assassination attempt on %s ({%s})') , $assassinSenator->name , $user_id , $victimSenator->name , $this->assassination['victimParty']) ;
@@ -4315,27 +4321,66 @@ class Game
                 $this->discard->putOnTop($assassinationCard) ;
             }
             array_push($messages , array( $assassinationMessage , 'alert')) ;
-            $this->assassination['roll'] = $this->rollOneDie(-1) ;
-            $modifiedRoll = $this->assassination['roll'] + ($this->assassination['assassinCards']===NULL ? 0 : 1 ) ;
-            $rollMessage =  sprintf(_('He rolls a %d%s%s') , 
-                                $this->assassination['roll'] ,
+            $roll = $this->rollOneDie(-1) ;
+            $this->assassination['roll'] = $roll + ($this->assassination['assassinCards']===NULL ? 0 : 1 ) ;
+            $rollMessage =  sprintf(_('He rolls a %d%s%s.') , 
+                                $roll ,
                                 ($this->getEventLevel('name' , 'Evil Omens')>0 ? _(' (including the effects of evil omens)') : '') ,
                                 ($this->assassination['assassinCards']===NULL ? '' : _(' +1 by playing an assassin card') ) 
                             ) ;
-            // TO DO
+            $caughtMessages = FALSE ;
             // Killed
-            if ($modifiedRoll>=5) {
-                
+            if ($this->assassination['roll']>=5) {
+                $rollMessage.=sprintf(_(' With a total of %d, the target is killed. {%s} now has a chance to play bodyguards.') , $this->assassination['roll'] , $this->assassination['victimParty']);
+                // TO DO : kill victim
             // Caught
-            } elseif ($modifiedRoll<=2) {
-            
+            } elseif ($this->assassination['roll']<=2) {
+                $rollMessage.=sprintf(_(' With a total of %d, the assassin is caught & killed.') , $this->assassination['roll']);
+                $caughtMessages = $this->senate_assassinCaught() ;
             // No effect
             } else {
-                
+                $rollMessage.=sprintf(_(' With a total of %d, there is no effect. {%s} now has a chance to play bodyguards.') , $this->assassination['roll'] , $this->assassination['victimParty']);
+            }
+            array_push($messages , array($rollMessage)) ;
+            // Only push 'caught' messages if they exist (the result was 'caught')
+            if ($caughtMessages!==FALSE) {
+                foreach($caughtMessages as $message) {
+                    array_push($messages , $message) ;
+                }
             }
         }
         return $messages ;
     }
+    
+    /**
+     * Function that handles a caught assassin : special major prosecution or not (if he was leader or not) & mob justice
+     * @return array Messages
+     */
+    private function senate_assassinCaught() {
+        $messages = array() ;
+        $leaderOfAssassinParty = $this->party[$this->assassination['assassinParty']]->leader ;
+        array_push($messages , $this->mortality_killSenator($this->assassination['assassinID'], TRUE)) ;
+        // If the assassin was faction leader, don't prosecute the new leader, but still draw chits based on POP of victim using senate_assassinationMobJustice()
+        // DON'T forget to reset assassination to 0, and update assassination attempt and target
+        if ($leaderOfAssassinParty->senatorID == $this->assassination['assassinID']) {
+            array_push($messages , _('Since the leader was the assassin, there is no special major prosecution.')) ;
+            // TO DO : mob justice
+        } else {
+            $leaderOfAssassinParty->changeINF(-5) ;
+            sprintf(_('%s, leader of the assassin\'s party loses 5 INF (now %d) and is immediately subject to a special major prosecution.') , $leaderOfAssassinParty->name , $leaderOfAssassinParty->INF);
+            $proposal = new Proposal ;
+            // TO DO : Check which parameters are needed
+            $proposal->init('Assassin prosecution' , NULL , NULL , $this->party , XX$X  , NULL ) ;
+            $this->proposals[] = $proposal ;
+            $this->subPhase = 'Assassin prosecution' ;
+        }
+        return $messages ;
+    }
+
+    private function senate_assassinationMobJustice() {
+        // TO DO : draw chits based on victim's popularity
+    }
+    
     
     /**
      * Returns a list of all possible consul pairs :
@@ -4694,9 +4739,6 @@ class Game
      */
     public function senate_view($user_id) {
         $output = array() ;
-        /* TO DO : Check if the following 2 actions are available (they almost always are) :
-         * - Assassination
-         */
         $latestProposal = $this->senate_getLatestProposal() ;
         /*
          * Short-circuit the normal view if the sate is 'Unanimous defeat'
@@ -4738,8 +4780,9 @@ class Game
                 } else {
                     $output['subState'] = 'waiting for assassin' ;
                 }
+            // Give a chance for the victim to play bodyguard(s)
             } elseif ($this->assassination['roll'] !== NULL) {
-                
+                // TO DO : victim of an assassination can play bodyguard(s)
             }
         }
         /*
@@ -4820,7 +4863,13 @@ class Game
             if ( ($latestProposal->type=='Prosecutions') && ($this ->getPartyOfSenatorWithID($latestProposal->parameters[0]) -> user_id == $user_id) && $latestProposal->parameters[4]===NULL ) {
                 $output['appeal'] = TRUE ;
                 $output['popularity'] = $this->getSenatorWithID($latestProposal->parameters[0])->POP ;
+            } elseif( ($latestProposal->type=='Assassin prosecution') && ($this ->getPartyOfSenatorWithID($latestProposal->parameters[0]) -> user_id == $user_id) ) {
+                // Automatic popular appeal for assassination prosecution, POP is negative POP of victim
+                $output['appeal'] = TRUE ;
+                $output['victim'] = sprintf(_('of the victim %s : ' , $this->getSenatorWithID($this->assassination['victimID'])->name)) ;
+                $output['popularity'] = -$this->assassination['victimPOP'] ;
             } else {
+                $output['victim'] = '' ;
                 $output['appeal'] = FALSE ;
             }
             // This is not your turn to vote

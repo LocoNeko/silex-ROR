@@ -111,13 +111,13 @@
         {% endif %}
         {#
             Show a list of possible ways to make a proposal
-            Doesn't apply to prosecutions (only Censor can make proposals)
+            Doesn't apply to prosecutions (only Censor can make proposals, and assassin prosecution is automatic)
         #}
-            {% if output['type']!='Prosecutions' %}
-                Choose how to make proposal :<br>
-                {% embed 'action_senate_proposalHow.twig' %}
-                {% endembed %}
-            {% endif %}
+        {% if output['type']!='Prosecutions' && output['type']!='Assassin prosecution'%}
+            Choose how to make proposal :<br>
+            {% embed 'action_senate_proposalHow.twig' %}
+            {% endembed %}
+        {% endif %}
         Choose voting order :<br>
         {% embed 'action_senate_votingOrder.twig' %}
         {% endembed %}
@@ -151,7 +151,7 @@ You cannot make a proposal at the moment
     <hr>
     {% if output['appeal'] %}
         <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_appeal'} ) }}">
-            Appeal to the people (Popularity {{output['popularity']}}) :
+            Appeal to the people (Popularity {{output['victim']}}{{output['popularity']}}) :
             <button type="submit" class="btn-danger">APPEAL</button>
         </form>
     {% endif %}
