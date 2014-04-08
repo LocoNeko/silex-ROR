@@ -113,7 +113,7 @@
             Show a list of possible ways to make a proposal
             Doesn't apply to prosecutions (only Censor can make proposals, and assassin prosecution is automatic)
         #}
-        {% if output['type']!='Prosecutions' && output['type']!='Assassin prosecution'%}
+        {% if output['type']!='Prosecutions' and output['type']!='Assassin prosecution'%}
             Choose how to make proposal :<br>
             {% embed 'action_senate_proposalHow.twig' %}
             {% endembed %}
@@ -138,7 +138,20 @@
 #}
 {% elseif output['state']=='Proposal impossible'%}
 You cannot make a proposal at the moment
-        
+
+{#
+    Assassin special prosecution : allow the Censor to chose voting order
+#}
+{% elseif output['state']=='Assassin prosecution voting order'%}
+
+    {% if output['canChoose']%}
+        Choose voting order :<br>
+        {% embed 'action_senate_votingOrder.twig' %}
+        {% endembed %}
+    {% else %}
+        Waiting for the Censor to decide the voting order on the special major prosecution for assassination
+    {% endif %}
+
 {#
     Vote
 #}

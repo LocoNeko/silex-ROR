@@ -3330,8 +3330,6 @@ class Game
         // Free tribunes per party, based on Senators inRome & specialAbility
         foreach ($this->party as $party) {
             unset($party->freeTribunes) ; $party->freeTribunes = array() ;
-            $party->assassinationAttempt = FALSE ;
-            $party->assassinationTarget = FALSE ;
             foreach ($party->senators->cards as $senator) {
                 if ($senator->inRome() && $senator->specialAbility!==NULL) {
                     $abilities = explode(',' , $senator->specialAbility) ;
@@ -3340,6 +3338,9 @@ class Game
                     }
                 }
             }
+            // Reset assasination attemps and targets
+            $party->assassinationAttempt = FALSE ;
+            $party->assassinationTarget = FALSE ;
         }
         // Check if there is only one possible pair of consuls, and appoint them if it's the case.
         $possiblePairs = $this->senate_consulsPairs() ;
@@ -4311,6 +4312,8 @@ class Game
             $this->assassination['victimID'] = $target ;
             $this->assassination['victimPOP'] = $this->getSenatorWithID($target)->POP ;
             $this->assassination['victimParty'] = $this->getPartyOfSenatorWithID($target)->user_id ;
+            $this->party[$user_id]->assassinationAttempt = TRUE;
+            $this->party[$this->assassination['victimParty']]->assassinationTarget = TRUE;
             $assassinSenator = $this->getSenatorWithID($assassin) ;
             $victimSenator =  $this->getSenatorWithID($target) ;
             $assassinationMessage = sprintf(_('%s ({%s}) makes an assassination attempt on %s ({%s})') , $assassinSenator->name , $user_id , $victimSenator->name , $this->assassination['victimParty']) ;
@@ -4361,26 +4364,55 @@ class Game
         $leaderOfAssassinParty = $this->party[$this->assassination['assassinParty']]->leader ;
         array_push($messages , $this->mortality_killSenator($this->assassination['assassinID'], TRUE)) ;
         // If the assassin was faction leader, don't prosecute the new leader, but still draw chits based on POP of victim using senate_assassinationMobJustice()
-        // DON'T forget to reset assassination to 0, and update assassination attempt and target
+        // DON'T forget to reset assassination to NULL
         if ($leaderOfAssassinParty->senatorID == $this->assassination['assassinID']) {
             array_push($messages , _('Since the leader was the assassin, there is no special major prosecution.')) ;
-            // TO DO : mob justice
+            // Mob justice : draw mortality chits based on POP of victim
+            $mobJusticeMessages = $this->senate_assassinationMobJustice() ;
+            foreach($mobJusticeMessages as $message) {
+                array_push($messages , $message) ;
+            }
+            unset($this->assassination);
+            array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
         } else {
             $leaderOfAssassinParty->changeINF(-5) ;
             sprintf(_('%s, leader of the assassin\'s party loses 5 INF (now %d) and is immediately subject to a special major prosecution.') , $leaderOfAssassinParty->name , $leaderOfAssassinParty->INF);
             $proposal = new Proposal ;
             // TO DO : Check which parameters are needed
-            $proposal->init('Assassin prosecution' , NULL , NULL , $this->party , XX$X  , NULL ) ;
+            $proposal->init('Assassin prosecution' , NULL , NULL , $this->party , 'TO DO'  , NULL ) ;
             $this->proposals[] = $proposal ;
             $this->subPhase = 'Assassin prosecution' ;
         }
         return $messages ;
     }
 
+    /**
+     * This function draws chits based on the assassination's victim POP, targetting the assassin's party senators.
+     * @return array Messages
+     */
     private function senate_assassinationMobJustice() {
-        // TO DO : draw chits based on victim's popularity
+        $messages = array() ;
+        $chitsToDraw = max (0 , $this->assassination['victimPOP']) ;
+        if ($chitsToDraw>0) {
+            array_push($messages , sprintf(_('The victim had %d POP, so %d mortality chits are drawn against the assassin\'s party.') , $this->assassination['victimPOP'] , $chitsToDraw ));
+            $chits = $this->mortality_chits($chitsToDraw) ;
+            foreach ($chits as $chit) {
+                if ($chit!='NONE' && $chit!='DRAW 2') {
+                    // TO DO : this doesn't catch Statesmen (chit doesn't register A, B or C)
+                    $senator = $this->getSenatorWithID($chit) ;
+                    if ($senator->inRome() && $this->getPartyOfSenator($senator)==$this->assassination['assassinParty']) {
+                        $returnedMessage= $this->mortality_killSenator((string)$chit) ;
+                        array_push( $messages , array(sprintf(_('Chit drawn : %s. ') , $chit).$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
+                    }
+                } else {
+                    array_push( $messages , array(sprintf(_('Chit drawn : %s') , $chit)) );
+                }
+            }
+        } else {
+            array_push($messages , sprintf(_('The victim had %d POP, so no mortality chits are drawn against the assassin\'s party.') , $this->assassination['victimPOP'] ));
+        }
+        return $messages ;
     }
-    
     
     /**
      * Returns a list of all possible consul pairs :
@@ -4841,10 +4873,16 @@ class Game
          * - Accused calls Popular Appeal
          * etc
          */
+        /**
+         * Assassin special prosecution : allow the Censor to chose voting order
+         */
+        } elseif ($this->phase=='Senate' && $this->subPhase=='Assassin prosecution') {
+            $output['state'] = 'Assassin prosecution voting order' ;
+            $output['canChoose'] = ($this->senate_findOfficial('Censor')['user_id'] == $user_id) ;
         /*
          * Vote (The proposal has no outcome but no decision is required : make vote possible)
          */
-        } elseif ($latestProposal!==FALSE && $latestProposal->outcome===NULL) {
+        } elseif ($this->phase=='Senate' && $latestProposal!==FALSE && $latestProposal->outcome===NULL) {
             $output['state'] = 'Vote' ;
             $output['type'] = $latestProposal->type ;
             // The proposal's long description
