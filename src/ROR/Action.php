@@ -147,6 +147,9 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
                 case 'senate_chooseAssassin' :
                     log ($app , $game_id , $user_id , $game->senate_chooseAssassin($user_id , $request->request->get('target') , $request->request->get('assassin') , $request->request->get('card'))  , $playerNames);
                     break ;
+                case 'senate_playBodyguards' :
+                    log ($app , $game_id , $user_id , $game->senate_playBodyguards($user_id , $request->request->get('card'))  , $playerNames);
+                    break ;
                 case 'other_payRansom' :
                     log ($app , $game_id , $user_id , $game->other_payRansom($user_id , $request->request->all() )  , $playerNames);
                     break ;

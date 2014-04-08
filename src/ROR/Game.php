@@ -1168,28 +1168,35 @@ class Game
      * - Brothers<br>
      * - Statemen<br>
      * - Party leader<br>
-     * - Where senator and controlled cards go (forum, curia, discard)
+     * - Where senator and controlled cards go (forum, curia, discard)<br>
      * @param string $senatorID The SenatorID of the dead senator
-     * @param specificID TRUE if the Senator with this specific ID should be killed,<BR> FALSE if the ID is a family, and Statesmen must be tested
-     * @return array Just one message-array, not an array of messages
+     * @param specificID TRUE if the Senator with this specific ID should be killed,<br>FALSE if the ID is a family, and Statesmen must be tested (default)
+     * @param specificParty Equal to the user_id of the party to which the dead Senator must belong,<br>
+     * senators from other parties will not be killed.<br>
+     * FALSE (default)
+     * @return array Just a one message-array, not an array of messages
      */
-    public function mortality_killSenator($senatorID , $specificID=FALSE) {
+    public function mortality_killSenator($senatorID , $specificID=FALSE , $specificParty=FALSE) {
         $message = '' ;
         
         // Case of a random mortality chit
         if (!$specificID) {
+            // Creates an array of potentially dead senators, to handle both Statesmen & Families
             $deadSenators = array() ;
             foreach($this->party as $party) {
-                foreach ($party->senators->cards as $senator) {
-                    if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $senatorID ) ) {
-                        array_push($deadSenators , $senator) ;
-                    } elseif ( ($senator->type == 'Family') && ($senator->senatorID == $senatorID) ) {
-                        array_push($deadSenators , $senator) ;
+                // If no party is targetted put any senator in the array, otherwise only put senators belonging to that party
+                if ($specificParty===FALSE || ($specificParty!=FALSE && $specificParty==$party->user_id) ) {
+                    foreach ($party->senators->cards as $senator) {
+                        if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $senatorID ) ) {
+                            array_push($deadSenators , $senator) ;
+                        } elseif ( ($senator->type == 'Family') && ($senator->senatorID == $senatorID) ) {
+                            array_push($deadSenators , $senator) ;
+                        }
                     }
                 }
             }
             // Returns either no dead (Senator not in play), 1 dead (found just 1 senator matching the chit), or pick 1 of two brothers if they are both legally in play
-            if (count($deadSenators)==0) {
+            if (count($deadSenators)==0 && $specificID===FALSE && $specificParty===FALSE) {
                 return array(_('This senator is not in Play, nobody dies.')) ;
             } elseif (count($deadSenators)>1) {
                 // Pick one of two brothers
@@ -4285,7 +4292,7 @@ class Game
             }
             if ($card!='NONE') {
                 $error3 = TRUE ;
-                foreach ($this->senate_getListAssassinationCards($user_id) as $card) {
+                foreach ($this->senate_getListAssassinationCards($user_id , 'ASSASSIN') as $card) {
                     if ($card['id']==$card) {
                         $error3=FALSE ;
                     }
@@ -4334,7 +4341,7 @@ class Game
             $caughtMessages = FALSE ;
             // Killed
             if ($this->assassination['roll']>=5) {
-                $rollMessage.=sprintf(_(' With a total of %d, the target is killed. {%s} now has a chance to play bodyguards.') , $this->assassination['roll'] , $this->assassination['victimParty']);
+                $rollMessage.=sprintf(_(' With a total of %d, the target would be killed, but {%s} now has a chance to play bodyguards.') , $this->assassination['roll'] , $this->assassination['victimParty']);
                 // TO DO : kill victim
             // Caught
             } elseif ($this->assassination['roll']<=2) {
@@ -4342,7 +4349,7 @@ class Game
                 $caughtMessages = $this->senate_assassinCaught() ;
             // No effect
             } else {
-                $rollMessage.=sprintf(_(' With a total of %d, there is no effect. {%s} now has a chance to play bodyguards.') , $this->assassination['roll'] , $this->assassination['victimParty']);
+                $rollMessage.=sprintf(_(' With a total of %d, there should be no effect, but {%s} now has a chance to play bodyguards.') , $this->assassination['roll'] , $this->assassination['victimParty']);
             }
             array_push($messages , array($rollMessage)) ;
             // Only push 'caught' messages if they exist (the result was 'caught')
@@ -4398,12 +4405,9 @@ class Game
             $chits = $this->mortality_chits($chitsToDraw) ;
             foreach ($chits as $chit) {
                 if ($chit!='NONE' && $chit!='DRAW 2') {
-                    // TO DO : this doesn't catch Statesmen (chit doesn't register A, B or C)
-                    $senator = $this->getSenatorWithID($chit) ;
-                    if ($senator->inRome() && $this->getPartyOfSenator($senator)==$this->assassination['assassinParty']) {
-                        $returnedMessage= $this->mortality_killSenator((string)$chit) ;
-                        array_push( $messages , array(sprintf(_('Chit drawn : %s. ') , $chit).$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
-                    }
+                    // TO DO : handle the fact that the senator must be in Rome (should be done in the killSenator function)
+                    $returnedMessage= $this->mortality_killSenator((string)$chit , FALSE , $this->assassination['assassinParty']) ;
+                    array_push( $messages , array(sprintf(_('Chit drawn : %s. ') , $chit).$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
                 } else {
                     array_push( $messages , array(sprintf(_('Chit drawn : %s') , $chit)) );
                 }
@@ -4743,14 +4747,19 @@ class Game
     }
 
     /**
-     * Returns a list of cards that can be used for assassination
+     * Returns a list of cards that can be used for assassination<br>
+     * By the assassin if type is ASSASSIN, by the target (bodyguards) if type is TARGET<br>
      * @param string $user_id The user_id
+     * @param string $type ASSASSIN|TARGET
      * @return array Array of ('id' , 'name')
      */
-    private function senate_getListAssassinationCards($user_id) {
+    private function senate_getListAssassinationCards($user_id , $type) {
         $result = array () ;
         foreach($this->party[$user_id]->hand->cards as $card) {
-            if ($card->name === 'ASSASSIN') {
+            if ($card->name === 'ASSASSIN' && $type === 'ASSASSIN') {
+                array_push ($result , array('id' => $card->id , 'name' => $card->name ));
+            }
+            if ($card->name === 'BODYGUARD' && $type === 'TARGET') {
                 array_push ($result , array('id' => $card->id , 'name' => $card->name ));
             }
         }
@@ -4808,13 +4817,18 @@ class Game
                     $output['subState'] = 'choose assassin' ;
                     $output['potentialVictims'] = $this->senate_getListAssassinationTargets($user_id) ;
                     $output['potentialAssassins'] = $this->senate_getListPotentialAssassins($user_id) ;
-                    $output['cards'] = $this->senate_getListAssassinationCards($user_id)  ;
+                    $output['cards'] = $this->senate_getListAssassinationCards($user_id , 'ASSASSIN')  ;
                 } else {
                     $output['subState'] = 'waiting for assassin' ;
                 }
             // Give a chance for the victim to play bodyguard(s)
             } elseif ($this->assassination['roll'] !== NULL) {
-                // TO DO : victim of an assassination can play bodyguard(s)
+                if ($user_id == $this->assassination['victimParty']) {
+                    $output['subState'] = 'play bodyguards' ;
+                    $output['cards'] = $this->senate_getListAssassinationCards($user_id , 'TARGET')  ;
+                } else {
+                    $output['subState'] = 'waiting for victim' ;
+                }
             }
         }
         /*

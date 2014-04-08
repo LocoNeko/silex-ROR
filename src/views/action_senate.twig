@@ -319,7 +319,7 @@ You cannot make a proposal at the moment
     Assassination interface
 #}
 {% elseif output['state']=='Assassination' %}
-    {# Assinating player much choose assassin #}
+    {# Assissanitasstating player must choose assassin #}
     {% if output['subState']=='choose assassin'%}
         <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_chooseAssassin'} ) }}">
             Target of assassination :
@@ -336,7 +336,7 @@ You cannot make a proposal at the moment
             </select><br>
             {% if output['cards']|length >0%}
                 <select name="card" id="card" style="width:450px;">
-                    {% for card in output['cardsautoescape']%}
+                    {% for card in output['cards']%}
                         <option value="{{card['id']}}">{{card['name']}}</option>
                     {% endfor %}
                 </select><br>
@@ -346,7 +346,28 @@ You cannot make a proposal at the moment
             {% endif %}
             <button type="submit" class="btn-danger">VAE VICTIS</button>
         </form>
+    {# Victim can play bodyguards after the roll #}
+    {% elseif output['subState']=='play bodyguards'%}
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_playBodyguards'} ) }}">
+            {% if output['cards']|length >0%}
+                You can play at least one bodyguard card :<br>
+                {% for card in output['cards']%}
+                    <input type="checkbox" name="card[]" id="card[]" value="{{card['id']}}">{{card['name']}}<br>
+                {% endfor %}
+                <br>
+                <button type="submit" class="btn-danger">TU QUOQUE MI FILII</button>
+            {% else %}
+                No bodyguard card(s) to play<br>
+                <input type="hidden" name="card" id="card" value="NONE">
+                <button type="submit" class="btn-danger">MORITURUS TE SALUTAT</button>
+            {% endif %}
+        </form>
+    {# Waiting for the assassin to make up his mind #}
+    {% elseif output['subState']=='waiting for assassin'%}
+        Assassination : waiting for the assassin to decide.<br>
+    {# Waiting for victim to play bodyguards #}
     {% else %}
+        Assassination : waiting for the victim to play bodyguards.<br>
     {% endif %}
 {#
     Error
