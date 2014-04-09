@@ -352,13 +352,13 @@ You cannot make a proposal at the moment
             {% if output['cards']|length >0%}
                 You can play at least one bodyguard card :<br>
                 {% for card in output['cards']%}
-                    <input type="checkbox" name="card[]" id="card[]" value="{{card['id']}}">{{card['name']}}<br>
+                    <input type="checkbox" name="cards[]" id="cards[]" value="{{card['id']}}">{{card['name']}}<br>
                 {% endfor %}
                 <br>
                 <button type="submit" class="btn-danger">TU QUOQUE MI FILII</button>
             {% else %}
                 No bodyguard card(s) to play<br>
-                <input type="hidden" name="card" id="card" value="NONE">
+                <input type="hidden" name="cards" id="cards" value="NONE">
                 <button type="submit" class="btn-danger">MORITURUS TE SALUTAT</button>
             {% endif %}
         </form>

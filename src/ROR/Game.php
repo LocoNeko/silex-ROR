@@ -4342,7 +4342,6 @@ class Game
             // Killed
             if ($this->assassination['roll']>=5) {
                 $rollMessage.=sprintf(_(' With a total of %d, the target would be killed, but {%s} now has a chance to play bodyguards.') , $this->assassination['roll'] , $this->assassination['victimParty']);
-                // TO DO : kill victim
             // Caught
             } elseif ($this->assassination['roll']<=2) {
                 $rollMessage.=sprintf(_(' With a total of %d, the assassin is caught & killed.') , $this->assassination['roll']);
@@ -4414,6 +4413,43 @@ class Game
             }
         } else {
             array_push($messages , sprintf(_('The victim had %d POP, so no mortality chits are drawn against the assassin\'s party.') , $this->assassination['victimPOP'] ));
+        }
+        return $messages ;
+    }
+    
+    /**
+     * Gives a chance to the target of an assassination to play bodyguards cards<br>
+     * Then resolves the assassination<br>
+     * @param string $user_id The user_id of theplayer playing body guard card(s)
+     * @param array $cards An array of cards IDs or 'NONE'
+     * @return array Messages
+     */
+    public function senate_playBodyguards($user_id , $cards) {
+        $messages = array() ;
+        if ($this->phase=='Senate' && $this->subPhase == 'Assassination' && $user_id==$this->assassination['victimParty']) {
+            $nbOfBodyGuards = 0 ;
+            // No cards played (couldn't or wouldn't)
+            if ($cards === 'NONE' || count($cards)==0 ) {
+                array_push( $messages , array(sprintf(_('{%s} doesn\'t play any bodyguard card.') , $user_id)) );
+            // Cards played    
+            } else {
+                foreach ($cards as $card) {
+                    // Play the card with ID : $card
+                    if ($card!==NULL) {
+                        $bodyGuardCard = $this->party[$user_id]->hand->drawCardWithValue('id' , $card) ;
+                        if ($bodyGuardCard !== FALSE) {
+                            $nbOfBodyGuards++;
+                            array_push( $messages , array(sprintf(_('{%s} plays %s.') , $user_id , $bodyGuardCard->name )) );
+                            $this->discard->putOnTop($bodyGuardCard) ;
+                        } else {
+                            array_push($messages , array(sprintf(_('Tried to play card %d, which is not a valid bodyguard card') , $card) , 'error' , $user_id ));
+                        }
+                    }
+                }
+            }
+            // Then handle the modified roll result
+            $this->assassination['roll']-=$nbOfBodyGuards ;
+            // TO DO : body guards
         }
         return $messages ;
     }
