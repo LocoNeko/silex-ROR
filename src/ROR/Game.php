@@ -3932,13 +3932,24 @@ class Game
     }
 
     /**
-     * Sets the senate subphase based on the latest proposal, since after 'Governors' the type should be 'Other business'
+     * Sets the senate subphase based on the latest proposal, since after 'Governors' the subPhase should be 'Other business' for any type of proposal
      * @return string Message
      */
     private function senate_setSubPhaseBack() {
         $latestProposal = $this->senate_getLatestProposal() ;
         if (in_array($latestProposal->type , array('Consuls' , 'Pontifex Maximus' , 'Dictator' , 'Censor' , 'Prosecutions' , 'Governors')) ) {
             $this->subPhase = $latestProposal->type ;
+        } elseif ($latestProposal->type == 'Assassin prosecution') {
+            if (count($this->proposals)<=1) {
+                $this->subPhase = 'Consuls' ;
+            // Push the assassination prosecution before the last proposal, then call the function again
+            } else {
+                $index = count($this->proposals)-1 ;
+                $tempProposal = $this->proposals[$index-1] ;
+                $this->proposal[$index-1] = $this->proposal[$index] ;
+                $this->proposal[$index] = $tempProposal ;
+                $this->senate_setSubPhaseBack() ;
+            }
         } else {
             $this->subPhase = 'Other business';
         }
@@ -4370,7 +4381,6 @@ class Game
         $leaderOfAssassinParty = $this->party[$this->assassination['assassinParty']]->leader ;
         array_push($messages , $this->mortality_killSenator($this->assassination['assassinID'], TRUE)) ;
         // If the assassin was faction leader, don't prosecute the new leader, but still draw chits based on POP of victim using senate_assassinationMobJustice()
-        // DON'T forget to reset assassination to NULL
         if ($leaderOfAssassinParty->senatorID == $this->assassination['assassinID']) {
             array_push($messages , _('Since the leader was the assassin, there is no special major prosecution.')) ;
             // Mob justice : draw mortality chits based on POP of victim
@@ -4385,6 +4395,7 @@ class Game
             sprintf(_('%s, leader of the assassin\'s party loses 5 INF (now %d) and is immediately subject to a special major prosecution.') , $leaderOfAssassinParty->name , $leaderOfAssassinParty->INF);
             $proposal = new Proposal ;
             // TO DO : Check which parameters are needed
+            // DON'T forget to reset assassination to NULL after a specialprosecution
             $proposal->init('Assassin prosecution' , NULL , NULL , $this->party , 'TO DO'  , NULL ) ;
             $this->proposals[] = $proposal ;
             $this->subPhase = 'Assassin prosecution' ;
@@ -4449,7 +4460,49 @@ class Game
             }
             // Then handle the modified roll result
             $this->assassination['roll']-=$nbOfBodyGuards ;
-            // TO DO : body guards
+            $caught = FALSE ;
+            if ($this->assassination['roll']>=5) {
+                array_push($messages , array( sprintf(_('With a modified total of %d, the target is killed.') , $this->assassination['roll']) ));
+                array_push($messages , $this->mortality_killSenator($this->assassination['victimID'], TRUE)) ;
+            } elseif ($this->assassination['roll']<=2) {
+                array_push($messages , array(sprintf(_('With a modified total of %d, the assassin is caught & killed.') , $this->assassination['roll']) ));
+                $caught = TRUE ;
+            } else {
+                array_push($messages , array(sprintf(_('With a modified total of %d, there is no effect.') , $this->assassination['roll'])));
+            }
+            // See if body guards catch an assassin following a 'killed' or 'no effect' result
+            if ($nbOfBodyGuards>0 && ($this->assassination['roll']>=5 || $this->assassination['roll']<=2) ) {
+                for ($bodyGuardNumber = 1 ; $bodyGuardNumber <= $nbOfBodyGuards ; $bodyGuardNumber++) {
+                    $bodyGuardRoll = $this->rollOneDie(-1) ;
+                    $bodyGuardRoll += ($this->assassination['assassinCards']===NULL ? 0 : 1 )  - $nbOfBodyGuards;
+                    array_push($messages , array(
+                        sprintf(_('{%s} rolls %d for bodyguard number %d %s%s -%d for body guards.') , 
+                            $user_id ,
+                            $bodyGuardRoll ,
+                            $bodyGuardNumber ,
+                            ($this->getEventLevel('name' , 'Evil Omens')>0 ? _(' including the effects of evil omens,') : '') ,
+                            ($this->assassination['assassinCards']===NULL ? '' : _(' +1 for the assassin card,') ) ,
+                            $nbOfBodyGuards
+                        )
+                    ));
+                    if ($bodyGuardRoll<=2) {
+                        $caught = TRUE ;
+                        break ;
+                    }
+                }
+            }
+            // Only push 'caught' messages if they exist (the result was 'caught')
+            if ($caught) {
+                array_push($messages , array(sprintf(_('The assassin is caught & killed.')) ));
+                $caughtMessages = $this->senate_assassinCaught() ;
+                foreach($caughtMessages as $message) {
+                    array_push($messages , $message) ;
+                }
+            // Return to a normal Senate phase after the bloodshed
+            } else {
+                unset($this->assassination);
+                array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
+            }
         }
         return $messages ;
     }
