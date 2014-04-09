@@ -137,6 +137,9 @@ class Proposal {
             case 'Land Bills' :
                 $result = array ('given' => 3 , 'total' => 5) ;
                 break ;
+            case 'Assassin prosecution' :
+                $result = array ('given' => 1 , 'total' => 1) ;
+                break ;
             default :
                 $result = FALSE ;
                 break ;
