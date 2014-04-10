@@ -131,6 +131,8 @@ class Proposal {
                 $result = array ('given' => 2 , 'total' => 2) ;
                 break ;
             case 'Dictator' :
+                $result = array ('given' => 1 , 'total' => 2) ;
+                break ;
             case 'Censor' :
                 $result = array ('given' => 1 , 'total' => 1) ;
                 break ;

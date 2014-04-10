@@ -3451,6 +3451,7 @@ class Game
         //Dictator
         } elseif ($type=='Dictator') {
             // TO DO : Dictator Proposal
+            // The 'bidDone' parameter is used here to make sure that every party has a chance to propose a dictator
              
         // Censor
         } elseif ($type=='Censor') {
@@ -4108,8 +4109,8 @@ class Game
                         $this->senate_appointOfficial('Censor', $candidates[0]->senatorID) ;
                         $this->subPhase='Prosecutions';
                     }
+                // A dictator can be appointed/elected. Set each party's "bidDone" to FALSE to give them all a chance to do so.
                 } else {
-                    // A dictator can be appointed/elected. Set each party's "bidDone" to FALSE to give them all a chance to do so.
                     foreach ($dictatorFlag as $flag) {
                         array_push($messages , array($flag) );
                     }
@@ -5117,6 +5118,12 @@ class Game
                 /*
                  * Dictator
                  */
+                } elseif (($this->phase=='Senate') && ($this->subPhase=='Dictator')) {
+                    // TO DO : I'm here now
+                    // Give a chance to propose a dictator if conditions are met (they should be otherwise the phase wouldn't be 'Dictator'
+                    // Always give the option to set 'bidDone' to TRUE, so the player can indicate he doesn't want to propose a dictator this turn
+                    // Once bidDone for all parties are TRUE, move on with our lives.
+                    // Also : first give a chance to the consuls to appoint a dictator
                 /*
                  * Censor
                  */
