@@ -1171,7 +1171,7 @@ class Game
      * - Where senator and controlled cards go (forum, curia, discard)<br>
      * @param string $senatorID The SenatorID of the dead senator
      * @param specificID TRUE if the Senator with this specific ID should be killed,<br>FALSE if the ID is a family, and Statesmen must be tested (default)
-     * @param specificParty Equal to the user_id of the party to which the dead Senator must belong,<br>
+     * @param specificParty FALSE or equal to the $user_id of the party to which the dead Senator must belong<br>
      * senators from other parties will not be killed.<br>
      * FALSE (default)
      * @return array Just a one message-array, not an array of messages
@@ -1187,11 +1187,14 @@ class Game
                 // If no party is targetted put any senator in the array, otherwise only put senators belonging to that party
                 if ($specificParty===FALSE || ($specificParty!=FALSE && $specificParty==$party->user_id) ) {
                     foreach ($party->senators->cards as $senator) {
-                        if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $senatorID ) ) {
-                            array_push($deadSenators , $senator) ;
-                        } elseif ( ($senator->type == 'Family') && ($senator->senatorID == $senatorID) ) {
-                            array_push($deadSenators , $senator) ;
-                        }
+                        // On top of that, if the $specificParty flag is set, we only consider senators in Rome
+                        if (($specificParty && $senator->inRome()) || $specificParty===FALSE) {
+                            if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $senatorID ) ) {
+                                array_push($deadSenators , $senator) ;
+                            } elseif ( ($senator->type == 'Family') && ($senator->senatorID == $senatorID) ) {
+                                array_push($deadSenators , $senator) ;
+                            }
+                        } 
                     }
                 }
             }
@@ -3639,7 +3642,7 @@ class Game
             } else {
                 array_push($messages , array( sprintf(_('The Censor %s returns the floor to the Presiding Magistrate') , $censor['senator']->name) ));
                 // Sub phase will turn either to 'Governors' or 'Other business'
-                array_push($messages , $this->senate_setSubPhaseAfterProsecutions($user_id));
+                array_push($messages , $this->senate_setSubPhaseBack() );
             }
         }
         return $messages ;
@@ -3798,7 +3801,7 @@ class Game
                     $this->senate_appointOfficial('Censor', $latestProposal->parameters[0]) ;
                     array_push($messages , array(sprintf(_('%s is elected Censor.') , $this->getSenatorWithID($latestProposal->parameters[0])->name )) );
                     $this->subPhase='Prosecutions';
-                } elseif ($latestProposal->type=='Prosecutions') {
+                } elseif ($latestProposal->type=='Prosecutions' || $latestProposal->type=='Assassin prosecution') {
                     $this->senate_prosecutionSuccessful($user_id) ;
                 }
             } else {
@@ -3853,7 +3856,6 @@ class Game
                 }
             }
         // Handle mandatory popular appeal during Special Major Prosecution for assassination
-        // TO DO
         } elseif ($this->phase == 'Senate' && $this->subPhase == 'Assassin prosecution') {
             $latestProposal = $this->senate_getLatestProposal() ;
             $accused = $this->party[$this->assassination['assassinParty']]->leader ;
@@ -3893,7 +3895,8 @@ class Game
     }
 
     /**
-     * Proceed with the effects of a successful prosecutions : gain/loss of POP,INF,Prior Consul,Concessions, Life
+     * Proceed with the effects of a successful prosecutions : gain/loss of POP,INF,Prior Consul,Concessions, Life<br>
+     * Handles both 'Prosecutions' and 'Assassin prosecution' proposal types
      * @param string $user_id
      * @return array messages
      */
@@ -3918,7 +3921,7 @@ class Game
                 }
                 array_push($messages , array($message2)) ;
                 // Sub phase will turn either to 'Governors' or 'Other business'
-                array_push($messages , $this->senate_setSubPhaseAfterProsecutions($user_id));
+                array_push($messages , $this->senate_setSubPhaseBack());
             // This was a minor prosecution
             } else {
                 $accused->changePOP(-5) ;
@@ -3950,9 +3953,20 @@ class Game
                 array_push($messages , array($message2)) ;
                 if ($this->senate_getFinishedProsecutions()['minor']==2) {
                     // Sub phase will turn either to 'Governors' or 'Other business'
-                    array_push($messages , $this->senate_setSubPhaseAfterProsecutions($user_id));
+                    array_push($messages , $this->senate_setSubPhaseBack());
                 }
             }
+        // Case of a Special Major Prosecution for Assassination
+        } elseif ($latestProposal->type=='Assassin prosecution' && $latestProposal->outcome==TRUE) {
+            $accused = $this->getSenatorWithID($latestProposal->parameters[0]) ;
+            array_push ($messages , array( sprintf(_('Major prosecution successful : %s is executed for leading a murderous party. ') , $accused->name ) ));
+            array_push ($messages , $this->mortality_killSenator($accused->senatorID , TRUE) );
+            $mobJusticeMessages = $this->senate_assassinationMobJustice() ;
+            foreach($mobJusticeMessages as $message) {
+                array_push($messages , $message) ;
+            }
+            unset($this->assassination);
+            array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
         }
         return $messages ;
     }
@@ -3980,7 +3994,7 @@ class Game
             if ($stepDown==1 && $this->subPhase == 'Prosecutions') {
                 array_push($messages , array(_('With the Censor stepping down, the Prosecution phase ends.')) );
                 // Sub phase will turn either to 'Governors' or 'Other business'
-                array_push($messages , senate_setSubPhaseAfterProsecutions($user_id));
+                array_push($messages , $this->senate_setSubPhaseBack());
             }
         } else {
             return array(array(_('You are not presiding magistrate, hence cannot step down.') , 'error' , $user_id));
@@ -3989,12 +4003,22 @@ class Game
     }
 
     /**
-     * Sets the senate subphase based on the latest proposal, since after 'Governors' the subPhase should be 'Other business' for any type of proposal
-     * @return string Message
+     * Sets the senate subphase based on the latest proposal, since after 'Governors' the subPhase should be 'Other business' for any type of proposal<br>
+     * After Prosecutions, the Senate subPhase should be either 'Governors' or 'Other business' based on the situation<br>
+     * If there is at least one province in play (even with a governor, because a recall is possible),<br>
+     * set the phase to 'Governors', otherwise set it to 'Other business'<br>
+     * @return string Message array (not an array of messages)
      */
     private function senate_setSubPhaseBack() {
         $latestProposal = $this->senate_getLatestProposal() ;
-        if (in_array($latestProposal->type , array('Consuls' , 'Pontifex Maximus' , 'Dictator' , 'Censor' , 'Prosecutions' , 'Governors')) ) {
+        if ($this->subPhase=='Prosecutions') {
+            $listOfAvailableProvinces = $this->senate_getListAvailableProvinces() ;
+            if (count($listOfAvailableProvinces) >0) {
+                $this->subPhase='Governors';
+            } else {
+                $this->subPhase='Other business';
+            }
+        } elseif (in_array($latestProposal->type , array('Consuls' , 'Pontifex Maximus' , 'Dictator' , 'Censor' , 'Governors')) ) {
             $this->subPhase = $latestProposal->type ;
         } elseif ($latestProposal->type == 'Assassin prosecution') {
             if (count($this->proposals)<=1) {
@@ -4012,7 +4036,7 @@ class Game
         }
         return sprintf(_('The senate sub phase is now : %s') , $this->subPhase ) ;
     }
-       
+
     /**
      * A decision (not a vote) has been made on a proposal that was voted (outcome is TRUE) :<br>
      * - Consuls deciding who will do what<br>
@@ -4232,7 +4256,6 @@ class Game
                 $result[] = 'Tribune card';
             }
         }
-        // TO DO : The censor MUST make a proposal if this is a Special Major Prosecution for Assassination, as he MUST choose a voting order
         return $result ;
     }
     
@@ -4471,7 +4494,6 @@ class Game
             $chits = $this->mortality_chits($chitsToDraw) ;
             foreach ($chits as $chit) {
                 if ($chit!='NONE' && $chit!='DRAW 2') {
-                    // TO DO : handle the fact that the senator must be in Rome (should be done in the killSenator function)
                     $returnedMessage= $this->mortality_killSenator((string)$chit , FALSE , $this->assassination['assassinParty']) ;
                     array_push( $messages , array(sprintf(_('Chit drawn : %s. ') , $chit).$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) ));
                 } else {
@@ -4728,29 +4750,6 @@ class Game
             }
         }
         return $result ;
-    }
-    
-    /**
-     * This function sets the Senate subPhase to either 'Governors' or 'Other business' based on the situation<br>
-     * If there is at least one province in play (even with a governor, because a recall is possible),<br>
-     * set the phase to 'Governors', otherwise set it to 'Other business'<br>
-     * @param string $user_id Current user id
-     * @return array One message array (Not an arrray of array like many other functions)
-     */
-    public function senate_setSubPhaseAfterProsecutions($user_id) {
-        if ($this->phase=='Senate' && $this->subPhase=='Prosecutions') {
-            $listOfAvailableProvinces = $this->senate_getListAvailableProvinces() ;
-            if (count($listOfAvailableProvinces) >0) {
-                $message = array(_('Senate sub phase - Governorships') , 'alert');
-                $this->subPhase='Governors';
-            } else {
-                $message = array(_('Senate sub phase - Other business') , 'alert');
-                $this->subPhase='Other business';
-            }
-        } else {
-            $message = array(_('Error - This is not the prosecutions sub phase') , 'error' , $user_id);
-        }
-        return $message ;
     }
     
     /**
@@ -5191,6 +5190,9 @@ class Game
                     }
                 }
                 $description.= sprintf(_('%s. Prosecutor : %s') , $reasonText , $this->getSenatorFullName($latestProposal->parameters[2]) );
+                break ;
+            case 'Assassin prosecution' :
+                $description.= _('Special Major Prosecution for assassination');
                 break ;
             // TO DO : other types of proposals
         }
