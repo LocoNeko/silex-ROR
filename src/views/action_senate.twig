@@ -43,9 +43,31 @@
             Pontifex Maximus proposal
         #}
         {#
+            Dictator Appointment (consuls only)
+        #}
+        {% elseif output['type']=='Dictator Appointment' %}
+            {# You are not a Consul - Wait #}
+            {% if output['waitingForConsuls'] %}
+                Waiting for Consuls to decide if they want to appoint a dictator
+                
+            {# You are a Consul - decide what to do with Dictator Appointment #}
+            {% else %}
+                Appoint a Dictator (other Consul must agree) :<br>
+                <input type="hidden" name="type" value="Dictator">
+                <select name="parameters[0]">
+                    <option value="NO">NO</option>
+                    {% for senator in output['possibleDictators']%}
+                        <option value="{{senator['senatorID']}}">
+                            {{senator['name']}} ({{senator['partyName']}})
+                        </option>
+                    {% endfor %}
+                </select><br>
+                <input type="hidden" name="proposalHow" value="Dictator appointed by Consuls"></input>
+            {% endif %}
+        {#
             Dictator proposal
         #}
-        {% elseif output['type']=='Dictator' %}
+        {% elseif output['type']=='Dictator Proposal' %}
         {#
             Censor proposal
         #}
@@ -111,16 +133,21 @@
         {% endif %}
         {#
             Show a list of possible ways to make a proposal
-            Doesn't apply to prosecutions (only Censor can make proposals, and assassin prosecution is automatic)
+            Doesn't apply to prosecutions (only Censor can make proposals, and assassin prosecution is automatic) or dictator appointment by Consuls
         #}
-        {% if output['type']!='Prosecutions' and output['type']!='Assassin prosecution'%}
+        {% if output['type']!='Prosecutions' and output['type']!='Assassin prosecution' and output['type']!='Dictator Appointment'%}
             Choose how to make proposal :<br>
             {% embed 'action_senate_proposalHow.twig' %}
             {% endembed %}
         {% endif %}
-        Choose voting order :<br>
-        {% embed 'action_senate_votingOrder.twig' %}
-        {% endembed %}
+        {#
+            Choose voting order. Doesn't apply to dictator appointment by Consuls
+        #}
+        {% if output['type']!='Dictator Appointment' %}
+            Choose voting order :<br>
+            {% embed 'action_senate_votingOrder.twig' %}
+            {% endembed %}
+        {% endif %}
         <br>
         <button type="submit" class="btn-danger">MAKE PROPOSAL</button>
     </form>
@@ -260,6 +287,24 @@ You cannot make a proposal at the moment
             Waiting for the elected consuls to decide between themselves
         {% endif %}
     {#
+        Decision - Dictator appointment
+    #}
+    {% elseif output['type'] =='Dictator'%}
+        {% if output['canDecide']%}
+            {#
+
+
+
+                                                            TO DO
+
+
+
+
+            #}
+        {% else %}
+            Waiting for Consuls to decide if they want to appoint a dictator
+        {% endif %}
+    {#
         Decision - Prosecutor
     #}
     {% elseif output['type'] =='Prosecutions'%}
@@ -276,6 +321,9 @@ You cannot make a proposal at the moment
         {% else %}
             Waiting for the appointed prosecutor to decide if he accepts the appointment.
         {% endif %}
+    {#
+        Decision - Whether returning Governors can go again or not
+    #}
     {% elseif output['type'] =='Governors'%}
         {% if output['canDecide']%}
             You have returning governor(s) ({{output['list']}}) in the current proposal. Do you agree for them to go govern a province again this turn ?<br>

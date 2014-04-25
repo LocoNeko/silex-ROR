@@ -403,7 +403,7 @@ class Game
     /**
      * 
      * @param type $senatorID
-     * @return boolean
+     * @return mixed party | 'forum' | FALSE
      */
     public function getPartyOfSenatorWithID ($senatorID) {
         foreach ($this->party as $party) {
@@ -3407,6 +3407,7 @@ class Game
          */
         $rules = Proposal::validationRules($type) ;
         // For Prosecutions, parameters 0 & 1 are 'compressed' into parameter 0 at the time of form submission
+        // This is UGLY (c)(tm)
         if ($type=='Prosecutions') {
             $compressedParameter = explode(',' , $parameters[0]);
             $parameters[0] = $compressedParameter[0] ;
@@ -3450,7 +3451,26 @@ class Game
             
         //Dictator
         } elseif ($type=='Dictator') {
-            // TO DO : Dictator Proposal
+            // 'Appointnment' proposal
+            if ($proposalHow=='Dictator appointed by Consuls') {
+                $proposal->parameters[1] = TRUE ;
+                // Check if Senator is equal to 'NO', which means a Consul didn't want to appoint
+                if ($parameters[0]=='NO') {
+                    $proposal->outcome = FALSE ;
+                    array_push($messages , array(_('You decide not to appoint a Dictator this turn.')) );
+                }
+                array_push($this->proposals , $proposal) ;
+                array_push($messages , array(sprintf(_('You propose to appoint %s {%s} as a Dictator.') , $this->getSenatorWithID($parameters[0])->name , $this->getPartyOfSenatorWithID($parameters[0])->user_id ) , $user_id) );
+                // The proposal can be accetped immediately if there is only one Consul
+                if ($this->senate_findOfficial('Rome Consul')===FALSE || $this->senate_findOfficial('Field Consul')===FALSE) {
+                    $proposal->outcome = TRUE ;
+                    $this->senate_appointOfficial('Dictator', $parameters[0]) ;
+                    array_push($messages , array(sprintf(_('The only Consul alive appoints %s {%s} as a Dictator.') , $this->getSenatorWithID($parameters[0])->name , $this->getPartyOfSenatorWithID($parameters[0])->user_id )) );
+                }
+            } else {
+                $proposal->parameters[1] = FALSE ;
+                // TO DO : Normal Dictator Proposal
+            }
             // The 'bidDone' parameter is used here to make sure that every party has a chance to propose a dictator
              
         // Censor
@@ -3529,14 +3549,17 @@ class Game
             return array(array(sprintf(_('Cannot make proposals using %s') , $proposalHow) , 'error')) ;
         }
         // Voting Order : Goes through all the elements of the $votingOrder array and check if they are all exactly the same as the keys in $this->party
-        if (count($votingOrder)!=count($this->party)) {
-            return array(array(_('Invalid voting order : not enough parties') , 'error')) ;
-        }
-        while (count($votingOrder)>0) {
+        // This does not apply to Dictator appointment by Consuls
+        if ($proposalHow!='Dictator appointed by Consuls') {
+            if (count($votingOrder)!=count($this->party)) {
+                return array(array(_('Invalid voting order : not enough parties') , 'error')) ;
+            }
+            while (count($votingOrder)>0) {
 
-            $currentElement = array_shift($votingOrder) ;
-            if (!array_key_exists($currentElement , $this->party)) {
-                return array(array(_('Invalid voting order : unknown party') , 'error')) ;
+                $currentElement = array_shift($votingOrder) ;
+                if (!array_key_exists($currentElement , $this->party)) {
+                    return array(array(_('Invalid voting order : unknown party') , 'error')) ;
+                }
             }
         }
         return TRUE ;
@@ -3566,6 +3589,10 @@ class Game
                 return TRUE ;
             case 'inRome' :
                 return ( $this->getSenatorWithID($parameters[$index])->inRome() ? TRUE : _('Senator is not in Rome.') ) ;
+            case 'NO_or_inRome' :
+                return ( ($parameters[$index]=='NO' || $this->getSenatorWithID($parameters[$index])->inRome()) ? TRUE : _('Senator is not in Rome.') ) ;
+            case 'boolean' :
+                return ( ( $parameters[$index]===TRUE || $parameters[$index]===FALSE) ? TRUE : _('Value should be True or False.') ) ;
             case 'office' :
                 $senator = $this->getSenatorWithID($parameters[$index]) ;
                 if (!in_array('Tradition Erodes' , $this->laws)) {
@@ -4837,7 +4864,7 @@ class Game
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 if ($senator->inRome() && ($senator->office===NULL || $senator->office==='Censor')) {
-                    array_push($result , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id) ) ;
+                    array_push($result , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'party_name' => $party->name) ) ;
                 }
             }
         }

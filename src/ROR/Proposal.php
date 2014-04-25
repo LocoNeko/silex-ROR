@@ -37,9 +37,11 @@ class Proposal {
     /**
      * Returns TRUE if successfully initiated or a message array with an error otherwise.
      * @param string $type A valid proposal type, as in self::$VALID_PROPOSAL_TYPES
+     * @param string $proposedBy The user_id of the party proposing this
      * @param string $description A proposal's description
      * @param array $parties an array of the parties in this game
      * @param array $parameters an array of parameters
+     * @param array $votingOrder The order in which voting will take place, which is a valid array of user_id
      * @return type
      */
     public function init ($type , $proposedBy , $description , $parties , $parameters , $votingOrder) {
@@ -163,6 +165,10 @@ class Proposal {
                 $result[2] = array('inRome' , 1);
                 $result[3] = array('office' , 0);
                 $result[4] = array('office' , 1);
+                break ;
+            case 'Dictator' :
+                $result[0] = array('NO_or_inRome' , 0);
+                $result[1] = array('boolean' , 1);
                 break ;
             case 'Censor' :
                 $result[0] = array('inRome' , 0);
