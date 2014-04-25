@@ -291,16 +291,15 @@ You cannot make a proposal at the moment
     #}
     {% elseif output['type'] =='Dictator'%}
         {% if output['canDecide']%}
-            {#
-
-
-
-                                                            TO DO
-
-
-
-
-            #}
+            Your fellow Consul is proposing to appoint {{output['SenatorName']}} as Dictator<br>
+            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_decision'} ) }}">
+                <input type="hidden" name="type" id="type" value="AppointDictator">
+                <select name="accept">
+                    <option value="YES">ACCEPT</option>
+                    <option value="NO">REFUSE</option>
+                </select><br>
+                <button type="submit" class="btn-danger">OK</button>
+            </form>
         {% else %}
             Waiting for Consuls to decide if they want to appoint a dictator
         {% endif %}

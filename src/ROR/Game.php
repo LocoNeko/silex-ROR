@@ -4148,7 +4148,18 @@ class Game
                     $this->subPhase='Dictator';
                 }
             }
-            
+        /*
+         * Appoint dictator decision (A consul suggested to appoint a Senator as Dictator, and the other accepts/refuses)
+         */
+        } elseif ($this->phase=='Senate' && $this->subPhase=='Dictator' && $latestProposal->outcome===NULL && $request['type']=='AppointDictator') {
+            if ($request['accept']=='YES') {
+                $latestProposal->outcome = TRUE ;
+                $this->senate_appointOfficial('Dictator', $latestProposal->parameters[0]) ;
+                array_push($messages , array(sprintf(_('The Consuls appoint %s {%s} as a Dictator.') , $this->getSenatorWithID($latestProposal->parameters[0])->name , $this->getPartyOfSenatorWithID($latestProposal->parameters[0])->user_id )) );
+            } else {
+                array_push($messages , _('The Consuls decide not to appoint a dictator.')) ;
+                $latestProposal->outcome=FALSE ;
+            }
         /*
          * Prosecutions decision (prosecutor accepting/refusing appointment)
          */
@@ -4168,7 +4179,7 @@ class Game
                 return array(array(_('You cannot take such a decision at this moment.')  , 'error' , $user_id));
             }
         /*
-         * Governors decision (returning governors agrreing to go again on the same turn)
+         * Governors decision (returning governors agreeing to go again on the same turn)
          */
         } elseif ($this->phase=='Senate' && $this->subPhase=='Governors' && $latestProposal->outcome===NULL && $request['type']=='governors') {
             if ($request['accept']=='YES') {
