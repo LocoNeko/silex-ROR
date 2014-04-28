@@ -68,6 +68,25 @@
             Dictator proposal
         #}
         {% elseif output['type']=='Dictator Proposal' %}
+            Dictator Proposal :<br>
+            {# Only able to propose if hasn't given up on the idea already, otherwise the proposalHow should be NULL, and we should never reach this  #}
+            {% if not output['done'] %}
+                <input type="hidden" name="type" value="Dictator">
+                <select name="parameters[0]">
+                    <option value="DONE">Do not propose a Dictator this turn</option>
+                    {#
+                        Only show a list of potential ditator if the player has more than one 'proposalHow'
+                        If he has only one, it should be 'Dictator proposal', giving him only the option to click 'DONE'
+                    #}
+                    {% if output['proposalHow']|length > 1 %}
+                        {% for senator in output['possibleDictators']%}
+                            <option value="{{senator['senatorID']}}">
+                                {{senator['name']}} ({{senator['partyName']}})
+                            </option>
+                        {% endfor %}
+                    {% endif %}
+                </select><br>
+            {% endif %}
         {#
             Censor proposal
         #}
@@ -128,7 +147,7 @@
             {% endfor %}
             <br>
         {#
-        TO DO : 15 other types of proposals
+        TO DO : other types of proposals
         #}
         {% endif %}
         {#

@@ -1,9 +1,12 @@
 {% for how in output['proposalHow']%}
-    <label class="radio">
-        {% if how|length == 2 %}
-            <input type="radio" name="proposalHow" {{ loop.first ? 'checked="checked"' : '' }} value="{{how['senatorID']}}">{{how['name']}}
-        {% else %}
-            <input type="radio" name="proposalHow" {{ loop.first ? 'checked="checked"' : '' }} value="{{how}}">{{how}}
-        {% endif %}
-    </label>
+    {# 'Dictator Proposal' should never appear : it's just here to give a chance to all player to say 'DONE' to Dictator Proposals for the turn #}
+    {% if how != 'Dictator proposal' %}
+        <label class="radio">
+            {% if how|length == 2 %}
+                <input type="radio" name="proposalHow" {{ loop.first ? 'checked="checked"' : '' }} value="{{how['senatorID']}}">{{how['name']}}
+            {% else %}
+                <input type="radio" name="proposalHow" {{ loop.first ? 'checked="checked"' : '' }} value="{{how}}">{{how}}
+            {% endif %}
+        </label>
+    {% endif %}
 {% endfor %}    

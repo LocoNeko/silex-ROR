@@ -3395,6 +3395,14 @@ class Game
      */
     public function senate_proposal($user_id , $type , $description , $proposalHow , $parameters , $votingOrder) {
         $messages = array() ;
+        /* Short-circuit the process entirely if this is an exception case to normal proposals
+         * This can happen in those cases :
+         * - Giving the opportunity to a player to give up on Dictator's proposal for the rest of the turn
+         */
+        if ($type=='Dictator' && $parameters[0]=='DONE') {
+            $this->party[$user_id]->bidDone = TRUE ;
+            return array(array(_('You do not wish to propose a Dictator this turn.') , 'message' , $user_id)) ;
+        }
         /*
          * Basic checks
          */
@@ -3452,7 +3460,7 @@ class Game
         //Dictator
         } elseif ($type=='Dictator') {
             // 'Appointnment' proposal
-            if ($proposalHow=='Dictator appointed by Consuls') {
+            if ($proposalHow==='Dictator appointed by Consuls') {
                 $proposal->parameters[1] = TRUE ;
                 // Check if Senator is equal to 'NO', which means a Consul didn't want to appoint
                 if ($parameters[0]=='NO') {
@@ -4293,12 +4301,19 @@ class Game
                     $canAppoint = FALSE ;
                 }
             }
-            // There has been no dictator proposal yet, Consuls (and only them) can appoint one
+            // There has been no dictator appointment proposal yet, Consuls (and only them) can appoint one
             if ($canAppoint) {
                 if ( $this->senate_findOfficial('Rome Consul')['user_id'] == $user_id || $this->senate_findOfficial('Field Consul')['user_id'] == $user_id ) {
                     return array('Dictator appointed by Consuls');
                 } else {
                     // At this stage, no one else can propose anything : Consuls must decide first
+                    return array();
+                }
+            // There has been a dictator appointment proposal : players without the 'bidDone' set to TRUE must have a chance to set it to FALSE
+            } else {
+                if ($this->party[$user_id]->bidDone===FALSE) {
+                    return array('Dictator proposal');
+                } else {
                     return array();
                 }
             }
@@ -4868,7 +4883,7 @@ class Game
     
     /**
      * Returns an array of possible dictators (in Rome, not holding any office except Censor
-     * @return array ('senatorID' , 'name' , 'user_id')
+     * @return array ('senatorID' , 'name' , 'user_id' , 'party_name')
      */
     public function senate_getListPossibleDictators() {
         $result = array() ;
@@ -5224,14 +5239,10 @@ class Game
                         $output['waitingForConsuls'] = TRUE ;
                     // In the view, give the option to set 'bidDone' to TRUE, so the player can indicate he doesn't want to propose a dictator this turn
                     // Once bidDone for all parties are TRUE, move on with our lives.
-                    } elseif (count($output['proposalHow'])>0 && $this->party[$user_id]->bidDone===FALSE) {
+                    } else {
                         $output['type'] = 'Dictator Proposal';
                         $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
                         $output['done'] = FALSE ;
-                    // Unable to, or already declined to propose a Dictator
-                    } else {
-                        $output['type'] = 'Dictator Proposal';
-                        $output['done'] = TRUE ;
                     }
                 /*
                  * Censor
