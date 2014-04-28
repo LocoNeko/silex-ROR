@@ -4459,8 +4459,8 @@ class Game
             }
             if ($card!='NONE') {
                 $error3 = TRUE ;
-                foreach ($this->senate_getListAssassinationCards($user_id , 'ASSASSIN') as $card) {
-                    if ($card['id']==$card) {
+                foreach ($this->senate_getListAssassinationCards($user_id , 'ASSASSIN') as $possibleCard) {
+                    if ($possibleCard['id']==$card) {
                         $error3=FALSE ;
                     }
                 }
@@ -4493,7 +4493,7 @@ class Game
             $assassinationMessage = sprintf(_('%s ({%s}) makes an assassination attempt on %s ({%s})') , $assassinSenator->name , $user_id , $victimSenator->name , $this->assassination['victimParty']) ;
             if ($card!='NONE') {
                 $this->assassination['assassinCards'] = $card ;
-                $assassinationCard = $assassinSenator->controls->drawCardWithValue('id' , $card) ;
+                $assassinationCard = $this->party[$user_id]->hand->drawCardWithValue('id' , $card) ;
                 $assassinationMessage.= sprintf(_(' and plays %s from his hand.') , $assassinationCard->name );
                 $this->discard->putOnTop($assassinationCard) ;
             }
@@ -4538,7 +4538,7 @@ class Game
         array_push($messages , $this->mortality_killSenator($this->assassination['assassinID'], TRUE)) ;
         // If the assassin was faction leader, don't prosecute the new leader, but still draw chits based on POP of victim using senate_assassinationMobJustice()
         if ($leaderOfAssassinParty->senatorID == $this->assassination['assassinID']) {
-            array_push($messages , _('Since the leader was the assassin, there is no special major prosecution.')) ;
+            array_push($messages , array(_('Since the leader was the assassin, there is no special major prosecution.'))) ;
             // Mob justice : draw mortality chits based on POP of victim
             $mobJusticeMessages = $this->senate_assassinationMobJustice() ;
             foreach($mobJusticeMessages as $message) {
@@ -4566,7 +4566,7 @@ class Game
         $messages = array() ;
         $chitsToDraw = max (0 , $this->assassination['victimPOP']) ;
         if ($chitsToDraw>0) {
-            array_push($messages , sprintf(_('The victim had %d POP, so %d mortality chits are drawn against the assassin\'s party.') , $this->assassination['victimPOP'] , $chitsToDraw ));
+            array_push($messages , array(sprintf(_('The victim had %d POP, so %d mortality chits are drawn against the assassin\'s party.') , $this->assassination['victimPOP'] , $chitsToDraw )));
             $chits = $this->mortality_chits($chitsToDraw) ;
             foreach ($chits as $chit) {
                 if ($chit!='NONE' && $chit!='DRAW 2') {
@@ -4577,7 +4577,7 @@ class Game
                 }
             }
         } else {
-            array_push($messages , sprintf(_('The victim had %d POP, so no mortality chits are drawn against the assassin\'s party.') , $this->assassination['victimPOP'] ));
+            array_push($messages , array(sprintf(_('The victim had %d POP, so no mortality chits are drawn against the assassin\'s party.') , $this->assassination['victimPOP'] )));
         }
         return $messages ;
     }

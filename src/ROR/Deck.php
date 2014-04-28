@@ -31,10 +31,10 @@ class Deck
     
     /**
      * Draws a card from a deck (reducing its size by 1)<br>
-     * The card's property <b>$name</b> must have the value <b>$target</b>
+     * The card's property <b>$property</b> must have the value <b>$value</b>
      * @param string $property The property being checked
      * @param mixed $value The value the property must be equal to
-     * @return card $card<br> or FALSE if card not found
+     * @return mixed $card<br> or FALSE if card not found
      */
     public function drawCardWithValue($property , $value) {
         foreach ($this->cards as $key=>$card) {

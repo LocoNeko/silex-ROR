@@ -167,8 +167,10 @@ function Action($request ,$game_id , $action , $user_id , Application $app) {
             // Save game only if we've just moved to a new subPhase or we have a new proposal during the Senate phase
             if ( ($game->subPhase != $currentSubPhase) && ($game->phase!='Senate') ) {
                 $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => ($game->phase == 'Forum' ? 'Forum - Initiative #'.$game->initiative : $game->phase ) , 'subPhase' => $game->subPhase , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
-            } elseif ($game->phase=='Senate' && ($nbOfProposals!=count($game->proposals) || $game->subPhase=='Assassination') ) {
+            } elseif ($game->phase=='Senate' && $nbOfProposals!=count($game->proposals) ) {
                 $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => 'Senate' , 'subPhase' => $game->subPhase.' (Proposal #'.count($game->proposals).')' , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
+            } elseif ($game->phase=='Senate' && $game->subPhase=='Assassination') {
+                $app['db']->insert('saved_games' , Array ('game_id' => $game_id , 'turn' => $game->turn , 'phase' => 'Senate' , 'subPhase' => $game->subPhase.' (assassination)' , 'game_data' => $game_data , 'time_saved' => microtime(TRUE) ) );
             }
         }
     }
