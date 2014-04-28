@@ -4054,6 +4054,8 @@ class Game
             } else {
                 $this->subPhase='Other business';
             }
+        } elseif($latestProposal===FALSE) {
+            $this->subPhase = 'Consuls';
         } elseif (in_array($latestProposal->type , array('Consuls' , 'Pontifex Maximus' , 'Dictator' , 'Censor' , 'Governors')) ) {
             $this->subPhase = $latestProposal->type ;
         } elseif ($latestProposal->type == 'Assassin prosecution') {
@@ -4955,7 +4957,7 @@ class Game
         $result = array() ;
         foreach ($this->party as $party) {
             if ($party->user_id!=$user_id && $party->assassinationTarget===FALSE) {
-                foreach ($party->senators as $senator) {
+                foreach ($party->senators->cards as $senator) {
                     if ($senator->inRome()) {
                         $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'party_name' => $party->fullName());
                     }
@@ -5034,8 +5036,6 @@ class Game
             } else {
                 $output['presiding'] = FALSE ;
             }
-            return $output ;
-        }
         /**
          * Short-circuit the normal view if the state is 'Assassination'
          * - Allows the assassin to chose a victim, a Senator to make the attempt and cards to play
@@ -5043,7 +5043,7 @@ class Game
          * - Allows the victim to play bodyguard cards
          * - Resolve assassination & bodyguards catching the assassin
          */
-        if (($this->phase=='Senate') && ($this->subPhase=='Assassination') ) {
+        } elseif (($this->phase=='Senate') && ($this->subPhase=='Assassination') ) {
             $output['state'] = 'Assassination' ;
             // Pick this assassin & the cards played
             if ($this->assassination['assassinID'] === NULL) {
@@ -5064,226 +5064,233 @@ class Game
                     $output['subState'] = 'waiting for victim' ;
                 }
             }
-        }
         /*
-         *  There is a proposal underway : Either a decision has to be made (before or after a vote), or a vote is underway
-         */
-        $output['type'] = $latestProposal->type ;
-        // The proposal's long description
-        $output['longDescription'] = $this->senate_viewProposalDescription($latestProposal) ;
-        /*
-         * Decisions
-         */
-        // Consuls : The outcome is TRUE (the proposal was voted), but Consuls have yet to decide who will be Consul of Rome / Field Consul
-        if ($this->phase=='Senate' && $this->subPhase=='Consuls' && $latestProposal->outcome===TRUE && ($latestProposal->parameters[2]===NULL || $latestProposal->parameters[3]===NULL) ) {
-            $output['state'] = 'Decision' ;
-            $output['type'] = 'Consuls' ;
-            $senator = array() ; $party = array() ;
-            for ($i=0 ; $i<2 ; $i++) {
-                $senator[$i] = $this->getSenatorWithID($latestProposal->parameters[$i]) ;
-                $party[$i] = $this->getPartyOfSenator($senator[$i]);
-            }
-            if ($party[0]->user_id!=$user_id && $party[1]->user_id!=$user_id) {
-                $output['canDecide'] = FALSE ;
-            } else {
-                $output['canDecide'] = TRUE ;
-                for ($i=0 ; $i<2 ; $i++) {
-                    if ($party[$i]->user_id == $user_id) {
-                        if ( ($latestProposal->parameters[2]===NULL || $latestProposal->parameters[2]!=$senator[$i]->senatorID) && ($latestProposal->parameters[3]===NULL || $latestProposal->parameters[3]!=$senator[$i]->senatorID) ) {
-                            $output['senator'][$i] = $senator[$i] ;
-                        } else {
-                            $output['senator'][$i] = 'alreadyDecided' ;
-                        }
-
-                    } else {
-                        $output['senator'][$i] = 'notYou' ;
-                    }
-                }
-            }
-        // Prosecutions : The prosecutor must agree to his appointment
-        } elseif ($this->phase=='Senate' && $this->subPhase=='Prosecutions' && $latestProposal->outcome===NULL && $latestProposal->parameters[3]===NULL ) {
-            $output['state'] = 'Decision' ;
-            $output['type'] = 'Prosecutions' ;
-            $prosecutor = $this->getSenatorWithID($latestProposal->parameters[2]) ;
-            $output['prosecutorName'] = $this->getSenatorFullName($latestProposal->parameters[2]) ;
-            $output['prosecutorID'] = $prosecutor -> senatorID ;
-            $output['prosecutorParty'] = $this->getPartyOfSenator($prosecutor)->user_id ;
-            $output['canDecide'] = ( $output['prosecutorParty'] == $user_id ) ;
-        // Governors : Returning governors agreeing to be nominated for governorships
-        } elseif($this->phase=='Senate' && $this->subPhase=='Governors' && $latestProposal->outcome===NULL && in_array('PENDING' , $latestProposal->parameters) && $this->senate_getReturningGovernorsCanChoose($latestProposal->parameters) ) {
-            $output['state'] = 'Decision' ;
-            $output['type'] = 'Governors' ;
-            $output['list'] = $this->senate_getListReturningGovernors($latestProposal->parameters , $user_id) ;
-            $output['canDecide'] = ( $output['list']!==FALSE ) ;
-        // Dictator : If the 'Appointment' parameter (second parameter) is set to TRUE the other Consul must decide. This decision short-circuits the Vote process entirely : Here, Decision = outcome
-        } elseif($this->phase=='Senate' && $this->subPhase=='Dictator' && $latestProposal->parameters[1]===TRUE && $latestProposal->outcome===NULL) {
-            $output['state'] = 'Decision' ;
-            $output['type'] = 'Dictator' ;
-            $output['SenatorName'] = $this->getSenatorWithID($latestProposal->parameters[0])['name'] ;
-            $output['canDecide'] = $latestProposal->proposedBy!=$user_id && ( ($this->senate_findOfficial('Rome Consul')['user_id'] == $user_id) || ($this->senate_findOfficial('Field Consul')['user_id'] == $user_id) );
-        // Dictator appoints Master of horse
-        } elseif ($this->phase=='Senate' && $this->subPhase=='Dictator' && $latestProposal->parameters[2]===NULL && $latestProposal->outcome===TRUE) {
-            // TO DO
-        /**
-         * Assassin special prosecution : allow the Censor to chose voting order
-         */
-        } elseif ($this->phase=='Senate' && $this->subPhase=='Assassin prosecution' && $latestProposal->votingOrder===NULL) {
-            $output['state'] = 'Assassin prosecution voting order' ;
-            $output['canChoose'] = ($this->senate_findOfficial('Censor')['user_id'] == $user_id) ;
-        /*
-         * Vote (The proposal has no outcome but no decision is required : make vote possible)
-         */
-        } elseif ($this->phase=='Senate' && $latestProposal!==FALSE && $latestProposal->outcome===NULL) {
-            $output['state'] = 'Vote' ;
-            $output['type'] = $latestProposal->type ;
-            // The proposal's long description
-            $output['longDescription'] = $this->senate_viewProposalDescription($latestProposal) ;
-            $output['voting'] = $latestProposal->voting ;
-            $output['treasury'] = array() ;
-            foreach($this->party[$user_id]->senators->cards as $senator) {
-                $output['treasury'][$senator->senatorID] = $senator->treasury ;
-            }
-            $output['votingOrder'] = $latestProposal->votingOrder ;
-            $output['votingOrderNames'] = array() ;
-            foreach ($output['votingOrder'] as $key=>$value) {
-                $output['votingOrderNames'][$key] = $this->party[$value]->fullName();
-            }
-            // Popular appeal possible or not
-            if ( ($latestProposal->type=='Prosecutions') && ($this ->getPartyOfSenatorWithID($latestProposal->parameters[0]) -> user_id == $user_id) && $latestProposal->parameters[4]===NULL ) {
-                $output['appeal'] = TRUE ;
-                $output['popularity'] = $this->getSenatorWithID($latestProposal->parameters[0])->POP ;
-            } else {
-                $output['appeal'] = FALSE ;
-            }
-            // This is not your turn to vote
-            if ($output['votingOrder'][0]!=$user_id) {
-                $output['canVote'] = FALSE ;
-            // This is your turn to vote. Also give a list of possible vetos
-            } else {
-                $output['canVote'] = TRUE ;
-                $output['possibleVetos'] = $this->senate_getVetoList($user_id) ;
-            }
-
-        /*
-         * There is no proposal underway, give the possibility to make proposals
+         * Now handle all the normal cases
          */
         } else {
-            // This 'votingOrder' parameter is simply a list of user_ids, it's provided to be re-ordered by the player making the proposal.
-            $output['votingOrder']=array();
-            foreach($this->party as $party) {
-                array_push($output['votingOrder'],array('user_id' => $party->user_id , 'name' => $party->fullname()));
+            /*
+             *  There is a proposal underway : Either a decision has to be made (before or after a vote), or a vote is underway
+             */
+            if ($latestProposal!==FALSE) {
+                $output['type'] = $latestProposal->type ;
+                // The proposal's long description
+                $output['longDescription'] = $this->senate_viewProposalDescription($latestProposal) ;
             }
-            // How to make a proposal
-            $output['proposalHow'] = $this->senate_canMakeProposal($user_id);
-            
-            // Cannot make a proposal
-            if (count($output['proposalHow'])==0) {
-                $output['state'] = 'Proposal impossible';
-                
-            //Can make a proposal
-            } else {
-                /*
-                 * Consuls
-                 */
-                if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
-                    $output['state'] = 'Proposal';
-                    $output['type'] = 'Consuls';
-                    $output['pairs'] = array() ;
-                    $possiblePairs = $this->senate_consulsPairs() ;
-                    foreach($possiblePairs as $pair) {
-                        $senator1 = $this->getSenatorWithID($pair[0]) ;
-                        $party1 = $this->getPartyOfSenator($senator1) ;
-                        $senator2 = $this->getSenatorWithID($pair[1]) ;
-                        $party2 = $this->getPartyOfSenator($senator2) ;
-                        array_push($output['pairs'] , array($senator1->name.' ('.$party1->fullName().')' , $senator2->name.' ('.$party2->fullName().')'));
-                    }
-                    $output['senators'] = array() ;
-                    $alignedSenators = $this->getAllAlignedSenators(TRUE) ;
-                    foreach ($alignedSenators as $senator) {
-                        array_push($output['senators'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'partyName' => $this->getPartyOfSenator($senator)->fullName())) ;
-                    }
-                /*
-                 * Pontifex Maximus
-                 */
-                /*
-                 * Dictator
-                 */
-                } elseif (($this->phase=='Senate') && ($this->subPhase=='Dictator')) {
-                    // TO DO : here now
-                    // TO DO : The view itself, with those 4 cases :
-                    // 'Dictator Appointment' + 'waitingForConsuls' == FALSE
-                    // 'Dictator Appointment' + 'waitingForConsuls' == TRUE
-                    // 'Dictator Proposal' + 'done' == FALSE
-                    // 'Dictator Proposal' + 'done' == TRUE
-                    /*
-                     * How this works :
-                     * Consuls have the 'Dictator appointed by Consuls' ProposalHow
-                     * - If they arrive here, the other Consul hasn't proposed yet (otherwise, we would be at the decision level)
-                     * - They have the following choices :
-                     * --> Decline to Appoint (which creates a Dictator Proposal with the 'Appointment' flag set to TRUE and the outcome set to FALSE
-                     * --> Propose Senator X (give a list) as a Dictator (This will lead to a Decision by the other Consul, the Decision will be instead of a vote)
-                     * If the 'Dictator appointed by Consuls' ProposalHow is not available, this is a normal Dictator proposal , players can :
-                     * --> Propose Senator X (using President or Tribune)
-                     * --> Decline to propose a Dictator for the turn, which sets their BidDone flag to FALSE
-                     */
-                    // Give a chance to propose a dictator if conditions are met (they should be otherwise the phase wouldn't be 'Dictator')
-                    // First : Give a chance to the consuls to appoint a dictator
-                    $output['state'] = 'Proposal';
-                    if ($output['proposalHow'][0] == 'Dictator appointed by Consuls') {
-                        $output['type'] = 'Dictator Appointment';
-                        $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
-                        $output['waitingForConsuls'] = FALSE ;
-                    // You are not a Consul, but your bidDone is FALSE : You are waiting for the Consuls
-                    } elseif (count($output['proposalHow']==0) && $this->party[$user_id]->bidDone===FALSE) {
-                        $output['type'] = 'Dictator Appointment';
-                        $output['waitingForConsuls'] = TRUE ;
-                    // In the view, give the option to set 'bidDone' to TRUE, so the player can indicate he doesn't want to propose a dictator this turn
-                    // Once bidDone for all parties are TRUE, move on with our lives.
-                    } else {
-                        $output['type'] = 'Dictator Proposal';
-                        $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
-                        $output['done'] = FALSE ;
-                    }
-                /*
-                 * Censor
-                 */
-                } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Censor') ) {
-                    $candidates = $this->senate_possibleCensors() ;
-                    $output['state'] = 'Proposal';
-                    $output['type'] = 'Censor';
-                    $output['senators'] = array () ;
-                    foreach ($candidates as $candidate) {
-                        array_push($output['senators'] , array('senatorID' => $candidate->senatorID , 'name' => $candidate->name , 'partyName' => $this->getPartyOfSenator($candidate)->fullName())) ;
-                    }
-                /*
-                 * Prosecutions
-                 */
-                } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Prosecutions') ) {
-                    $output['state'] = 'Proposal';
-                    $output['type'] = 'Prosecutions';
-                    $output['list'] = $this->senate_getListPossibleProsecutions() ;
-                    $output['possibleProsecutors'] = $this->senate_getListPossibleProsecutors() ;
-                /*
-                 * Governors
-                 */
-                } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Governors') ) {
-                    $output['state'] = 'Proposal';
-                    $output['type'] = 'Governors';
-                    $output['list'] = $this->senate_getListAvailableProvinces();
-                    $output['possibleGovernors'] = $this->senate_getListAvailableGovernors();
-                // TO DO : All the rest...
-                } else {
-                    $output['state'] = 'Error';
+            /*
+             * Decisions
+             */
+            // Consuls : The outcome is TRUE (the proposal was voted), but Consuls have yet to decide who will be Consul of Rome / Field Consul
+            if ($this->phase=='Senate' && $this->subPhase=='Consuls' && $latestProposal!==FALSE && $latestProposal->outcome===TRUE && ($latestProposal->parameters[2]===NULL || $latestProposal->parameters[3]===NULL) ) {
+                $output['state'] = 'Decision' ;
+                $output['type'] = 'Consuls' ;
+                $senator = array() ; $party = array() ;
+                for ($i=0 ; $i<2 ; $i++) {
+                    $senator[$i] = $this->getSenatorWithID($latestProposal->parameters[$i]) ;
+                    $party[$i] = $this->getPartyOfSenator($senator[$i]);
                 }
+                if ($party[0]->user_id!=$user_id && $party[1]->user_id!=$user_id) {
+                    $output['canDecide'] = FALSE ;
+                } else {
+                    $output['canDecide'] = TRUE ;
+                    for ($i=0 ; $i<2 ; $i++) {
+                        if ($party[$i]->user_id == $user_id) {
+                            if ( ($latestProposal->parameters[2]===NULL || $latestProposal->parameters[2]!=$senator[$i]->senatorID) && ($latestProposal->parameters[3]===NULL || $latestProposal->parameters[3]!=$senator[$i]->senatorID) ) {
+                                $output['senator'][$i] = $senator[$i] ;
+                            } else {
+                                $output['senator'][$i] = 'alreadyDecided' ;
+                            }
+
+                        } else {
+                            $output['senator'][$i] = 'notYou' ;
+                        }
+                    }
+                }
+            // Prosecutions : The prosecutor must agree to his appointment
+            } elseif ($this->phase=='Senate' && $this->subPhase=='Prosecutions' && $latestProposal!==FALSE && $latestProposal->outcome===NULL && $latestProposal->parameters[3]===NULL ) {
+                $output['state'] = 'Decision' ;
+                $output['type'] = 'Prosecutions' ;
+                $prosecutor = $this->getSenatorWithID($latestProposal->parameters[2]) ;
+                $output['prosecutorName'] = $this->getSenatorFullName($latestProposal->parameters[2]) ;
+                $output['prosecutorID'] = $prosecutor -> senatorID ;
+                $output['prosecutorParty'] = $this->getPartyOfSenator($prosecutor)->user_id ;
+                $output['canDecide'] = ( $output['prosecutorParty'] == $user_id ) ;
+            // Governors : Returning governors agreeing to be nominated for governorships
+            } elseif($this->phase=='Senate' && $this->subPhase=='Governors' && $latestProposal!==FALSE && $latestProposal->outcome===NULL && in_array('PENDING' , $latestProposal->parameters) && $this->senate_getReturningGovernorsCanChoose($latestProposal->parameters) ) {
+                $output['state'] = 'Decision' ;
+                $output['type'] = 'Governors' ;
+                $output['list'] = $this->senate_getListReturningGovernors($latestProposal->parameters , $user_id) ;
+                $output['canDecide'] = ( $output['list']!==FALSE ) ;
+            // Dictator : If the 'Appointment' parameter (second parameter) is set to TRUE the other Consul must decide. This decision short-circuits the Vote process entirely : Here, Decision = outcome
+            } elseif($this->phase=='Senate' && $this->subPhase=='Dictator' && $latestProposal!==FALSE && $latestProposal->parameters[1]===TRUE && $latestProposal->outcome===NULL) {
+                $output['state'] = 'Decision' ;
+                $output['type'] = 'Dictator' ;
+                $output['SenatorName'] = $this->getSenatorWithID($latestProposal->parameters[0])['name'] ;
+                $output['canDecide'] = $latestProposal->proposedBy!=$user_id && ( ($this->senate_findOfficial('Rome Consul')['user_id'] == $user_id) || ($this->senate_findOfficial('Field Consul')['user_id'] == $user_id) );
+            // Dictator appoints Master of horse
+            } elseif ($this->phase=='Senate' && $this->subPhase=='Dictator' && $latestProposal!==FALSE && $latestProposal->parameters[2]===NULL && $latestProposal->outcome===TRUE) {
+                // TO DO
+            /**
+             * Assassin special prosecution : allow the Censor to chose voting order
+             */
+            } elseif ($this->phase=='Senate' && $this->subPhase=='Assassin prosecution' && $latestProposal!==FALSE && $latestProposal->votingOrder===NULL) {
+                $output['state'] = 'Assassin prosecution voting order' ;
+                $output['canChoose'] = ($this->senate_findOfficial('Censor')['user_id'] == $user_id) ;
+            /*
+             * Vote (The proposal has no outcome but no decision is required : make vote possible)
+             */
+            } elseif ($this->phase=='Senate' && $latestProposal!==FALSE && $latestProposal->outcome===NULL) {
+                $output['state'] = 'Vote' ;
+                $output['type'] = $latestProposal->type ;
+                // The proposal's long description
+                $output['longDescription'] = $this->senate_viewProposalDescription($latestProposal) ;
+                $output['voting'] = $latestProposal->voting ;
+                $output['treasury'] = array() ;
+                foreach($this->party[$user_id]->senators->cards as $senator) {
+                    $output['treasury'][$senator->senatorID] = $senator->treasury ;
+                }
+                $output['votingOrder'] = $latestProposal->votingOrder ;
+                $output['votingOrderNames'] = array() ;
+                foreach ($output['votingOrder'] as $key=>$value) {
+                    $output['votingOrderNames'][$key] = $this->party[$value]->fullName();
+                }
+                // Popular appeal possible or not
+                if ( ($latestProposal->type=='Prosecutions') && ($this ->getPartyOfSenatorWithID($latestProposal->parameters[0]) -> user_id == $user_id) && $latestProposal->parameters[4]===NULL ) {
+                    $output['appeal'] = TRUE ;
+                    $output['popularity'] = $this->getSenatorWithID($latestProposal->parameters[0])->POP ;
+                } else {
+                    $output['appeal'] = FALSE ;
+                }
+                // This is not your turn to vote
+                if ($output['votingOrder'][0]!=$user_id) {
+                    $output['canVote'] = FALSE ;
+                // This is your turn to vote. Also give a list of possible vetos
+                } else {
+                    $output['canVote'] = TRUE ;
+                    $output['possibleVetos'] = $this->senate_getVetoList($user_id) ;
+                }
+
+            /*
+             * There is no proposal underway, give the possibility to make proposals
+             */
+            } elseif ($latestProposal===FALSE ) {
+                // This 'votingOrder' parameter is simply a list of user_ids, it's provided to be re-ordered by the player making the proposal.
+                $output['votingOrder']=array();
+                foreach($this->party as $party) {
+                    array_push($output['votingOrder'],array('user_id' => $party->user_id , 'name' => $party->fullname()));
+                }
+                // How to make a proposal
+                $output['proposalHow'] = $this->senate_canMakeProposal($user_id);
+
+                // Cannot make a proposal
+                if (count($output['proposalHow'])==0) {
+                    $output['state'] = 'Proposal impossible';
+
+                //Can make a proposal
+                } else {
+                    /*
+                     * Consuls
+                     */
+                    if ( ($this->phase=='Senate') && ($this->subPhase=='Consuls') ) {
+                        $output['state'] = 'Proposal';
+                        $output['type'] = 'Consuls';
+                        $output['pairs'] = array() ;
+                        $possiblePairs = $this->senate_consulsPairs() ;
+                        foreach($possiblePairs as $pair) {
+                            $senator1 = $this->getSenatorWithID($pair[0]) ;
+                            $party1 = $this->getPartyOfSenator($senator1) ;
+                            $senator2 = $this->getSenatorWithID($pair[1]) ;
+                            $party2 = $this->getPartyOfSenator($senator2) ;
+                            array_push($output['pairs'] , array($senator1->name.' ('.$party1->fullName().')' , $senator2->name.' ('.$party2->fullName().')'));
+                        }
+                        $output['senators'] = array() ;
+                        $alignedSenators = $this->getAllAlignedSenators(TRUE) ;
+                        foreach ($alignedSenators as $senator) {
+                            array_push($output['senators'] , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'partyName' => $this->getPartyOfSenator($senator)->fullName())) ;
+                        }
+                    /*
+                     * Pontifex Maximus
+                     */
+                    /*
+                     * Dictator
+                     */
+                    } elseif (($this->phase=='Senate') && ($this->subPhase=='Dictator')) {
+                        // TO DO : here now
+                        // TO DO : The view itself, with those 4 cases :
+                        // 'Dictator Appointment' + 'waitingForConsuls' == FALSE
+                        // 'Dictator Appointment' + 'waitingForConsuls' == TRUE
+                        // 'Dictator Proposal' + 'done' == FALSE
+                        // 'Dictator Proposal' + 'done' == TRUE
+                        /*
+                         * How this works :
+                         * Consuls have the 'Dictator appointed by Consuls' ProposalHow
+                         * - If they arrive here, the other Consul hasn't proposed yet (otherwise, we would be at the decision level)
+                         * - They have the following choices :
+                         * --> Decline to Appoint (which creates a Dictator Proposal with the 'Appointment' flag set to TRUE and the outcome set to FALSE
+                         * --> Propose Senator X (give a list) as a Dictator (This will lead to a Decision by the other Consul, the Decision will be instead of a vote)
+                         * If the 'Dictator appointed by Consuls' ProposalHow is not available, this is a normal Dictator proposal , players can :
+                         * --> Propose Senator X (using President or Tribune)
+                         * --> Decline to propose a Dictator for the turn, which sets their BidDone flag to FALSE
+                         */
+                        // Give a chance to propose a dictator if conditions are met (they should be otherwise the phase wouldn't be 'Dictator')
+                        // First : Give a chance to the consuls to appoint a dictator
+                        $output['state'] = 'Proposal';
+                        if ($output['proposalHow'][0] == 'Dictator appointed by Consuls') {
+                            $output['type'] = 'Dictator Appointment';
+                            $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
+                            $output['waitingForConsuls'] = FALSE ;
+                        // You are not a Consul, but your bidDone is FALSE : You are waiting for the Consuls
+                        } elseif (count($output['proposalHow']==0) && $this->party[$user_id]->bidDone===FALSE) {
+                            $output['type'] = 'Dictator Appointment';
+                            $output['waitingForConsuls'] = TRUE ;
+                        // In the view, give the option to set 'bidDone' to TRUE, so the player can indicate he doesn't want to propose a dictator this turn
+                        // Once bidDone for all parties are TRUE, move on with our lives.
+                        } else {
+                            $output['type'] = 'Dictator Proposal';
+                            $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
+                            $output['done'] = FALSE ;
+                        }
+                    /*
+                     * Censor
+                     */
+                    } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Censor') ) {
+                        $candidates = $this->senate_possibleCensors() ;
+                        $output['state'] = 'Proposal';
+                        $output['type'] = 'Censor';
+                        $output['senators'] = array () ;
+                        foreach ($candidates as $candidate) {
+                            array_push($output['senators'] , array('senatorID' => $candidate->senatorID , 'name' => $candidate->name , 'partyName' => $this->getPartyOfSenator($candidate)->fullName())) ;
+                        }
+                    /*
+                     * Prosecutions
+                     */
+                    } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Prosecutions') ) {
+                        $output['state'] = 'Proposal';
+                        $output['type'] = 'Prosecutions';
+                        $output['list'] = $this->senate_getListPossibleProsecutions() ;
+                        $output['possibleProsecutors'] = $this->senate_getListPossibleProsecutors() ;
+                    /*
+                     * Governors
+                     */
+                    } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Governors') ) {
+                        $output['state'] = 'Proposal';
+                        $output['type'] = 'Governors';
+                        $output['list'] = $this->senate_getListAvailableProvinces();
+                        $output['possibleGovernors'] = $this->senate_getListAvailableGovernors();
+                    // TO DO : All the rest...
+                    } else {
+                        $output['state'] = 'Error';
+                    }
+                }
+            } else {
+                $output['state'] = 'Error';
             }
         }
-        // Finally, give the possibility to assissassinasste. Not possible if the state is 'Error' or 'Decision' (TO DO : confirm the latter)
-        if ($output['state']!='Error' && $output['state']!='Decision') {
-            if (!$this->party[$user_id]->assassinationAttempt) {
-                $output['assassinate'] = $this->senate_getListAssassinationTargets($user_id) ;
-            } else {
-                $output['assassinate'] = FALSE ;
-            }
+        // Finally, always set the $output['assassinate'] variable that give the possibility to assissassinasste.
+        // Not possible if the state is 'Error', 'assassination',  or 'Decision' (TO DO : confirm the latter), nor if the party already made ane attempt
+        if ($output['state']!='Error' && $output['state']!='Assassination' && $output['state']!='Decision' && !$this->party[$user_id]->assassinationAttempt) {
+            $output['assassinate'] = $this->senate_getListAssassinationTargets($user_id) ;
+        } else {
+            $output['assassinate'] = FALSE ;
         }
         return $output ;
     }

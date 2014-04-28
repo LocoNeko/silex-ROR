@@ -4,7 +4,6 @@
 {#
     Give the opportunity to slaughter other senators
 #}
-
 {% if output['assassinate']!=FALSE and (output['assassinate']|length > 0) %}
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_assassination'} ) }}">
         <button type="submit" class="btn-danger">ASSASSINATION !</button>
@@ -402,6 +401,7 @@ You cannot make a proposal at the moment
             </select><br>
             {% if output['cards']|length >0%}
                 <select name="card" id="card" style="width:450px;">
+                    <option value="NONE">NONE</option>
                     {% for card in output['cards']%}
                         <option value="{{card['id']}}">{{card['name']}}</option>
                     {% endfor %}
