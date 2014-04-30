@@ -146,8 +146,11 @@
             {% endfor %}
             <br>
         {#
-        TO DO : other types of proposals
+            Other Business
         #}
+        {% elseif output['type']=='Other Business' %}
+            Other Senate business :<br>
+            TO DO<br>
         {% endif %}
         {#
             Show a list of possible ways to make a proposal
@@ -267,7 +270,8 @@ You cannot make a proposal at the moment
                         <option value="{{veto['senatorID']}}">{{veto['name'] ~ '\'s free tribune.'}}</option>
                     {% endif %}
                 {% endfor%}
-            </select>
+            </select><br>
+            <button type="submit" class="btn-danger">VETO</button>
         </form>
     {% endif %}
     {% else %}
