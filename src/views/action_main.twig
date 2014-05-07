@@ -97,6 +97,7 @@ Chat :<br>
     <iframe class="container well well-small span6 " style="height: 500px; width: 100%;" src="{{path('Log' , {'game_id' : game_id , 'user_id' : user_id } )}}" frameborder="0" allowtransparency="true" scrolling="vertical"></iframe>
 </div>
 
+<a href="{{ path('Debug' , {'game_id' : game_id} ) }}" target="_blank">SEE DEBUG</a>
 Debug :<br>
 <textarea readonly style="height: 500px; width: 100%; resize: vertical;">
 {{ dump(content['game']) }}

@@ -64,7 +64,7 @@ class Senator extends Card
             $this->LOY = $this->baseLOY ;
             $this->INF = $this->baseINF ;
             $this->specialLOY = ( is_string($data[8]) ? $data[8] : NULL) ; /* A list of senatorID with + or - separated by ,. +X means : only loyal if X exists and is in the same party, -X : means loyalty 0 if in the same party as X*/
-            $this->specialAbility = ( is_string($data[9]) ? $data[9] : NULL) ; ; /* A list of abilities separated by ,  */
+            $this->specialAbility = ( is_string($data[9]) ? $data[9] : NULL) ; /* A list of abilities separated by ,  */
             $this->knights = 0 ;
             $this->treasury = 0 ;
             $this->POP = 0 ;

@@ -17,7 +17,7 @@ use ZMQContext;
  * @param ($game_id)
  * 
  */
-function Action($request ,$game_id , $action , $user_id , Application $app) {
+function Action($request , $game_id , $action , $user_id , Application $app) {
     $content = NULL ;
     /* 
      * First, we get the serialised game data

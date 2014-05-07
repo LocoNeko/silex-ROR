@@ -43,7 +43,7 @@ namespace ROR;
  * $laws : array of laws in play
  * $assassination : array of parameters for an assassination (assassin ID , target ID , cards played)
  */
-class Game 
+class Game
 {
     /*
      * Some default values and validators
@@ -307,7 +307,6 @@ class Game
         fclose($filePointer);
     }
 
-    
     public function createLandBillsTable() {
         $filePointer = fopen(dirname(__FILE__).'/../../data/landBills.csv', 'r');
         if (!$filePointer) {
@@ -332,8 +331,8 @@ class Game
         }
         fclose($filePointer);
     }
-    
-    /**
+
+     /**
      * Number of legions (location is NOT NULL)
      * @return int
      */
@@ -5528,5 +5527,60 @@ class Game
         }
         return $messages ;
     }
+
+    public function other_debugDescribeGameObject($object) {
+        if (is_object($object)) {
+            $object = (array)$object ;
+        }
+        if (is_array($object)) {
+            $result = array() ;
+            foreach ($object as $key=>$value) {
+                $valueDetail = $this->other_debugDescribeGameObject($value) ;
+                if (is_array($valueDetail)) {
+                    foreach($valueDetail as $item) {
+                        $result[] = array_merge(array($key) , $item) ;
+                    }
+                } else {
+                    $result[] = array($key , $valueDetail) ;
+                }
+            }
+        } else {
+            $result = (is_bool($object) ? ($object ? 'TRUE' : 'FALSE') : $object);
+        }
+        return $result ;
+    }
     
+    // TO DO : 'Show value' function (to split show and change)
+    
+    /**
+     * 
+     * @param array $path an array representing the path of a property within this Game object<br>
+     * e.g. :array('party' , 12 , 'senators' , 'cards' , 0 , 'controls' , 'cards' , 0 , 'name')<br>
+     * @param mixed $newValue The new value to affect to this property
+     */
+    public function other_debugChangeValue($rawPath , $newValue=NULL) {
+        /**
+         * Inside-function
+         * @param object $from The object from which the property must be retrieved
+         * @param mixed $property A string representation of the property needed
+         * @return mixed The property
+         */
+        function &returnProperty($from , $property) {
+            if (is_object($from)) {
+                return $from->$property ;
+            } elseif (is_array($from)) {
+                return $from[$property];
+            }
+        }
+        $path = explode('|_|' , $rawPath) ;
+        $target = &$this ;
+        foreach ($path as $step) {
+            $target = &returnProperty($target, $step) ;
+        }
+        if ($newValue===NULL) {
+            return $target ;
+        } else {
+            $target = $newValue ;
+        }
+    }
 }

@@ -170,6 +170,32 @@ class RORControllerProvider implements ControllerProviderInterface
         })
         ->bind('Log');
         
+        /**
+         * For Debug purposes : show & change game values (dangerous)
+         */
+        $controllers->match('/Debug/{game_id}/{valueToChange}' , function(Request $request , $game_id , $valueToChange) use ($app) {
+            $game_data = $app['db']->fetchColumn("SELECT game_data FROM games WHERE game_id= ? " , Array($game_id));
+            $game = unserialize($game_data);
+            if ($game!==FALSE) {
+                if ($request->isMethod('POST') && null !== ($request->request->get('newValue')) ) {
+                    $game->other_debugChangeValue($valueToChange , $request->request->get('newValue')) ;
+                    $valueToChange = NULL ;
+                    $game_data = serialize($game);
+                    $app['db']->update('games' , Array ('game_data' => $game_data ) , Array('game_id' => $game_id) );
+                }
+                return $app['twig']->render('action_viewDebug.twig', Array(
+                    'game_id' => $game_id ,
+                    'game_flatDescription' => $game->other_debugDescribeGameObject($game) ,
+                    'valueToChange' => $valueToChange ,
+                    'currentValue' => (is_null($valueToChange) ? 'NONE' : $game->other_debugChangeValue($valueToChange))
+                ));
+            } else {
+                return 'Unrecognized debug info.';
+            }
+        })
+        ->value ('valueToChange' , NULL )
+        ->bind('Debug');
+        
         /*
          * Default route, displays basic layout
          */
