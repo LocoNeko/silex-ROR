@@ -16,8 +16,10 @@
                 {% if loop.last and detail|length>0 %}
                     <td><a href="{{ path('Debug' , {'game_id' : game_id , 'valueToChange' : tmp} ) }}">{{detail}}</a></td>
                 {% else %}
-                    {% set tmp=tmp~(loop.first ? '' : '|_|')~detail %}
-                    <td>{{detail}}</td>
+                    {% set type = (detail[0] is not defined ? '' : '['~detail[1]~']')%}
+                    {% set value = (detail[0] is not defined ? detail : detail[0])%}
+                    {% set tmp=tmp~(loop.first ? '' : '|_|')~value %}
+                    <td>{{value}}{{type}}</td>
                 {% endif %}
             {% endfor %}
             </tr>

@@ -5528,6 +5528,15 @@ class Game
         return $messages ;
     }
 
+    /**
+     * Returns an array representation of the object<br>
+     * Each element of the array is either :<br>
+     * - An array with a key and its type (either 'array' or an object class name)<br>
+     * - A property's name (second before last element)<br>
+     * - A property's value (last element)<br>
+     * @param mixed $object 
+     * @return mixed array
+     */
     public function other_debugDescribeGameObject($object) {
         if (is_object($object)) {
             $object = (array)$object ;
@@ -5535,10 +5544,11 @@ class Game
         if (is_array($object)) {
             $result = array() ;
             foreach ($object as $key=>$value) {
+                $type = (is_object($value) ? get_class($value) : (is_array($value) ? 'array' : '')) ;
                 $valueDetail = $this->other_debugDescribeGameObject($value) ;
                 if (is_array($valueDetail)) {
                     foreach($valueDetail as $item) {
-                        $result[] = array_merge(array($key) , $item) ;
+                        $result[] = array_merge(array(array($key,$type)) , $item) ;
                     }
                 } else {
                     $result[] = array($key , $valueDetail) ;
