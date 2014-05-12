@@ -53,11 +53,13 @@
                     To deck :
                     <select>
                     {% for deck in game_allDecks %}
+                        {% set tmp = '' %}
                         {% set deck_name = '' %}
                         {% for item in deck %}
                             {% set deck_name = deck_name~(loop.first ? '' : ',')~item[0] %}
+                            {% set tmp=tmp~(loop.first ? '' : '|_|')~item[0] %}
                         {% endfor %}
-                        <option>
+                        <option value="{{tmp}}">
                             {{deck_name}}
                         </option>
                     {% endfor %}
