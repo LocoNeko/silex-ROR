@@ -173,11 +173,11 @@ class RORControllerProvider implements ControllerProviderInterface
         /**
          * For Debug purposes : show & change game values (dangerous)
          */
-        $controllers->match('/Debug/{game_id}/{valueToChange}' , function(Request $request , $game_id , $valueToChange) use ($app) {
+        $controllers->match('/Debug/{game_id}/{valueType}/{valueToChange}' , function(Request $request , $game_id , $valueType , $valueToChange) use ($app) {
             $game_data = $app['db']->fetchColumn("SELECT game_data FROM games WHERE game_id= ? " , Array($game_id));
             $game = unserialize($game_data);
             if ($game!==FALSE) {
-                if ($request->isMethod('POST') && null !== ($request->request->get('newValue')) ) {
+                if ($request->isMethod('POST') && ($request->request->get('newValue')!==null) ) {
                     $game->other_debugChangeValue($valueToChange , $request->request->get('newValue')) ;
                     $valueToChange = NULL ;
                     $game_data = serialize($game);
@@ -186,6 +186,8 @@ class RORControllerProvider implements ControllerProviderInterface
                 return $app['twig']->render('action_viewDebug.twig', Array(
                     'game_id' => $game_id ,
                     'game_flatDescription' => $game->other_debugDescribeGameObject($game) ,
+                    'game_allDecks' => $game->other_debugGetListOfDecks() ,
+                    'valueType' => $valueType ,
                     'valueToChange' => $valueToChange ,
                     'currentValue' => (is_null($valueToChange) ? 'NONE' : $game->other_debugChangeValue($valueToChange))
                 ));
@@ -193,6 +195,7 @@ class RORControllerProvider implements ControllerProviderInterface
                 return 'Unrecognized debug info.';
             }
         })
+        ->value ('valueType' , NULL )
         ->value ('valueToChange' , NULL )
         ->bind('Debug');
         

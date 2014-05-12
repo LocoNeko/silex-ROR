@@ -5544,7 +5544,7 @@ class Game
         if (is_array($object)) {
             $result = array() ;
             foreach ($object as $key=>$value) {
-                $type = (is_object($value) ? get_class($value) : (is_array($value) ? 'array' : '')) ;
+                $type = (is_object($value) ? (str_replace('ROR\\' , '' , get_class($value))) : (is_array($value) ? 'array' : '')) ;
                 $valueDetail = $this->other_debugDescribeGameObject($value) ;
                 if (is_array($valueDetail)) {
                     foreach($valueDetail as $item) {
@@ -5555,7 +5555,39 @@ class Game
                 }
             }
         } else {
-            $result = (is_bool($object) ? ($object ? 'TRUE' : 'FALSE') : $object);
+            if (is_bool($object)) {
+                $result = ($object ? '<TRUE>' : '<FALSE>') ;
+            } elseif (is_null($object)) {
+                $result = '<NULL>' ;
+            } elseif ($object==='') {
+                $result = '<EMPTY>' ;
+            } else {
+                $result = $object ;
+            }
+        }
+        return $result ;
+    }
+    
+    public function other_debugGetListOfDecks() {
+        $result=array();
+        $objectDescription = $this->other_debugDescribeGameObject($this) ;
+        foreach ($objectDescription as $item) {
+            $candidate=array() ;
+            foreach($item as $detail) {
+                $candidate[]=$detail ;
+                if (is_array($detail) && $detail[1]=='Deck') {
+                    $new = TRUE ;
+                    foreach($result as $alreadyin) {
+                        if ($alreadyin == $candidate) {
+                            $new = FALSE ;
+                        }
+                    }
+                    if ($new) {
+                        $result[] = $candidate ;
+                        break ;
+                    }
+                }
+            }
         }
         return $result ;
     }

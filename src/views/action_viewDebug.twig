@@ -8,29 +8,63 @@
     </head>
     <body>
         {% if valueToChange|default(null) is null %}
-        <table border="1">
-        {% for item in game_flatDescription %}
-            <tr>
-            {% set tmp = '' %}
-            {% for detail in item %}
-                {% if loop.last and detail|length>0 %}
-                    <td><a href="{{ path('Debug' , {'game_id' : game_id , 'valueToChange' : tmp} ) }}">{{detail}}</a></td>
-                {% else %}
-                    {% set type = (detail[0] is not defined ? '' : '['~detail[1]~']')%}
-                    {% set value = (detail[0] is not defined ? detail : detail[0])%}
-                    {% set tmp=tmp~(loop.first ? '' : '|_|')~value %}
-                    <td>{{value}}{{type}}</td>
-                {% endif %}
+            <table border="1">
+            {% for item in game_flatDescription %}
+                <tr>
+                {% set tmp = '' %}
+                {% for detail in item %}
+                    {% if loop.last and detail|length>0 %}
+                        {% if detail|length>50 %}
+                            {% set detail = detail|slice(0,15) ~ '[...]' ~ detail|slice(-15,15)%}
+                        {% endif %}
+                        <td><a href="{{ path('Debug' , {'game_id' : game_id , 'valueType' : 'value' , 'valueToChange' : tmp} ) }}">{{detail}}</a></td>
+                    {% else %}
+                        {% set type = (detail[0] is not defined ? '' : '['~detail[1]~']')%}
+                        {% set value = (detail[0] is not defined ? detail : detail[0])%}
+                        {% set tmp=tmp~(loop.first ? '' : '|_|')~value %}
+                        <td>
+                            {% if type == "[Card]" or type == "[Concession]" or type == "[Senator]" or type == "[Conflict]" or type == "[Leader]" or type == "[Province]" %}
+                                {{value}}{{type}} <a href="{{ path('Debug' , {'game_id' : game_id , 'valueType' : 'card' , 'valueToChange' : tmp} ) }}">MOVE</a>
+                            {% else %}
+                                {{value}}{{type}}
+                            {% endif %}
+                        </td>
+                    {% endif %}
+                {% endfor %}
+                </tr>
             {% endfor %}
-            </tr>
-        {% endfor %}
-        </table>
+            </table>
         {% else %}
-            <form class="form-horizontal" method="POST" action="{{ path('Debug' , {'game_id' : game_id , 'valueToChange' : valueToChange} ) }}">
-                Changing {{valueToChange}} :<br>
-                <input type="text" name="newValue" id="newValue" value="{{currentValue}}">
-                <button type="submit" class="btn btn-danger">DEBUG</button>
-            </form>
+            {% if valueType=='value' %}
+                <form class="form-horizontal" method="POST" action="{{ path('Debug' , {'game_id' : game_id , 'valueType' : 'value' , 'valueToChange' : valueToChange} ) }}">
+                    Changing {{valueToChange}} :<br>
+                    <input type="text" name="newValue" id="newValue" value="{{currentValue}}">OR
+                    <select type="text" name="newValueSpecial" id ="newValueSpecial">
+                        <option></option>
+                        <option>TRUE</option>
+                        <option>FALSE</option>
+                        <option>NULL</option>
+                    </select><br>
+                    <button type="submit" class="btn btn-danger">DEBUG</button>
+                </form>
+            {% else %}
+                <form class="form-horizontal" method="POST" action="{{ path('Debug' , {'game_id' : game_id , 'valueType' : 'card' , 'valueToChange' : valueToChange} ) }}">
+                    Moving Card {{valueToChange}} :<br>
+                    To deck :
+                    <select>
+                    {% for deck in game_allDecks %}
+                        {% set deck_name = '' %}
+                        {% for item in deck %}
+                            {% set deck_name = deck_name~(loop.first ? '' : ',')~item[0] %}
+                        {% endfor %}
+                        <option>
+                            {{deck_name}}
+                        </option>
+                    {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-danger">DEBUG</button><br>
+                </form>
+            {% endif %}
         {% endif %}
     </body>
 </html>
