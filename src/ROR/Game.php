@@ -107,19 +107,31 @@ class Game
         $this->currentBidder = NULL;
         $this->persuasionTarget = NULL;
         $this->drawDeck = new Deck ;
+        $this->drawDeck->name = 'Draw deck' ;
         $this->earlyRepublic = new Deck ;
         $this->earlyRepublic->createFromFile ($scenario) ;
+        $this->earlyRepublic->name = 'Early Republic deck' ;
         $this->middleRepublic = new Deck ;
+        $this->middleRepublic->name = 'Middle Republic deck' ;
         $this->lateRepublic = new Deck ;
+        $this->lateRepublic->name = 'Late Republic deck' ;
         $this->discard = new Deck ;
+        $this->discard->name = 'Discard deck' ;
         $this->unplayedProvinces = new Deck ;
         $this->unplayedProvinces->createFromFile ('Provinces') ;
+        $this->unplayedProvinces->name = 'Unplayed Provinces deck' ;
         $this->inactiveWars = new Deck ;
+        $this->inactiveWars->name = 'Inactive Wars deck' ;
         $this->activeWars = new Deck ;
+        $this->activeWars->name = 'Active Wars deck' ;
         $this->imminentWars = new Deck ;
+        $this->imminentWars->name = 'Imminent Wars deck' ;
         $this->unprosecutedWars = new Deck ;
+        $this->unprosecutedWars->name = 'Unprosecuted Wars deck' ;
         $this->forum = new Deck ;
+        $this->forum->name = 'The Forum' ;
         $this->curia = new Deck ;
+        $this->curia->name = 'The Curia' ;
         $this->landBill = array() ;
         $this->landBill[1] = 0 ;
         $this->landBill[2] = 0 ;
@@ -5568,31 +5580,33 @@ class Game
         return $result ;
     }
     
+    /**
+     * Returns an array of Decks
+     * The format is : (Descriptor array , key of the array in the description)
+     * @return type
+     */
     public function other_debugGetListOfDecks() {
         $result=array();
         $objectDescription = $this->other_debugDescribeGameObject($this) ;
-        foreach ($objectDescription as $item) {
-            $candidate=array() ;
-            foreach($item as $detail) {
-                $candidate[]=$detail ;
+        foreach ($objectDescription as $key=>$item) {
+            $theKey=-1;
+            foreach($item as $key2=>$detail) {
                 if (is_array($detail) && $detail[1]=='Deck') {
-                    $new = TRUE ;
-                    foreach($result as $alreadyin) {
-                        if ($alreadyin == $candidate) {
-                            $new = FALSE ;
-                        }
-                    }
-                    if ($new) {
-                        $result[] = $candidate ;
-                        break ;
-                    }
+                    $theKey = $key2 ;
                 }
+            }
+            if ($theKey!=-1 && $item[$theKey+1]=='name') {
+                $arrayToReturn=$item ;
+                // We must remove the last two parameters as the are 'name' and the name itself, but we just new the path to the Deck
+                array_pop($arrayToReturn) ;
+                array_pop($arrayToReturn) ;
+                $result[] = array($arrayToReturn,$item[$theKey+2]) ;
             }
         }
         return $result ;
     }
     
-    // TO DO : 'Show value' function (to split show and change)
+    // TO DO (or not) : 'Show value' function (to split show and change)
     
     /**
      * 

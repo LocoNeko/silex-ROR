@@ -11,6 +11,7 @@
             <table border="1">
             {% for item in game_flatDescription %}
                 <tr>
+                    <td>{{loop.index-1}}</td>
                 {% set tmp = '' %}
                 {% for detail in item %}
                     {% if loop.last and detail|length>0 %}
@@ -54,13 +55,11 @@
                     <select>
                     {% for deck in game_allDecks %}
                         {% set tmp = '' %}
-                        {% set deck_name = '' %}
-                        {% for item in deck %}
-                            {% set deck_name = deck_name~(loop.first ? '' : ',')~item[0] %}
+                        {% for item in deck[0] %}
                             {% set tmp=tmp~(loop.first ? '' : '|_|')~item[0] %}
                         {% endfor %}
                         <option value="{{tmp}}">
-                            {{deck_name}}
+                            {{deck[1]}}
                         </option>
                     {% endfor %}
                     </select>
