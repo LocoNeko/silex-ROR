@@ -960,7 +960,7 @@ class Game
         if ( ($this->phase=='Setup') && ($this->subPhase=='PickLeaders') && ($this->party[$user_id]->leader === NULL) ) {
             foreach ($this->party[$user_id]->senators->cards as $senator) {
                 if ($senator->senatorID == $senatorID) {
-                    $this->party[$user_id]->leader = $senator ;
+                    $this->party[$user_id]->leaderID = $senator->senatorID ;
                     $card = $this->party[$user_id]->senators->drawCardWithValue('senatorID' , $senatorID);
                     $this->party[$user_id]->senators->putOnTop($card);
                     $this->party[$user_id]->phase_done = TRUE ;
@@ -1241,7 +1241,7 @@ class Game
         } else {
             // Death of a normal Senator
             $deadSenator->resetSenator() ;
-            if ($party->leader->senatorID == $senatorID) {
+            if ($party->leaderID == $senatorID) {
                 $message.=sprintf(_('%s of party {%s} dies. This senator was party leader, the family stays in the party. ') , $deadSenator->name , $party->user_id);
             } else {
                 $deadSenator = $party->senators->drawCardWithValue('senatorID',$senatorID) ;
@@ -1259,9 +1259,9 @@ class Game
                 $this->forum->putOnTop($card);
                 $message.=sprintf(_('%s goes to the forum. ') , $card->name);
             } elseif ($card->type=='Family') {
-                if ($party->leader->senatorID == $deadStatesman->senatorID) {
+                if ($party->leaderID == $deadStatesman->senatorID) {
                     // Now that the Satesman is dead, the family is the party leader
-                    $party->leader = $card ;
+                    $party->leaderID = $card->senatorID ;
                     $party->senators->putOnTop($card);
                     $message.=sprintf(_('%s stays in the party and is now leader. ') , $card->name);
                 } else {
@@ -1427,7 +1427,7 @@ class Game
         $result['rebels'] = array() ;
         foreach ($this->party[$user_id]->senators->cards as $senator) {
             if (!$senator->rebel && $senator->captive===FALSE) {
-                if ($this->party[$user_id]->leader->senatorID == $senator->senatorID) {
+                if ($this->party[$user_id]->leaderID == $senator->senatorID) {
                     $result['total']+=3 ;
                     $result['leader']=$senator->name ;
                 } else {
@@ -2461,7 +2461,7 @@ class Game
         if ( ($this->phase=='Forum') && ($this->subPhase=='Persuasion') && ($this->forum_whoseInitiative()==$user_id) ) {
             foreach ($this->party as $party) {
                 foreach ($party->senators->cards as $senator) {
-                    if ($senator->inRome() && $senator->senatorID != $party->leader->senatorID && $party->user_id!=$user_id) {
+                    if ($senator->inRome() && $senator->senatorID != $party->leaderID && $party->user_id!=$user_id) {
                         array_push($result, array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party' => $party->user_id , 'LOY' => $this->getSenatorActualLoyalty($senator) , 'treasury' => $senator->treasury)) ;
                     }
                 }
@@ -2958,8 +2958,8 @@ class Game
             if ($senatorID!='NO') {
                 $senator = $this->getSenatorWithID($senatorID);
                 if ($this->getPartyOfSenator($senator)->user_id==$user_id) {
-                    if ($this->party[$user_id]->leader->senatorID != $senatorID) {
-                        $this->party[$user_id]->leader = $senator ;
+                    if ($this->party[$user_id]->leaderID != $senatorID) {
+                        $this->party[$user_id]->leaderID = $senator->senatorID ;
                         array_push($messages , array(sprintf(_('%s is now the leader of {%s}') , $senator->name , $user_id) ));
                     } else {
                         $error = TRUE ;
@@ -3203,8 +3203,9 @@ class Game
                 } elseif ($output['subPhase'] == 'SponsorGames' ) {
                     $output['listGames'] = $this->forum_listSponsorGames($user_id) ;
                 }  elseif ($output['subPhase'] == 'ChangeLeader' ) {
-                    $output['leaderName'] = $this->party[$user_id]->leader->name ;
-                    $output['leaderSenatorID'] = $this->party[$user_id]->leader->senatorID ;
+                    $partyLeader = $this->getSenatorWithID($this->party[$user_id]->leaderID);
+                    $output['leaderName'] = $partyLeader->name ;
+                    $output['leaderSenatorID'] = $this->party[$user_id]->leaderID ;
                     $output['listSenators'] = $this->party[$user_id]->senators->cards ;
                 }
             // This user does not have the initiative
@@ -3909,7 +3910,7 @@ class Game
         // Handle mandatory popular appeal during Special Major Prosecution for assassination
         } elseif ($this->phase == 'Senate' && $this->subPhase == 'Assassin prosecution') {
             $latestProposal = $this->senate_getLatestProposal() ;
-            $accused = $this->party[$this->assassination['assassinParty']]->leader ;
+            $accused = $this->getSenatorWithID($this->party[$this->assassination['assassinParty']]->leaderID) ;
             $roll = $this->rollDice(2, -1) ;
             array_push($messages , array(sprintf(_('Popular Appeal : %s rolls %d.') , $accused->name , $roll['total']))) ;
             $modifiedResult = $roll['total'] - $this->assassination['victimPOP'] ;
@@ -4549,7 +4550,7 @@ class Game
      */
     private function senate_assassinCaught() {
         $messages = array() ;
-        $leaderOfAssassinParty = $this->party[$this->assassination['assassinParty']]->leader ;
+        $leaderOfAssassinParty = $this->getSenatorWithID($this->party[$this->assassination['assassinParty']]->leaderID) ;
         array_push($messages , $this->mortality_killSenator($this->assassination['assassinID'], TRUE)) ;
         // If the assassin was faction leader, don't prosecute the new leader, but still draw chits based on POP of victim using senate_assassinationMobJustice()
         if ($leaderOfAssassinParty->senatorID == $this->assassination['assassinID']) {
@@ -5419,8 +5420,8 @@ class Game
                                 $statesman->office = $matchedFamily->office ;
                                 $matchedFamily->resetSenator() ;
                                 // The family was the party's leader
-                                if ($this->party[$user_id]->leader->senatorID == $matchedFamily->senatorID) {
-                                    $this->party[$user_id]->leader=$statesman;
+                                if ($this->party[$user_id]->leaderID == $matchedFamily->senatorID) {
+                                    $this->party[$user_id]->leaderID = $statesman->senatorID;
                                 }
                                 array_push($messages , array( sprintf(_('{%s} plays Statesman %s on top of senator %s') , $user_id ,$statesman->name ,$matchedFamily->name ) ));
                                 return $messages ;

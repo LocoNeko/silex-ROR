@@ -9,7 +9,7 @@ class Party
      * $user_name (string)
      * $hand (Deck) : The party/player's hand
      * $senators (Deck) : The Deck of cards with senators in the party
-     * $leader (Senator) : The Senator who is the party's leader (must be in the $senators Deck) or NULL
+     * $leaderID (SenatorID) : The SenatorID of the Senator who is the party's leader (must be in the $senators Deck) or NULL
      * $treasury (int)  : Current Party's treasury
      * $phase_done (bool) : Whether this party has played its phase or not
      * $bid (int) : The party's current initiative/persuasion bid
@@ -22,7 +22,7 @@ class Party
     public $user_name ;
     public $hand ;
     public $senators ;
-    public $leader ;
+    public $leaderID ;
     public $treasury ;
     public $phase_done ;
     public $bid , $bidDone , $bidWith  ;
@@ -41,7 +41,7 @@ class Party
         $this->hand->name = sprintf(_('%s \'s cards') , $this->name) ;
         $this->senators = new Deck ;
         $this->senators->name = sprintf(_('%s \'s senators') , $this->name) ;
-        $this->leader = NULL ;
+        $this->leaderID = NULL ;
         $this->treasury = 0 ;
         $this->phase_done = FALSE ;
         $this->bid = 0 ;
