@@ -1,7 +1,8 @@
 {{content['game'].party[user_id].name}}, 
 Leader : 
-{%if content['game'].party[user_id].leader.name is defined %}
-{{content['game'].party[user_id].leader.name}} ,
+{%if content['game'].party[user_id].leaderID is defined %}
+{{content['game'].getSenatorWithID(content['game'].party[user_id].leaderID).name}},
+
 {% else %}
 None ,
 {% endif %}
@@ -10,7 +11,7 @@ SENATORS :<br>
 <div class="row">
 {% for senator in content['game'].party[user_id].senators.cards %}
     <div class="span3">
-    {% embed "action_viewSenator.twig" with {'senator': senator , 'leader': (content['game'].party[user_id].leader.senatorID is defined) ? content['game'].party[user_id].leader.senatorID : FALSE } only %}
+    {% embed "action_viewSenator.twig" with {'senator': senator , 'leader' : content['game'].party[user_id].leaderID==senator.senatorID } only %}
     {% endembed %}
     </div>
 {% endfor %}

@@ -826,7 +826,7 @@ class Game
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 foreach ($senator->controls->cards as $card) {
-                    if ($card->$property == $value) {
+                    if (isset($card->$property) && $card->$property == $value) {
                         return array ('card' => $card , 'where' => 'senator' , 'deck' => $senator->controls , 'senator' => $senator , 'party' => $senator );
                     }
                 }
@@ -838,34 +838,34 @@ class Game
             }
             if ($card->type=='Family' || $card->type=='Statesman') {
                 foreach ($card->controls->cards as $card2) {
-                    if ($card2->$property == $value) {
+                    if (isset($card2->$property) &&  $card2->$property == $value) {
                         return array ('card' => $card2 , 'where' => 'senator' , 'deck' => $card->controls , 'senator' => $card , 'party' => 'forum' );
                     }
                 }
             }
         }
         foreach ($this->curia->cards as $card) {
-            if ($card->$property == $value) {
+            if (isset($card->$property) && $card->$property == $value) {
                 return array ('card' => $card , 'where' => 'curia' , 'deck' => $this->curia);
             }
         }
         foreach ($this->inactiveWars->cards as $card) {
-            if ($card->$property == $value) {
+            if (isset($card->$property) && $card->$property == $value) {
                 return array ('card' => $card , 'where' => 'inactiveWars' , 'deck' => $this->inactiveWars);
             }
         }
         foreach ($this->activeWars->cards as $card) {
-            if ($card->$property == $value) {
+            if (isset($card->$property) && $card->$property == $value) {
                 return array ('card' => $card , 'where' => 'activeWars' , 'deck' => $this->activeWars);
             }
         }
         foreach ($this->imminentWars->cards as $card) {
-            if ($card->$property == $value) {
+            if (isset($card->$property) && $card->$property == $value) {
                 return array ('card' => $card , 'where' => 'imminentWars' , 'deck' => $this->imminentWars);
             }
         }
         foreach ($this->unprosecutedWars->cards as $card) {
-            if ($card->$property == $value) {
+            if (isset($card->$property) && $card->$property == $value) {
                 return array ('card' => $card , 'where' => 'unprosecutedWars' , 'deck' => $this->unprosecutedWars);
             }
         }
@@ -904,12 +904,12 @@ class Game
         if ($conflict->type != 'Conflict') {
             return FALSE ;
         }
-        foreach ($this->activeWars as $active) {
+        foreach ($this->activeWars->cards as $active) {
             if ( $active->matches == $conflict->matches) {
                 $result++;
             }
         }
-        foreach ($this->unprosecutedWars  as $unprosecuted) {
+        foreach ($this->unprosecutedWars->cards  as $unprosecuted) {
             if ( $unprosecuted->matches == $conflict->matches ) {
                 $result++;
             }
@@ -957,7 +957,7 @@ class Game
      * @return type array messages in the form of arrays ('message','type of message','recipients')
      */
     public function setup_setPartyLeader( $user_id , $senatorID ) {
-        if ( ($this->phase=='Setup') && ($this->subPhase=='PickLeaders') && ($this->party[$user_id]->leader === NULL) ) {
+        if ( ($this->phase=='Setup') && ($this->subPhase=='PickLeaders') && ($this->party[$user_id]->leaderID === NULL) ) {
             foreach ($this->party[$user_id]->senators->cards as $senator) {
                 if ($senator->senatorID == $senatorID) {
                     $this->party[$user_id]->leaderID = $senator->senatorID ;
@@ -1678,7 +1678,7 @@ class Game
                 array_push($result , array('list' => 'to' , 'type' => 'party' , 'id' => $key , 'name' => $this->party[$key]->name ));
             }
             // For the HRAO only, give a list of released legions to let him chose if they are maintained or disbanded.
-            if ($this->getHRAO['party']==$user_id) {
+            if ($this->getHRAO()['party']==$user_id) {
                 foreach($this->legion as $key => $legion) {
                     if ($legion->location =='released') {
                         array_push($result , array('list' => 'releasedLegions' , 'number' => $key , 'name' => $legion->name)) ;
@@ -1969,10 +1969,12 @@ class Game
                 // Barbarians kill captives
                 foreach ($this->party as $key=>$party) {
                     $captiveList = $this->getListOfCaptives($key) ;
-                    foreach ($captiveList as $captive) {
-                        if ($captive['captiveOf'] == 'barbarians') {
-                            array_push($messages , array( sprintf(_('The barbarians slaughter %s, whose ransom was not paid by {%s}') , $this->getSenatorWithID($captive['senatorID'])->name , $key ) ,'alert'));
-                            array_push($messages , $this->mortality_killSenator($captive['senatorID'], TRUE) );
+                    if ($captiveList!==FALSE) {
+                        foreach ($captiveList as $captive) {
+                            if ($captive['captiveOf'] == 'barbarians') {
+                                array_push($messages , array( sprintf(_('The barbarians slaughter %s, whose ransom was not paid by {%s}') , $this->getSenatorWithID($captive['senatorID'])->name , $key ) ,'alert'));
+                                array_push($messages , $this->mortality_killSenator($captive['senatorID'], TRUE) );
+                            }
                         }
                     }
                 }
@@ -3015,8 +3017,7 @@ class Game
         foreach($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
                 if ($senator->office !=NULL) {
-                    sprintf(_('%s ({%s}) held a major office and gets a major corruption marker.') , $senator->name , $party->user_id) ;
-                    array_push($messages , array());
+                    array_push($messages , array(sprintf(_('%s ({%s}) held a major office and gets a major corruption marker.') , $senator->name , $party->user_id)));
                     $senator->major = TRUE ;
                 } else {
                     $senator->major = FALSE ;
@@ -3143,12 +3144,13 @@ class Game
      */
     public function forum_view($user_id) {
         $output = array () ;
+        $output['initiative'] = $this->initiative ;
         
         // We don't know who has the initiative : we are bidding
         if ($this->forum_whoseInitiative() === FALSE) {
             if ($this->currentBidder == $user_id) {
                 $output['state'] = 'bidding' ;
-                $output['initiative'] = $this->initiative ;
+                
                 $output['highestBidder'] = $this->forum_highestBidder();
                 $output['senatorList'] = array() ;
                 $output['showAmount'] = FALSE ;
@@ -3165,6 +3167,7 @@ class Game
             
         // We know who has the initiative
         } else {
+            $output['state'] = 'notBidding' ;
             $output['Initiative description'] = sprintf(_('Initiative %d (%s)') , $this->initiative , $this->party[$this->forum_whoseInitiative()]->fullName());
             $output['subPhase'] = $this->subPhase ;
             // This user has the initiative
@@ -3477,13 +3480,14 @@ class Game
             // 'Appointnment' proposal
             if ($proposalHow==='Dictator appointed by Consuls') {
                 $proposal->parameters[1] = TRUE ;
-                // Check if Senator is equal to 'NO', which means a Consul didn't want to appoint
-                if ($parameters[0]=='NO') {
+                // Check if Senator is equal to 'FALSE', which means a Consul didn't want to appoint, immediately ending the Dictator appointment phase
+                if ($parameters[0]=='FALSE') {
                     $proposal->outcome = FALSE ;
                     array_push($messages , array(_('You decide not to appoint a Dictator this turn.')) );
+                } else {
+                    array_push($messages , array(sprintf(_('You propose to appoint %s {%s} as a Dictator.') , $this->getSenatorWithID($parameters[0])->name , $this->getPartyOfSenatorWithID($parameters[0])->user_id ) , $user_id) );
                 }
                 array_push($this->proposals , $proposal) ;
-                array_push($messages , array(sprintf(_('You propose to appoint %s {%s} as a Dictator.') , $this->getSenatorWithID($parameters[0])->name , $this->getPartyOfSenatorWithID($parameters[0])->user_id ) , $user_id) );
                 // The proposal can be accetped immediately if there is only one Consul
                 if ($this->senate_findOfficial('Rome Consul')===FALSE || $this->senate_findOfficial('Field Consul')===FALSE) {
                     $proposal->outcome = TRUE ;
@@ -3613,9 +3617,9 @@ class Game
             case 'inRome' :
                 return ( $this->getSenatorWithID($parameters[$index])->inRome() ? TRUE : _('Senator is not in Rome.') ) ;
             case 'NO_or_inRome' :
-                return ( ($parameters[$index]=='NO' || $this->getSenatorWithID($parameters[$index])->inRome()) ? TRUE : _('Senator is not in Rome.') ) ;
+                return ( ($parameters[$index]=='FALSE' || $this->getSenatorWithID($parameters[$index])->inRome()) ? TRUE : _('Senator is not in Rome.') ) ;
             case 'boolean' :
-                return ( ( $parameters[$index]===TRUE || $parameters[$index]===FALSE) ? TRUE : _('Value should be True or False.') ) ;
+                return ( ( $parameters[$index]==TRUE || $parameters[$index]==FALSE) ? TRUE : sprintf(_('Value at index %d should be True or False.') , $index ) ) ;
             case 'office' :
                 $senator = $this->getSenatorWithID($parameters[$index]) ;
                 if (!in_array('Tradition Erodes' , $this->laws)) {
@@ -5018,6 +5022,20 @@ class Game
         return $result ;
     }
     
+    /**
+     * Returns a list of possible other business
+     * @return array of proposal types (as defined in Proposal class)
+     */
+    private function senate_getListOtherBusiness() {
+        $result = array () ;
+        // There is at least one concession in the forum
+        if ($this->forum->drawCardWithValue('type','Concession')!==FALSE) {
+            $result[]=array('Concession',_('Assign concessions'));
+        }
+        $result[]=array('Minor',_('Minor motion'));
+        return $result ;
+    }
+    
      /**
      * senate_view returns all the data needed to render senate templates. The function returns an array $output :
      * $output['state'] (Mandatory) gives the name of the current state to be rendered :
@@ -5188,7 +5206,7 @@ class Game
             /*
              * There is no proposal underway, give the possibility to make proposals
              */
-            } elseif ($latestProposal->outcome!==NULL) {
+            } elseif ($latestProposal===FALSE || $latestProposal->outcome!==NULL) {
                 // This 'votingOrder' parameter is simply a list of user_ids, it's provided to be re-ordered by the player making the proposal.
                 $output['votingOrder']=array();
                 foreach($this->party as $party) {
@@ -5298,14 +5316,10 @@ class Game
                     } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Other business') ) {
                         $output['state'] = 'Proposal';
                         $output['type'] = 'Other Business';
+                        $output['list'] = $this->senate_getListOtherBusiness();
+                        $output['ajourn'] = $this->getHRAO()['user_id']==$user_id;
                         /*
-                         * 
-                         * 
-                         * 
                          * TO DO
-                         * 
-                         * 
-                         * 
                          */
                     } else {
                         $output['state'] = 'Error';

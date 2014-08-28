@@ -51,16 +51,17 @@
                 
             {# You are a Consul - decide what to do with Dictator Appointment #}
             {% else %}
-                Appoint a Dictator (other Consul must agree) :<br>
+                Appoint a Dictator (the other Consul must agree) :<br>
                 <input type="hidden" name="type" value="Dictator">
                 <select name="parameters[0]">
-                    <option value="NO">NO</option>
+                    <option value="FALSE">NO</option>
                     {% for senator in output['possibleDictators']%}
                         <option value="{{senator['senatorID']}}">
-                            {{senator['name']}} ({{senator['partyName']}})
+                            {{senator['name']}} ({{senator['party_name']}})
                         </option>
                     {% endfor %}
                 </select><br>
+                <input type="hidden" name="parameters[1]" value="TRUE">
                 <input type="hidden" name="proposalHow" value="Dictator appointed by Consuls"></input>
             {% endif %}
         {#
@@ -85,6 +86,7 @@
                         {% endfor %}
                     {% endif %}
                 </select><br>
+                <input type="hidden" name="parameters[1]" value="FALSE">
             {% endif %}
         {#
             Censor proposal
@@ -149,8 +151,23 @@
             Other Business
         #}
         {% elseif output['type']=='Other Business' %}
-            Other Senate business :<br>
-            TO DO<br>
+            Other Senate business :
+            <select style="width:400px;">
+                {% for possibleproposal in output['list']%}
+                    <option value="{{possibleproposal[0]}}">
+                        {{possibleproposal[1]}}
+                    </option>
+                {% endfor %}
+            </select><br>
+            OR:<br>
+            {#
+                If President, can ajourn the senate
+            #}
+            {% if output['ajourn'] %}
+                <form class="form-horizontal" method="POST">
+                    <button type="submit" class="btn-danger">AJOURN THE SENATE</button>
+                </form>
+            {% endif %}
         {% endif %}
         {#
             Show a list of possible ways to make a proposal

@@ -11,7 +11,6 @@
             <table border="1">
             {% for item in game_flatDescription %}
                 <tr>
-                    <td>{{loop.index-1}}</td>
                 {% set tmp = '' %}
                 {% for detail in item %}
                     {% if loop.last and detail|length>0 %}

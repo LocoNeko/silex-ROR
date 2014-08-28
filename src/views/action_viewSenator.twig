@@ -1,7 +1,7 @@
 {% block content %}
 <pre>
 {{ senator.name }} ({{ senator.senatorID }}) - {{ senator.type }}
-{% if senator.senatorID==leader %}
+{% if leader%}
 LEADER
 {% endif %}
 {% if senator.office %}

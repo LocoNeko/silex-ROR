@@ -105,6 +105,8 @@
                     <br>
                 {% endfor %}
         {% endfor %}
+    {% else %}
+        <input type="hidden" name="rebel" value="NO">
     {% endif %}
         <button type="submit" class="btn btn-info">DONE</button>
     </form>

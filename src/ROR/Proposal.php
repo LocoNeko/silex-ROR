@@ -45,7 +45,6 @@ class Proposal {
      * @return type
      */
     public function init ($type , $proposedBy , $description , $parties , $parameters , $votingOrder) {
-        
         //type
         $key = array_search($type, self::$VALID_PROPOSAL_TYPES) ;
         if ($key===FALSE) {
@@ -133,7 +132,7 @@ class Proposal {
                 $result = array ('given' => 2 , 'total' => 2) ;
                 break ;
             case 'Dictator' :
-                $result = array ('given' => 1 , 'total' => 3) ;
+                $result = array ('given' => 2 , 'total' => 3) ;
                 break ;
             case 'Censor' :
                 $result = array ('given' => 1 , 'total' => 1) ;
