@@ -13,7 +13,14 @@
     Make a Proposal
 #}
 {% if output['state']=='Proposal' %}
-    You can make a Proposal<br>
+
+    {#
+        Prevent non-Consuls from seeing the message when they have to wait for Consuls
+    #}
+    {% if not output['waitingForConsuls'] %}
+        You can make a Proposal<br>
+    {% endif %}
+
     <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_proposal'} ) }}">
 
         {#
@@ -48,7 +55,6 @@
             {# You are not a Consul - Wait #}
             {% if output['waitingForConsuls'] %}
                 Waiting for Consuls to decide if they want to appoint a dictator
-                
             {# You are a Consul - decide what to do with Dictator Appointment #}
             {% else %}
                 Appoint a Dictator (the other Consul must agree) :<br>
@@ -69,25 +75,22 @@
         #}
         {% elseif output['type']=='Dictator Proposal' %}
             Dictator Proposal :<br>
-            {# Only able to propose if hasn't given up on the idea already, otherwise the proposalHow should be NULL, and we should never reach this  #}
-            {% if not output['done'] %}
-                <input type="hidden" name="type" value="Dictator">
-                <select name="parameters[0]">
-                    <option value="DONE">Do not propose a Dictator this turn</option>
-                    {#
-                        Only show a list of potential ditator if the player has more than one 'proposalHow'
-                        If he has only one, it should be 'Dictator proposal', giving him only the option to click 'DONE'
-                    #}
-                    {% if output['proposalHow']|length > 1 %}
-                        {% for senator in output['possibleDictators']%}
-                            <option value="{{senator['senatorID']}}">
-                                {{senator['name']}} ({{senator['partyName']}})
-                            </option>
-                        {% endfor %}
-                    {% endif %}
-                </select><br>
-                <input type="hidden" name="parameters[1]" value="FALSE">
-            {% endif %}
+            <input type="hidden" name="type" value="Dictator">
+            <select name="parameters[0]">
+                <option value="DONE">Do not propose a Dictator this turn</option>
+                {#
+                    Only show a list of potential ditator if the player has more than one 'proposalHow'
+                    If he has only one, it should be 'Dictator proposal', giving him only the option to click 'DONE'
+                #}
+                {% if output['proposalHow']|length > 1 %}
+                    {% for senator in output['possibleDictators']%}
+                        <option value="{{senator['senatorID']}}">
+                            {{senator['name']}} ({{senator['party_name']}})
+                        </option>
+                    {% endfor %}
+                {% endif %}
+            </select><br>
+            <input type="hidden" name="parameters[1]" value="FALSE">
         {#
             Censor proposal
         #}
@@ -173,7 +176,7 @@
             Show a list of possible ways to make a proposal
             Doesn't apply to prosecutions (only Censor can make proposals, and assassin prosecution is automatic) or dictator appointment by Consuls
         #}
-        {% if output['type']!='Prosecutions' and output['type']!='Assassin prosecution' and output['type']!='Dictator Appointment'%}
+        {% if output['type']!='Prosecutions' and output['type']!='Assassin prosecution' and output['type']!='Dictator Appointment' %}
             Choose how to make proposal :<br>
             {% embed 'action_senate_proposalHow.twig' %}
             {% endembed %}
@@ -186,8 +189,13 @@
             {% embed 'action_senate_votingOrder.twig' %}
             {% endembed %}
         {% endif %}
-        <br>
-        <button type="submit" class="btn-danger">MAKE PROPOSAL</button>
+        {#
+            Prevent non-Consuls to see the "Make Proposal" button when they have to wait
+        #}
+        {% if not output['waitingForConsuls'] %}
+            <br>
+            <button type="submit" class="btn-danger">MAKE PROPOSAL</button>
+        {% endif %}
     </form>
     {#
         For prosecutions : give a chance to do without
@@ -197,7 +205,6 @@
         <button type="submit" class="btn-danger">NO MORE PROSECUTIONS</button>
     </form>
     {% endif %}
-
 {#
     Proposal impossible
 #}
@@ -342,6 +349,11 @@ You cannot make a proposal at the moment
         {% else %}
             Waiting for Consuls to decide if they want to appoint a dictator
         {% endif %}
+    {#
+        Decision - Master of Horse appointment by the dictator
+    #}
+    {% elseif output['type'] =='Master of horse'%}
+        TO DO : MoH appointment
     {#
         Decision - Prosecutor
     #}

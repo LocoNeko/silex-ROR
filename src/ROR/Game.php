@@ -4297,7 +4297,7 @@ class Game
     }
     
     /**
-     * This function returns an array indicating all the ways user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune')
+     * This function returns an array indicating all the ways user_id can currently make a proposal ('president' , 'tribune card' , 'free tribune' , 'Dictator appointed by Consuls')
      * or empty array if he can't
      * @param type $user_id
      * @return array with a list of ways to make a proposal
@@ -4313,32 +4313,23 @@ class Game
                 return array();
             }
         }
-        // Short-circuit the function : If Consuls haven't decided to appoint a dictator, they must have the chance to do so, and nothing else until they decide to do it or not
+        // Dictator appointment :Short-circuit the function if Consuls haven't decided to appoint a dictator, they must have the chance to do so, and nothing else until they decide to do it or not
         if ($this->subPhase=='Dictator') {
-            $canAppoint = TRUE ;
             // Has there been a Dictator proposal already ?
             // The Dictator proposal with parameters[1]=TRUE will ALWAYS be the appointment proposed by one of the Consuls, and its outcome will ALWAYS be determined by the other consul accepting/refusing
+            $canAppoint = TRUE ;
             foreach ($this->proposals as $proposal) {
-                if ($proposal->type=='Dictator' && $proposal->parameters[1]===TRUE) {
+                if ($proposal->type=='Dictator' && $proposal->parameters[1]==TRUE && $proposal->outcome==NULL) {
                     $canAppoint = FALSE ;
                 }
             }
-            // There has been no dictator appointment proposal yet, Consuls (and only them) can appoint one
-            if ($canAppoint) {
-                if ( $this->senate_findOfficial('Rome Consul')['user_id'] == $user_id || $this->senate_findOfficial('Field Consul')['user_id'] == $user_id ) {
-                    return array('Dictator appointed by Consuls');
-                } else {
-                    // At this stage, no one else can propose anything : Consuls must decide first
-                    return array();
-                }
-            // There has been a dictator appointment proposal : players without the 'bidDone' set to TRUE must have a chance to set it to FALSE
-            } else {
-                if ($this->party[$user_id]->bidDone===FALSE) {
-                    return array('Dictator proposal');
-                } else {
-                    return array();
-                }
+            if ($canAppoint && ( $this->senate_findOfficial('Rome Consul')['user_id'] == $user_id || $this->senate_findOfficial('Field Consul')['user_id'] == $user_id ) ) {
+                return array('Dictator appointed by Consuls');
+            } elseif ($canAppoint) {
+                // At this stage, no one else can propose anything : Consuls must decide first
+                return array('Waiting for Consuls to appoint Dictator');
             }
+            // Note : we will get out of here unsacthed it $canAppoint is FALSE, so normal "canMakeProposal" results can be obtained for Dictator proposals.
         }
         $president = $this->getHRAO(TRUE);
         if ($president['user_id']==$user_id) {
@@ -5158,11 +5149,13 @@ class Game
             } elseif($this->phase=='Senate' && $this->subPhase=='Dictator' && $latestProposal!==FALSE && $latestProposal->parameters[1]===TRUE && $latestProposal->outcome===NULL) {
                 $output['state'] = 'Decision' ;
                 $output['type'] = 'Dictator' ;
-                $output['SenatorName'] = $this->getSenatorWithID($latestProposal->parameters[0])['name'] ;
+                $output['SenatorName'] = $this->getSenatorWithID($latestProposal->parameters[0])->name ;
                 $output['canDecide'] = $latestProposal->proposedBy!=$user_id && ( ($this->senate_findOfficial('Rome Consul')['user_id'] == $user_id) || ($this->senate_findOfficial('Field Consul')['user_id'] == $user_id) );
             // Dictator appoints Master of horse
             } elseif ($this->phase=='Senate' && $this->subPhase=='Dictator' && $latestProposal!==FALSE && $latestProposal->parameters[2]===NULL && $latestProposal->outcome===TRUE) {
                 // TO DO
+                $output['state'] = 'Decision' ;
+                $output['type'] = 'Master of horse' ;
             /**
              * Assassin special prosecution : allow the Censor to chose voting order
              */
@@ -5268,21 +5261,24 @@ class Game
                         // Give a chance to propose a dictator if conditions are met (they should be otherwise the phase wouldn't be 'Dictator')
                         // First : Give a chance to the consuls to appoint a dictator
                         $output['state'] = 'Proposal';
+                        /*
+                         * First step : Dictator Appointment
+                         */
                         if ($output['proposalHow'][0] == 'Dictator appointed by Consuls') {
                             $output['type'] = 'Dictator Appointment';
                             $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
                             $output['waitingForConsuls'] = FALSE ;
-                        // You are not a Consul, but your bidDone is FALSE : You are waiting for the Consuls
-                        } elseif (count($output['proposalHow']==0) && $this->party[$user_id]->bidDone===FALSE) {
+                        // You are not a Consul, but Consuls are still deciding whether or not to appoint a Dictator : You are waiting for the Consuls
+                        } elseif ($output['proposalHow'][0] == 'Waiting for Consuls to appoint Dictator') {
                             $output['type'] = 'Dictator Appointment';
                             $output['waitingForConsuls'] = TRUE ;
                         // In the view, give the option to set 'bidDone' to TRUE, so the player can indicate he doesn't want to propose a dictator this turn
                         // Once bidDone for all parties are TRUE, move on with our lives.
-                        } else {
+                        } elseif (!$this->party[$user_id]->bidDone) {
                             $output['type'] = 'Dictator Proposal';
                             $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
-                            $output['done'] = FALSE ;
                         }
+                        
                     /*
                      * Censor
                      */
