@@ -3419,7 +3419,18 @@ class Game
          */
         if ($type=='Dictator' && $parameters[0]=='DONE') {
             $this->party[$user_id]->bidDone = TRUE ;
-            return array(array(_('You do not wish to propose a Dictator this turn.') , 'message' , $user_id)) ;
+            $finished = TRUE ;
+            foreach($this->party as $party) {
+                if (!$party->bidDone) {
+                    $finished = FALSE ;
+                }
+            }
+            if ($finished) {
+                return (array(array($this->senate_setSubPhaseBack() , 'alert' )));
+            } else {
+                return array(array(_('You do not wish to propose a Dictator this turn.') , 'message' , $user_id)) ;
+            }
+                
         }
         /*
          * Basic checks
@@ -4074,10 +4085,22 @@ class Game
             } else {
                 $this->subPhase='Other business';
             }
+        // latest Proposal can only be false at the very beginning opf the Senate phase : set the subPhase to 'Consuls'
         } elseif($latestProposal===FALSE) {
             $this->subPhase = 'Consuls';
-        } elseif (in_array($latestProposal->type , array('Consuls' , 'Pontifex Maximus' , 'Dictator' , 'Censor' , 'Governors')) ) {
+        } elseif (in_array($latestProposal->type , array('Consuls' , 'Pontifex Maximus' , 'Censor' , 'Governors')) ) {
             $this->subPhase = $latestProposal->type ;
+        } elseif ($latestProposal->type==='Dictator') {
+            $this->subPhase = 'Censor' ;
+            $candidates = $this->senate_possibleCensors() ;
+            // Only one eligible candidate : appoint him and move to prosecution phase
+            if (count($candidates)==1) {
+                $this->senate_appointOfficial('Censor', $candidates[0]->senatorID) ;
+                $this->subPhase='Prosecutions';
+                return sprintf(_('Only %s is eligible for Censorship, so he is automatically elected. Moving to prosecutions.') , $candidates[0]->name) ;
+            } else {
+                $this->subPhase='Censor';
+            }
         } elseif ($latestProposal->type == 'Assassin prosecution') {
             if (count($this->proposals)<=1) {
                 $this->subPhase = 'Consuls' ;
@@ -5275,8 +5298,10 @@ class Game
                         // In the view, give the option to set 'bidDone' to TRUE, so the player can indicate he doesn't want to propose a dictator this turn
                         // Once bidDone for all parties are TRUE, move on with our lives.
                         } elseif (!$this->party[$user_id]->bidDone) {
-                            $output['type'] = 'Dictator Proposal';
                             $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
+                            $output['wontProposeDictator'] = FALSE ;
+                        } else {
+                            $output['wontProposeDictator'] = TRUE ;
                         }
                         
                     /*
