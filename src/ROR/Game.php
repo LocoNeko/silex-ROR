@@ -3413,8 +3413,7 @@ class Game
      */
     public function senate_proposal($user_id , $type , $description , $proposalHow , $parameters , $votingOrder) {
         $messages = array() ;
-        /* Short-circuit the process entirely if this is an exception case to normal proposals
-         * This can happen in those cases :
+        /* Short-circuit the process entirely if this is an exception case to normal proposals :
          * - Giving the opportunity to a player to give up on Dictator's proposal for the rest of the turn
          */
         if ($type=='Dictator' && $parameters[0]=='DONE') {
@@ -3484,7 +3483,7 @@ class Game
             $senator2 = $this->getSenatorWithID($parameters[1]) ;
             $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
             array_push($messages , array(sprintf(_('%s, {%s} proposes %s and %s as consuls.') , $using , $user_id , $senator1->name , $senator2->name)) );
-            array_push($this->proposals , $proposal) ;
+            $this->proposals[] = $proposal ;
             
         //Dictator
         } elseif ($type=='Dictator') {
@@ -3498,22 +3497,28 @@ class Game
                 } else {
                     array_push($messages , array(sprintf(_('You propose to appoint %s {%s} as a Dictator.') , $this->getSenatorWithID($parameters[0])->name , $this->getPartyOfSenatorWithID($parameters[0])->user_id ) , $user_id) );
                 }
-                array_push($this->proposals , $proposal) ;
+                $this->proposals[] = $proposal ;
                 // The proposal can be accetped immediately if there is only one Consul
                 if ($this->senate_findOfficial('Rome Consul')===FALSE || $this->senate_findOfficial('Field Consul')===FALSE) {
                     $proposal->outcome = TRUE ;
                     $this->senate_appointOfficial('Dictator', $parameters[0]) ;
                     array_push($messages , array(sprintf(_('The only Consul alive appoints %s {%s} as a Dictator.') , $this->getSenatorWithID($parameters[0])->name , $this->getPartyOfSenatorWithID($parameters[0])->user_id )) );
                 }
+            // Normal Dictator Proposal
             } else {
                 $proposal->parameters[1] = FALSE ;
-                // TO DO : Normal Dictator Proposal
+                $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
+                array_push($messages , array(sprintf(_('%s, {%s} proposes %s as dictator.') , $using , $user_id , $this->getSenatorWithID($parameters[0])->name)) );
+                $this->proposals[] = $proposal ;
             }
             // The 'bidDone' parameter is used here to make sure that every party has a chance to propose a dictator
              
         // Censor
         } elseif ($type=='Censor') {
-            // TO DO : Censor Proposal
+            $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
+            $senator = $this->getSenatorWithID($parameters[0]) ;
+            array_push($messages , array(sprintf(_('%s, {%s} proposes %s as Censor.') , $using , $user_id , $senator->name)) );
+            $this->proposals[] = $proposal ;
         
         // Prosecutions
         } elseif ($type=='Prosecutions') {
@@ -3524,8 +3529,8 @@ class Game
                     $reasonText = $reason['text'] ;
                 }
             }
-            array_push($messages , array(sprintf(_('The Censor {%s} accuses %s, appointing %s as prosecutor. Reason : %s') , $user_id , $this->getSenatorFullName($parameters[0]) , $this->getSenatorFullName($parameters[2]) , $reasonText )) );
-            array_push($this->proposals , $proposal) ;
+            array_push($messages , array(sprintf(_('The Censor %s of {%s} accuses %s, appointing %s as prosecutor. Reason : %s') , $this->senate_findOfficial('Censor')['senator']->name , $user_id , $this->getSenatorFullName($parameters[0]) , $this->getSenatorFullName($parameters[2]) , $reasonText )) );
+            $this->proposals[] = $proposal ;
         
         // Governorships
         } elseif ($type=='Governors') {
@@ -3869,7 +3874,10 @@ class Game
                     array_push($messages , array(sprintf(_('%s is elected Censor.') , $this->getSenatorWithID($latestProposal->parameters[0])->name )) );
                     $this->subPhase='Prosecutions';
                 } elseif ($latestProposal->type=='Prosecutions' || $latestProposal->type=='Assassin prosecution') {
-                    $this->senate_prosecutionSuccessful($user_id) ;
+                    $prosecutionSuccessfulMessages = $this->senate_prosecutionSuccessful($user_id) ;
+                    foreach($prosecutionSuccessfulMessages as $message) {
+                        array_push($messages, $message) ;
+                    }
                 }
             } else {
                 return array(array(_('Error on vote outcome.') , 'error' , $user_id));
@@ -4018,8 +4026,10 @@ class Game
                     $message2.=' As well as the accused\'s prior consul marker.';
                 }
                 array_push($messages , array($message2)) ;
-                if ($this->senate_getFinishedProsecutions()['minor']==2) {
+                $finishedProsecutions=$this->senate_getFinishedProsecutions();
+                if ($finishedProsecutions==2) {
                     // Sub phase will turn either to 'Governors' or 'Other business'
+                    // TO DO : Track error
                     array_push($messages , $this->senate_setSubPhaseBack());
                 }
             }
@@ -4810,13 +4820,15 @@ class Game
         $nbProsecutions = $this->senate_getFinishedProsecutions() ;
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
-                    if ($senator->major) {
-                        // Cannot have a major prosecution if there already was a minor prosecution
-                        if ($nbProsecutions['minor']==0) {
-                            $result[] = array('senator' => $senator , 'reason' => 'major' , 'text' => sprintf(_('MAJOR prosecution - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
-                        }
-                        $result[] = array('senator' => $senator , 'reason' => 'minor' , 'text' => sprintf(_('Minor prosecution - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
+                // Major prosecutions (held an office)
+                if ($senator->major) {
+                    // Cannot have a major prosecution if there already was a minor prosecution
+                    if ($nbProsecutions['minor']==0) {
+                        $result[] = array('senator' => $senator , 'reason' => 'major' , 'text' => sprintf(_('MAJOR prosecution - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
                     }
+                    $result[] = array('senator' => $senator , 'reason' => 'minor' , 'text' => sprintf(_('Minor prosecution - %s (%s) for holding an office') , $senator->name , $party->fullname())) ;
+                }
+                // Minor prosecutions (took provincial spoils)
                 if ($senator->corrupt) {
                     $alreadyprosecuted = FALSE ;
                     foreach ($this->proposals as $proposal) {
@@ -4828,6 +4840,7 @@ class Game
                         $result[] = array('senator' => $senator , 'reason' => 'province' , 'text' => sprintf(_('Minor prosecution - %s (%s) for governing a province') , $senator->name , $party->fullname())) ;
                     }
                 }
+                // Minor prosecutions (profited from a concession)
                 foreach ($senator->controls->cards as $card) {
                     if ($card->type=='Concession' && $card->corrupt) {
                         $alreadyprosecuted = FALSE ;
@@ -5093,7 +5106,7 @@ class Game
          */
         } elseif (($this->phase=='Senate') && ($this->subPhase=='Assassination') ) {
             $output['state'] = 'Assassination' ;
-            // Pick this assassin & the cards played
+            // Pick the assassin & the cards played
             if ($this->assassination['assassinID'] === NULL) {
                 if ($user_id == $this->assassination['assassinParty']) {
                     $output['subState'] = 'choose assassin' ;
@@ -5218,7 +5231,6 @@ class Game
                     $output['canVote'] = TRUE ;
                     $output['possibleVetos'] = $this->senate_getVetoList($user_id) ;
                 }
-
             /*
              * There is no proposal underway, give the possibility to make proposals
              */
@@ -5293,7 +5305,6 @@ class Game
                             $output['state'] = 'Proposal impossible';
                             $output['reason'] = 'You do not wish to propose a dictator this turn. Waiting on other players';
                         }
-                        
                     /*
                      * Censor
                      */

@@ -6,7 +6,7 @@ CREATE TABLE `games` (
   `status` varchar(50) NOT NULL DEFAULT 'Pre-game',
   `scenario` varchar(50) NOT NULL DEFAULT '',
   `variants` varchar(1000) NOT NULL DEFAULT '',
-  `game_data` blob,
+  `game_data` longblob,
   UNIQUE KEY `game_id` (`game_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -39,7 +39,7 @@ CREATE TABLE `saved_games` (
   `turn` int(3) unsigned NOT NULL DEFAULT 1,
   `phase` varchar(64) NOT NULL DEFAULT '',
   `subPhase` varchar(64) NOT NULL DEFAULT '',
-  `game_data` blob
+  `game_data` longblob
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS `users`;
