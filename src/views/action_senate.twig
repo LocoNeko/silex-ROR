@@ -142,6 +142,9 @@
             Other Business
         #}
         {% elseif output['type']=='Other Business' %}
+            {% if output['adjourned'] %}
+                The President has adjourned the Senate but you can keep it open by puting forward a proposal<BR>
+            {% endif %}
             Other Senate business :
             <select style="width:400px;">
                 {% for possibleproposal in output['list']%}
@@ -170,11 +173,21 @@
         {% endif %}
         <br>
         <button type="submit" class="btn-danger">MAKE PROPOSAL</button>
+        {#
+            Once the Senate is adjourned, players must have a way to signify they don't want to keep the Senate open
+        #}
+        {% if output['adjourned']|default(false) %}
+            <BR><BR>
+            <form class="form-horizontal" method="POST">
+                <button type="submit" class="btn-danger">NO MORE PROPOSALS</button>
+            </form>
+        {% endif %}
+
     </form>
     {#
         If President, can adjourn the senate
     #}
-    {% if output['adjourn'] %}
+    {% if output['adjourn']|default (false) %}
         <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_adjourn'} ) }}">
             <button type="submit" class="btn-danger">ADJOURN THE SENATE</button>
         </form>

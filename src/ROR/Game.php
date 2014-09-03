@@ -56,7 +56,7 @@ class Game
     
     private $id ;
     public $name ;
-    public $turn , $phase , $subPhase , $initiative ;
+    public $turn , $phase , $subPhase , $initiative , $senateAdjourned ;
     public $scenario , $variants , $unrest , $treasury , $nbPlayers ;
     public $currentBidder , $persuasionTarget ;
     public $party ;
@@ -88,6 +88,7 @@ class Game
         $this->phase = 'Setup' ;
         $this->subPhase = 'PickLeaders' ;
         $this->initiative = 0 ;
+        $this->$senateAdjourned = FALSE ;
         if (in_array($scenario, self::$VALID_SCENARIOS)) {
             $this->scenario = $scenario ;
         } else {return FALSE;}
@@ -3353,6 +3354,7 @@ class Game
         $messages = array() ;
         $this->phase = 'Senate';
         $this->subPhase = 'Consuls';
+        $this->senateAdjourned = FALSE;
         unset($this->steppedDown); $this->steppedDown = array() ;
         unset($this->proposals); $this->proposals = array() ;
         // Free tribunes per party, based on Senators inRome & specialAbility
@@ -4723,13 +4725,13 @@ class Game
         $messages = array() ;
         // Only the President can adjourn the senate
         if ($this->getHRAO(TRUE)['user_id']==$user_id) {
-            $this->subPhase = 'Adjourn';
+            $this->senateAdjourned = TRUE;
             // Set bidDone to FALSE for those parties with the ability to keep it open with a Tribune
             foreach ($this->party as $party) {
                 $party->bidDone = ( (count($this->senate_canMakeProposal($user_id))==0) ? TRUE : FALSE ) ;
             }
             $this->party[$user_id]->bidDone = TRUE ;
-            $messages[] = array(_('The President has adjourned the senate. Other parties can keep it open by playing a tribune.'),'alert') ;
+            $messages[] = array(_('The President has adjourned the senate. Other parties have a chance to keep it open by playing a tribune.'),'alert') ;
         } else {
             $messages[] = array(_('Only the President can adjourn the Senate') , 'error' , $user_id) ;
         }
@@ -5024,6 +5026,79 @@ class Game
         }
         return ( ($result == '') ? FALSE : substr($result , 0 , -2) ) ;
     }
+    
+    /**
+     * This function returns a list of all the land bills proposals that are possible at the time the function is called.
+     * A land bill proposal is impossible if :
+     * - A land bill of that type was already proposed this turn
+     * - There is no more land bill of that type available
+     * - A land bill level 2 (or 3) repeal is only possible if a level 2 (or 3) land bill is in place
+     * - A land bill level 2 (or 3) repeal is impossible if no Senator has at least 2 (or 3) popularity to repeal it
+     * - There can be no more than one land bill repeal proposal per turn
+     * @return array 'type' => 'text'
+     */
+    public function senate_getListPossibleLandBills() {
+        $result = array();
+        $result[-3] = _('Repeal Land Bill III');
+        $result[-2] = _('Repeal Land Bill II');
+        $result[1] = _('Pass Land Bill I');
+        $result[2] = _('Pass Land Bill II');
+        $result[3] = _('Pass Land Bill III');
+        // A land bill of that type was already proposed this turn
+        // There can be no more than one land bill repeal proposal per turn
+        foreach ($this->proposals as $proposal) {
+            if ($proposal->type=='Land Bills') {
+                switch ($proposal->parameters[0]) {
+                    case -2:
+                    case -3:
+                        unset ($result[-2]);
+                        unset ($result[-3]);
+                        break;
+                    case 1:
+                        unset ($result[1]);
+                        break;
+                    case 2:
+                        unset ($result[2]);
+                        break;
+                    case 3:
+                        unset ($result[3]);
+                        break;
+                }
+            }
+        }
+        // There is no more land bill of that type available
+        if ($this->landBill[1]==3) {
+            unset ($result[1]);
+        }
+        if ($this->landBill[2]==2) {
+            unset ($result[2]);
+        }
+        if ($this->landBill[3]==1) {
+            unset ($result[3]);
+        }
+        // A land bill level 2 (or 3) repeal is only possible if a level 2 (or 3) land bill is in place
+        if ($this->landBill[2]==0) {
+            unset ($result[-2]);
+        }
+        if ($this->landBill[3]==0) {
+            unset ($result[-3]);
+        }
+        $maxPOP = 1 ;
+        foreach ($this->party as $party) {
+            foreach ($party->senators->cards as $senator) {
+                if ($senator->POP>$maxPOP && $senator->inRome()) {
+                    $maxPOP = $senator->POP ;
+                }
+            }
+        }
+        if ($maxPOP<3) {
+            unset ($result[-3]);
+        }
+        if ($maxPOP<2) {
+            unset ($result[-2]);
+        }
+        return $result ;
+    }
 
     /**
      * Returns an array of all the Senators that can be assassinated by $user_id, which means :<br>
@@ -5086,10 +5161,16 @@ class Game
      */
     private function senate_getListOtherBusiness() {
         $result = array () ;
+        // TO DO : List of all possible proposals that are 'other business' :
+        // 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall Proconsul' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
         // There is at least one concession in the forum
-        if ($this->forum->drawCardWithValue('type','Concession')!==FALSE) {
-            $result[]=array('Concession',_('Assign concessions'));
+        if ($this->forum->getIdOfCardWithValue('type','Concession')!==FALSE) {
+            $result[]=array('Concessions',_('Assign concessions'));
         }
+        foreach ($this->senate_getListPossibleLandBills() as $key=>$value) {
+            $result[]=array('Land Bill;'.$key,$value);
+        }
+        // TO DO : get land bills with $this->senate_getListPossibleLandBills();
         $result[]=array('Minor',_('Minor motion'));
         return $result ;
     }
@@ -5160,8 +5241,15 @@ class Game
          * Once the President has adjourned, give a chance to other players to keep it open with a Tribune
          */
         } elseif (($this->phase=='Senate') && ($this->subPhase=='Adjourn') ) {
-            // TO DO
-            
+            $output['state'] = 'Adjourn' ;
+            if ($this->getHRAO(TRUE)['user_id'] == $user_id) {
+                $output['subState'] = 'President' ;
+            } elseif ($this->party[$user_id]->bidDone) {
+                $output['subState'] = 'Wont play tribune' ;
+            } else {
+                $output['subState'] = 'Can play tribune' ;
+                $output['proposalHow'] = $this->senate_canMakeProposal($user_id) ;
+            }
         /*
          * Now handle all the normal cases
          */
@@ -5376,11 +5464,18 @@ class Game
                     } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Other business') ) {
                         $output['state'] = 'Proposal';
                         $output['type'] = 'Other Business';
-                        $output['list'] = $this->senate_getListOtherBusiness();
-                        $output['adjourn'] = $this->getHRAO()['user_id']==$user_id;
-                        /*
-                         * TO DO
-                         */
+                        $output['adjourned'] = $this->senateAdjourned;
+                        $output['wontKeepItOpen'] = $this->party[$user_id]->bidDone ;
+                        if (!$output['adjourned'] || !$output['wontKeepItOpen']) {
+                            $output['list'] = $this->senate_getListOtherBusiness();
+                            $output['adjourn'] = $this->getHRAO()['user_id']==$user_id;
+                            /*
+                             * TO DO
+                             */
+                        } else {
+                            $output['state'] = 'Proposal impossible';
+                            $output['reason'] = 'The Senate has been adjourned and you don\'t wish to keep it open.';
+                        }
                     } else {
                         $output['state'] = 'Error';
                     }
