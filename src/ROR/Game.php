@@ -3882,6 +3882,16 @@ class Game
             } else {
                 return array(array(_('Error on vote outcome.') , 'error' , $user_id));
             }
+            /*
+             * Moving to next phase after 1 major or 2 minor prosecutions
+             */
+            if ($latestProposal->type=='Prosecutions') {
+                $finishedProsecutions=$this->senate_getFinishedProsecutions();
+                if ($finishedProsecutions['minor']==2 || $finishedProsecutions['major']==1) {
+                    // Sub phase will turn either to 'Governors' or 'Other business'
+                    array_push($messages , array($this->senate_setSubPhaseBack() , 'alert'));
+                }
+            }
         }
         return $messages ;
     }
@@ -4027,9 +4037,8 @@ class Game
                 }
                 array_push($messages , array($message2)) ;
                 $finishedProsecutions=$this->senate_getFinishedProsecutions();
-                if ($finishedProsecutions==2) {
+                if ($finishedProsecutions['minor']==2) {
                     // Sub phase will turn either to 'Governors' or 'Other business'
-                    // TO DO : Track error
                     array_push($messages , $this->senate_setSubPhaseBack());
                 }
             }
@@ -4254,7 +4263,7 @@ class Game
                         }
                     }
                 }
-                return array(array(sprintf(_('{%s} agrees that his return governor(s) go to a province again this turn.') , $user_id)));
+                return array(array(sprintf(_('{%s} agrees that his returning governor(s) go to a province again this turn.') , $user_id)));
             } else {
                 // Since this proposal was never actually put forward, simply discard it
                 unset ($this->proposals[count($this->proposals)-1]) ;
@@ -4704,7 +4713,29 @@ class Game
         }
         return $messages ;
     }
-    
+
+    /*
+     * Adjourns the Senate :
+     * - Sets subPhase to 'Adjourn'
+     * - Sets all parties (but the President's) bidDone to FALSE if they have a tribune
+     */
+    public function senate_adjourn($user_id) {
+        $messages = array() ;
+        // Only the President can adjourn the senate
+        if ($this->getHRAO(TRUE)['user_id']==$user_id) {
+            $this->subPhase = 'Adjourn';
+            // Set bidDone to FALSE for those parties with the ability to keep it open with a Tribune
+            foreach ($this->party as $party) {
+                $party->bidDone = ( (count($this->senate_canMakeProposal($user_id))==0) ? TRUE : FALSE ) ;
+            }
+            $this->party[$user_id]->bidDone = TRUE ;
+            $messages[] = array(_('The President has adjourned the senate. Other parties can keep it open by playing a tribune.'),'alert') ;
+        } else {
+            $messages[] = array(_('Only the President can adjourn the Senate') , 'error' , $user_id) ;
+        }
+        return $messages ;
+    }
+        
     /**
      * Returns a list of all possible consul pairs :
      * - Both in Rome
@@ -5079,7 +5110,7 @@ class Game
         $output = array() ;
         $latestProposal = $this->senate_getLatestProposal() ;
         /*
-         * Short-circuit the normal view if the sate is 'Unanimous defeat'
+         * Short-circuit the normal view if the state is 'Unanimous defeat'
          */
         if (($this->phase=='Senate') && ($this->subPhase=='Unanimous defeat') ) {
             $output['state'] = 'Unanimous defeat' ;
@@ -5125,6 +5156,12 @@ class Game
                     $output['subState'] = 'waiting for victim' ;
                 }
             }
+        /*
+         * Once the President has adjourned, give a chance to other players to keep it open with a Tribune
+         */
+        } elseif (($this->phase=='Senate') && ($this->subPhase=='Adjourn') ) {
+            // TO DO
+            
         /*
          * Now handle all the normal cases
          */
@@ -5272,6 +5309,7 @@ class Game
                     /*
                      * Pontifex Maximus
                      */
+                    // TO DO
                     /*
                      * Dictator
                      */
@@ -5339,7 +5377,7 @@ class Game
                         $output['state'] = 'Proposal';
                         $output['type'] = 'Other Business';
                         $output['list'] = $this->senate_getListOtherBusiness();
-                        $output['ajourn'] = $this->getHRAO()['user_id']==$user_id;
+                        $output['adjourn'] = $this->getHRAO()['user_id']==$user_id;
                         /*
                          * TO DO
                          */

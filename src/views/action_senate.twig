@@ -150,15 +150,6 @@
                     </option>
                 {% endfor %}
             </select><br>
-            OR:<br>
-            {#
-                If President, can ajourn the senate
-            #}
-            {% if output['ajourn'] %}
-                <form class="form-horizontal" method="POST">
-                    <button type="submit" class="btn-danger">AJOURN THE SENATE</button>
-                </form>
-            {% endif %}
         {% endif %}
         {#
             Show a list of possible ways to make a proposal
@@ -180,6 +171,14 @@
         <br>
         <button type="submit" class="btn-danger">MAKE PROPOSAL</button>
     </form>
+    {#
+        If President, can adjourn the senate
+    #}
+    {% if output['adjourn'] %}
+        <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_adjourn'} ) }}">
+            <button type="submit" class="btn-danger">ADJOURN THE SENATE</button>
+        </form>
+    {% endif %}
     {#
         For prosecutions : give a chance to do without
     #}
