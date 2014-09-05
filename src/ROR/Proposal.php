@@ -185,6 +185,10 @@ class Proposal {
                 $result[0] = array('possibleGovernors',NULL) ;
                 $result[1] = array('possibleProvinces',NULL) ;
                 break ;
+            case 'Concessions' :
+                $result[0] = array('concessionOddParameters',NULL) ;
+                $result[1] = array('concessionEvenParameters',NULL) ;
+                break ;
         }
         return $result ;
     }

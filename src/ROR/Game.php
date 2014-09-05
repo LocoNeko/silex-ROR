@@ -3414,6 +3414,7 @@ class Game
      * @return array messages
      */
     public function senate_proposal($user_id , $type , $description , $proposalHow , $parameters , $votingOrder) {
+
         $messages = array() ;
         /* Short-circuit the process entirely if this is an exception case to normal proposals :
          * - Giving the opportunity to a player to give up on Dictator's proposal for the rest of the turn
@@ -3478,7 +3479,13 @@ class Game
         if ($result !== TRUE) {
             return array(array($result)) ;
         }
-
+        /*
+         * 
+         * 
+         * HERE NOW
+         * 
+         * 
+         */
         // Consuls
         if ($type=='Consuls') {
             $senator1 = $this->getSenatorWithID($parameters[0]) ;
@@ -3613,7 +3620,7 @@ class Game
      * @param type $rule 'Pair'|'inRome'|'office'|'censorRejected'
      * @param array $parameters the array of parameters of the proposal
      * @param integer $index The index of the parameter to be validated, if needed (for some rules, it's obvious, like 'pair')
-     * @return string
+     * @return mixed TRUE if validated | message explaining why it didn't validate
      */
     private function senate_validateParameter($rule , $parameters , $index=0) {
         switch ($rule) {
@@ -3695,6 +3702,33 @@ class Game
                     }
                 }
                 return TRUE ;
+            case 'concessionOddParameters' :
+                $listAvailableConcessions = $this->senate_getListAvailableConcessions() ;
+                foreach ($parameters as $key=>$parameter) {
+                    if ( ($key % 2) == 1 ) {
+                        foreach($listAvailableConcessions as $availableConcession) {
+                            if ($parameter == $availableConcession['id']) {
+                                break ;
+                            }
+                            return _('Unknown concession.') ;
+                        }
+                    }
+                }
+                return TRUE ;
+            case 'concessionEvenParameters' :
+                // TO DO
+                $atLeastOneSenator = FALSE ;
+                foreach ($parameters as $key=>$parameter) {
+                    if ( ($key % 2) == 0 ) {
+                        if ($parameters[$key]!='NOBODY') {
+                            $atLeastOneSenator = TRUE ;
+                            if (!$this->getSenatorWithID($parameter)->inRome()) {
+                                return _('Senator is not in Rome.') ;
+                            }
+                        }
+                    }
+                }
+                return ( $atLeastOneSenator ? TRUE : _('You must name at least one senator.') ) ;
         }
         return 'Wrong rule';
     }
@@ -4880,21 +4914,39 @@ class Game
     }
     
     /**
-     * Returns an array of senators in Rome who are not the Censor
-     * @return type
+     * Returns an array of senators satisfying a criteria
+     * @return array 'senatorID' , 'name' , 'user_id'
      */
-    public function senate_getListPossibleProsecutors() {
+    // TO DO : Integrate possibleDictator and senate_getListAssassinationTargets($user_id) functions
+
+    public function senate_getFilteredListSenators($filter) {
         $result = array() ;
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
-                if ($senator->inRome() && $senator->office!='Censor') {
-                    $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name.' ('.$party->fullName().')') ;
+                switch($filter) {
+                    case 'prosecutor' :
+                        if ($senator->inRome() && $senator->office!='Censor') {
+                            $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName(), 'user_id' => $party->user_id) ;
+                        }
+                        break;
+                    case 'concession' :
+                        if ($senator->inRome()) {
+                            $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName() , 'user_id' => $party->user_id) ;
+                        }
+                        break;
+                    case 'landBillSponsor' :
+                        if ($senator->inRome() && $senator->POP>=2) {
+                            $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName() , 'user_id' => $party->user_id) ;
+                        }
+                        break;
+                    default :
+                        break;
                 }
             }
         }
         return $result ;
     }
-    
+
     /**
      * Returns information on available provinces as an array of arrays<br>
      * 
@@ -4929,6 +4981,20 @@ class Game
         return $result ;
     }
     
+    /**
+     * Returns a list of concessions that are avilable in the forum, and not flipped
+     * @return array 'name' , 'id'
+     */
+    public function senate_getListAvailableConcessions() {
+        $result = array() ;
+        foreach ($this->forum->cards as $card) {
+            if ($card->type == 'Concession' && $card->flipped == FALSE) {
+                $result[] = array ('name' => $card->name , 'id' => $card->id);
+            }
+        }
+        return $result ;
+    }
+
     /**
      * Returns an array of possible governors. The value 'user_id' is equal to 'forum' for non-aligned senators.
      * @return array ('senatorID' , 'user_id' , 'returning')
@@ -5026,11 +5092,11 @@ class Game
      */
     public function senate_getListPossibleLandBills() {
         $result = array();
-        $result[-3] = _('Repeal Land Bill III');
-        $result[-2] = _('Repeal Land Bill II');
         $result[1] = _('Pass Land Bill I');
         $result[2] = _('Pass Land Bill II');
         $result[3] = _('Pass Land Bill III');
+        $result[-2] = _('Repeal Land Bill II');
+        $result[-3] = _('Repeal Land Bill III');
         // A land bill of that type was already proposed this turn
         // There can be no more than one land bill repeal proposal per turn
         foreach ($this->proposals as $proposal) {
@@ -5151,13 +5217,13 @@ class Game
         // TO DO : List of all possible proposals that are 'other business' :
         // 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall Proconsul' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
         // There is at least one concession in the forum
+        
         if ($this->forum->getIdOfCardWithValue('type','Concession')!==FALSE) {
             $result[]=array('Concessions',_('Assign concessions'));
         }
         foreach ($this->senate_getListPossibleLandBills() as $key=>$value) {
-            $result[]=array('Land Bill;'.$key,$value);
+            $result[]=array('LandBill'.$key,$value);
         }
-        // TO DO : get land bills with $this->senate_getListPossibleLandBills();
         $result[]=array('Minor',_('Minor motion'));
         return $result ;
     }
@@ -5435,7 +5501,7 @@ class Game
                         $output['state'] = 'Proposal';
                         $output['type'] = 'Prosecutions';
                         $output['list'] = $this->senate_getListPossibleProsecutions() ;
-                        $output['possibleProsecutors'] = $this->senate_getListPossibleProsecutors() ;
+                        $output['possibleProsecutors'] = $this->senate_getFilteredListSenators('prosecutor') ;
                     /*
                      * Governors
                      */
@@ -5454,10 +5520,12 @@ class Game
                         $output['wontKeepItOpen'] = $this->party[$user_id]->bidDone ;
                         if (!$output['adjourned'] || !$output['wontKeepItOpen']) {
                             $output['list'] = $this->senate_getListOtherBusiness();
-                            $output['adjourn'] = $this->getHRAO()['user_id']==$user_id;
+                            $output['possibleConcessionSenators'] = $this->senate_getFilteredListSenators('concession');
+                            $output['concessions'] = $this->senate_getListAvailableConcessions();
                             /*
                              * TO DO
                              */
+                            $output['adjourn'] = $this->getHRAO()['user_id']==$user_id;
                         } else {
                             $output['state'] = 'Proposal impossible';
                             $output['reason'] = 'The Senate has been adjourned and you don\'t wish to keep it open.';

@@ -1,3 +1,42 @@
+{# JS to handle dynamic content for Other business #}
+{% block myScripts %}
+    <script type="text/javascript">
+        function pickOtherBusiness() {
+            document.getElementById("Concessions").style.display = "none";
+            document.getElementById("LandBill1").style.display = "none";
+            document.getElementById("LandBill2").style.display = "none";
+            document.getElementById("LandBill3").style.display = "none";
+            document.getElementById("LandBill-2").style.display = "none";
+            document.getElementById("LandBill-3").style.display = "none";
+            document.getElementById("Minor").style.display = "none";
+            var typePicked = document.getElementById("type").value;
+            switch(typePicked) {
+                case "Concessions":
+                    document.getElementById("Concessions").style.display = "block";
+                    break;
+                case "LandBill1":
+                    document.getElementById("LandBill1").style.display = "block";
+                    break;
+                case "LandBill2":
+                    document.getElementById("LandBill2").style.display = "block";
+                    break;
+                case "LandBill3":
+                    document.getElementById("LandBill3").style.display = "block";
+                    break;
+                case "LandBill-2":
+                    document.getElementById("LandBill-2").style.display = "block";
+                    break;
+                case "LandBill-3":
+                    document.getElementById("LandBill-3").style.display = "block";
+                    break;
+                case "Minor":
+                    document.getElementById("Minor").style.display = "block";
+                    break;
+            }
+        }
+    </script>
+{% endblock %}
+
 {# The view controller #}
 {% set output = content['game'].senate_view(user_id) %}
 
@@ -110,7 +149,7 @@
             <select name="parameters[2]">
                 {%for possibleProsecutor in output['possibleProsecutors']%}
                 <option value="{{possibleProsecutor['senatorID']}}">
-                     {{possibleProsecutor['name']}}
+                     {{possibleProsecutor['name']}}({{possibleProsecutor['party_name']}})
                 </option>
                 {% endfor %}
             </select><br>
@@ -146,13 +185,43 @@
                 The President has adjourned the Senate but you can keep it open by puting forward a proposal<BR>
             {% endif %}
             Other Senate business :
-            <select style="width:400px;">
+            <select id="type" name="type" onChange="pickOtherBusiness();" style="width:400px;">
                 {% for possibleproposal in output['list']%}
                     <option value="{{possibleproposal[0]}}">
                         {{possibleproposal[1]}}
                     </option>
                 {% endfor %}
-            </select><br>
+            </select><br><br>
+            <span id="Concessions" style="display: none;">
+                {% for concession in output['concessions']%}
+                    Give {{concession['name']}} <input type="hidden" name="parameters[{{loop.index0*2+1}}]" value="{{concession['id']}}">to
+                    <select name="parameters[{{loop.index0*2}}]">
+                        <option value="NOBODY">Nobody</option>
+                        {% for senator in output['possibleConcessionSenators']%}
+                            <option value="{{senator['senatorID']}}">{{senator['name']}} ({{senator['party_name']}})</option>
+                        {% endfor %}
+                    </select><BR>
+                {% endfor %}
+            </span>
+            <span id="LandBill1" style="display: none;">
+                Land Bill I<BR>
+            </span>
+            <span id="LandBill2" style="display: none;">
+                Land Bill II<BR>
+            </span>
+            <span id="LandBill3" style="display: none;">
+                Land Bill III<BR>
+            </span>
+            <span id="LandBill-2" style="display: none;">
+                Repeal Land Bill II<BR>
+            </span>
+            <span id="LandBill-3" style="display: none;">
+                Repeal Land Bill III<BR>
+            </span>
+            <span id="Minor" style="display: none;">
+                Minor motion<BR>
+            </span>
+            <BR>
         {% endif %}
         {#
             Show a list of possible ways to make a proposal
