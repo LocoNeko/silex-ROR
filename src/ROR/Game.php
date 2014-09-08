@@ -88,7 +88,7 @@ class Game
         $this->phase = 'Setup' ;
         $this->subPhase = 'PickLeaders' ;
         $this->initiative = 0 ;
-        $this->$senateAdjourned = FALSE ;
+        $this->senateAdjourned = FALSE ;
         if (in_array($scenario, self::$VALID_SCENARIOS)) {
             $this->scenario = $scenario ;
         } else {return FALSE;}
