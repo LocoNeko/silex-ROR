@@ -1,6 +1,6 @@
 {{content['game'].party[user_id].name}}, 
 Leader : 
-{%if content['game'].party[user_id].leaderID is defined %}
+{%if content['game'].party[user_id].leaderID is defined and content['game'].getSenatorWithID(content['game'].party[user_id].leaderID) != FALSE %}
 {{content['game'].getSenatorWithID(content['game'].party[user_id].leaderID).name}},
 
 {% else %}
