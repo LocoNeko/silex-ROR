@@ -3444,6 +3444,15 @@ class Game
         /*
          * Parameters validation
          */
+        // For Concessions, sort the parameters by keys, then remove the Concessions assigned to nobody
+        if ($type=='Concessions') {
+            ksort($parameters);
+            foreach($parameters as $key=>$parameter) {
+                if ($key%2 == 0 && $parameter=='NOBODY') {
+                    array_splice($parameters,$key,2) ;
+                }
+            }
+        }
         $rules = Proposal::validationRules($type) ;
         // For Prosecutions, parameters 0 & 1 are 'compressed' into parameter 0 at the time of form submission
         // This is UGLY (c)(tm)
@@ -3451,7 +3460,7 @@ class Game
             $compressedParameter = explode(',' , $parameters[0]);
             $parameters[0] = $compressedParameter[0] ;
             $parameters[1] = $compressedParameter[1] ;
-        } 
+        }
         
         foreach ($rules as $rule) {
             $validation = $this->senate_validateParameter($rule[0] , $parameters , $rule[1]) ;
@@ -3479,13 +3488,6 @@ class Game
         if ($result !== TRUE) {
             return array(array($result)) ;
         }
-        /*
-         * 
-         * 
-         * HERE NOW
-         * 
-         * 
-         */
         // Consuls
         if ($type=='Consuls') {
             $senator1 = $this->getSenatorWithID($parameters[0]) ;
@@ -3543,9 +3545,41 @@ class Game
         
         // Governorships
         } elseif ($type=='Governors') {
-            // TO DO : governors proposal
-            
-        // TO DO : 15 other types of proposals... 
+            // TO DO
+        } elseif ($type=='Concessions') {
+            $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
+            $proposalMessage = sprintf('%s {%s} proposes to assign concessions as follows : ' , $using , $user_id);
+            foreach($parameters as $key=>$parameter) {
+                if ($key%2==0) {
+                    $proposalMessage.= sprintf (' %s to %s ({%s}) %s' ,
+                        $this->getSpecificCard('id', $parameters[$key+1])['card']->name ,
+                        $this->getSenatorWithID($parameter)->name ,
+                        $this->getPartyOfSenatorWithID($parameter)->fullName() ,
+                        ($key==count($parameters)-2 ? '.' : ($key==count($parameters)-4 ? ' and ' : ' , '))
+                    );
+                }
+            }
+            array_push($messages, array($proposalMessage)) ;
+            $this->proposals[] = $proposal ;
+            // TO DO
+        } elseif ($type=='Land Bills') {
+            // TO DO
+        } elseif ($type=='Forces') {
+            // TO DO
+        } elseif ($type=='Garrison') {
+            // TO DO
+        } elseif ($type=='Deploy') {
+            // TO DO
+        } elseif ($type=='Recall Proconsul') {
+            // TO DO
+        } elseif ($type=='Recall Pontifex') {
+            // TO DO
+        } elseif ($type=='Priests') {
+            // TO DO
+        } elseif ($type=='Consul for life') {
+            // TO DO
+        } elseif ($type=='Minor') {
+            // TO DO
         } else {
             return array(array(_('Error with proposal type.') , 'error' , $user_id)) ;
         }
@@ -3705,26 +3739,34 @@ class Game
             case 'concessionOddParameters' :
                 $listAvailableConcessions = $this->senate_getListAvailableConcessions() ;
                 foreach ($parameters as $key=>$parameter) {
+                    $ok = FALSE ;
                     if ( ($key % 2) == 1 ) {
                         foreach($listAvailableConcessions as $availableConcession) {
                             if ($parameter == $availableConcession['id']) {
+                                $ok = TRUE;
                                 break ;
                             }
+                        }
+                        if (!$ok) {
                             return _('Unknown concession.') ;
                         }
                     }
                 }
                 return TRUE ;
             case 'concessionEvenParameters' :
-                // TO DO
                 $atLeastOneSenator = FALSE ;
                 foreach ($parameters as $key=>$parameter) {
                     if ( ($key % 2) == 0 ) {
-                        if ($parameters[$key]!='NOBODY') {
+                        // This has been removed after basic checks and should not happen, but what the hell
+                        if ($parameter!='NOBODY') {
                             $atLeastOneSenator = TRUE ;
-                            if (!$this->getSenatorWithID($parameter)->inRome()) {
+                            if ($this->getSenatorWithID($parameter)!=FALSE && !$this->getSenatorWithID($parameter)->inRome()) {
                                 return _('Senator is not in Rome.') ;
+                            } elseif($this->getSenatorWithID($parameter)==FALSE) {
+                                return _('Senator ID not recognised.') ;
                             }
+                        } else {
+                            return _('Senator is a nobody.') ;
                         }
                     }
                 }
@@ -4915,9 +4957,9 @@ class Game
     
     /**
      * Returns an array of senators satisfying a criteria
-     * @return array 'senatorID' , 'name' , 'user_id'
+     * @return array 'senatorID' , 'name' , 'user_id' , optional : 'POP' (only for 'landBillSponsor')
      */
-    // TO DO : Integrate possibleDictator and senate_getListAssassinationTargets($user_id) functions
+    // TO DO : Integrate senate_getListAssassinationTargets($user_id) functions
 
     public function senate_getFilteredListSenators($filter) {
         $result = array() ;
@@ -4935,10 +4977,14 @@ class Game
                         }
                         break;
                     case 'landBillSponsor' :
-                        if ($senator->inRome() && $senator->POP>=2) {
-                            $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName() , 'user_id' => $party->user_id) ;
+                        if ($senator->inRome() && $senator->POP>=3) {
+                            $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName() , 'user_id' => $party->user_id , 'POP' => $senator->POP ) ;
                         }
                         break;
+                    case 'possibleDictators' :
+                        if ($senator->inRome() && ($senator->office===NULL || $senator->office==='Censor')) {
+                           $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName() , 'user_id' => $party->user_id) ;
+                        }
                     default :
                         break;
                 }
@@ -5011,22 +5057,6 @@ class Game
         foreach ($this->forum->cards as $card) {
             if ( ($card->type=='Family' || $card->type=='Statesman') && ($card->inRome()) ) {
                 array_push($result , array('senatorID' => $card->senatorID , 'name' => $card->name , 'user_id' => 'forum' , 'returning' => $card->returningGovernor) ) ;
-            }
-        }
-        return $result ;
-    }
-    
-    /**
-     * Returns an array of possible dictators (in Rome, not holding any office except Censor
-     * @return array ('senatorID' , 'name' , 'user_id' , 'party_name')
-     */
-    public function senate_getListPossibleDictators() {
-        $result = array() ;
-        foreach ($this->party as $party) {
-            foreach ($party->senators->cards as $senator) {
-                if ($senator->inRome() && ($senator->office===NULL || $senator->office==='Censor')) {
-                    array_push($result , array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'party_name' => $party->name) ) ;
-                }
             }
         }
         return $result ;
@@ -5470,7 +5500,7 @@ class Game
                         // First : Give a chance to the consuls to appoint a dictator
                         if ($output['proposalHow'][0] == 'Dictator appointed by Consuls') {
                             $output['type'] = 'Dictator Appointment';
-                            $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
+                            $output['possibleDictators'] = $this->senate_getFilteredListSenators('possibleDictators') ;
                         // You are not a Consul, but Consuls are still deciding whether or not to appoint a Dictator : You are waiting for the Consuls
                         } elseif ($output['proposalHow'][0] == 'Waiting for Consuls to appoint Dictator') {
                             $output['state'] = 'Proposal impossible';
@@ -5478,7 +5508,7 @@ class Game
                         // In the view, give the option to set 'bidDone' to TRUE, so the player can indicate he doesn't want to propose a dictator this turn
                         // Once bidDone for all parties are TRUE, move on with our lives.
                         } elseif (!$this->party[$user_id]->bidDone) {
-                            $output['possibleDictators'] = $this->senate_getListPossibleDictators() ;
+                            $output['possibleDictators'] = $this->senate_getFilteredListSenators('possibleDictators') ;
                         } else {
                             $output['state'] = 'Proposal impossible';
                             $output['reason'] = 'You do not wish to propose a dictator this turn. Waiting on other players';

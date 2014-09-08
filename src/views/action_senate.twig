@@ -185,7 +185,7 @@
                 The President has adjourned the Senate but you can keep it open by puting forward a proposal<BR>
             {% endif %}
             Other Senate business :
-            <select id="type" name="type" onChange="pickOtherBusiness();" style="width:400px;">
+            <select id="type" name="type" onClick="pickOtherBusiness();" style="width:400px;">
                 {% for possibleproposal in output['list']%}
                     <option value="{{possibleproposal[0]}}">
                         {{possibleproposal[1]}}
@@ -540,3 +540,7 @@
 ERROR - Wrong state
 
 {% endif %}
+<script type="text/javascript">
+    // Once page is loaded, pick the other business to ensure the form is filled
+    pickOtherBusiness();
+</script>
