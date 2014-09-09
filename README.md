@@ -17,8 +17,8 @@ The tools used are :
 - The Twig template engine
 - MySQL database (but using PDO so should easily translate to another)
 - Jason Grime's SimpleUser for registration and authorisation
+- PHPRatchet for WebSockets, so a user's browser is updated as soon as the Game object or the log changes through other users' input. _(e.g. : While you are waiting for other players to take their turn you can only watch the game, but once it's your turn, the interface accepts your inputs)_
 
 The following will probably need to be implemented but is currently out of my skillset :
 
 - Proper ORM like Doctrine 2, so changes to a "Game" object is reflected in the database
-- Some kind of auto-refresh / long-polling technique to update a user's browser as soon as the Game object or the log changes through other users' input. (e.g. : While you are waiting for other players to take their turn you can only watch the game, but once it's your turn, the interface accepts your inputs)
