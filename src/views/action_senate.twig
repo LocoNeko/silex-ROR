@@ -541,6 +541,9 @@ ERROR - Wrong state
 
 {% endif %}
 <script type="text/javascript">
-    // Once page is loaded, pick the other business to ensure the form is filled
-    pickOtherBusiness();
+    // Update other business span tag when pages loads according to which option is selected in the relevant <select>.
+    // Only applies if such a span is avaiable. here, we test "Concessions" but any other could actually be tested (LandBill1, Minor, etc)
+    if (document.getElementById("Concessions")) {
+        pickOtherBusiness();
+    }
 </script>

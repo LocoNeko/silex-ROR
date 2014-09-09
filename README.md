@@ -22,3 +22,4 @@ The tools used are :
 The following will probably need to be implemented but is currently out of my skillset :
 
 - Proper ORM like Doctrine 2, so changes to a "Game" object is reflected in the database
+

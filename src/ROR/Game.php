@@ -2537,12 +2537,11 @@ class Game
      * Returns an array with a complete list of information about the current persuasion attempt
      * @return type
      */
-    // TO DO : should I really return the whole party in this funciton, or just the user_id and update the use of this function's results from $result['target']['party'] to $this->party[$result['target']['party']]?
     public function forum_persuasionListCurrent() {
         $rollOdds = array(2 => 1/36 , 3 => 2/36 , 4 => 6/36 , 5 => 10/36 , 6 => 15/36 , 7 => 21/36 , 8 => 26/36 , 9 => 30/36 );
         $result = array();
         $result['target']['senatorID'] = $this->persuasionTarget->senatorID ;
-        $result['target']['party'] = $this->getPartyOfSenator($this->persuasionTarget) ;
+        $result['target']['user_id'] = $this->getPartyOfSenator($this->persuasionTarget)->user_id ;
         $result['target']['treasury'] = $this->persuasionTarget->treasury ;
         $result['target']['LOY'] = $this->getSenatorActualLoyalty($this->persuasionTarget) ;
         $result['target']['name'] = $this->persuasionTarget->name ;
@@ -2682,14 +2681,14 @@ class Game
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'SUCCESS') );
                                 }
                                 array_push ($messages , array( sprintf(_('SUCCESS - {%s} rolls %d, which is not greater than the target number of %d.') , $user_id , $roll['total'] , $currentPersuasion['odds']['total']) ));
-                                if ($currentPersuasion['target']['party'] == 'forum') {
+                                if ($currentPersuasion['target']['user_id'] == 'forum') {
                                     $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
                                     array_push ($messages , array( sprintf(_('%s leaves the forum and joins {%s}.') , $senator->name , $user_id) ));
                                 } else {
-                                    $senator = $currentPersuasion['target']['party']->senators->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
+                                    $senator = $this->party[$currentPersuasion['target']['user_id']]->senators->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
-                                    array_push ($messages , array( sprintf(_('%s leaves {%s} and joins {%s}.') , $senator->name , $currentPersuasion['target']['party']->user_id , $user_id) ));
+                                    array_push ($messages , array( sprintf(_('%s leaves {%s} and joins {%s}.') , $senator->name , $currentPersuasion['target']['user_id'] , $user_id) ));
                                 }
                             }
                             $totalBids = 0 ;
@@ -3555,19 +3554,9 @@ class Game
         } elseif ($type=='Concessions') {
             $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
             $proposalMessage = sprintf('%s {%s} proposes to assign concessions as follows : ' , $using , $user_id);
-            foreach($parameters as $key=>$parameter) {
-                if ($key%2==0) {
-                    $proposalMessage.= sprintf (' %s to %s ({%s}) %s' ,
-                        $this->getSpecificCard('id', $parameters[$key+1])['card']->name ,
-                        $this->getSenatorWithID($parameter)->name ,
-                        $this->getPartyOfSenatorWithID($parameter)->fullName() ,
-                        ($key==count($parameters)-2 ? '.' : ($key==count($parameters)-4 ? ' and ' : ' , '))
-                    );
-                }
-            }
+            $proposalMessage.=$this->senate_getConcessionProposalDetails($parameters);
             array_push($messages, array($proposalMessage)) ;
             $this->proposals[] = $proposal ;
-            // TO DO
         } elseif ($type=='Land Bills') {
             // TO DO
         } elseif ($type=='Forces') {
@@ -3930,9 +3919,10 @@ class Game
                 }
             }
             /* 
-             * Deal with automatic nominations if the outcome was FALSE
-             * - Consuls : Only one pair of senators left
-             * - Censor : Only one prior consul left
+             * Results of an unsuccesful vote (outcome is FALSE)
+             * - Automatic nominations :
+             * > Consuls : Only one pair of senators left
+             * > Censor : Only one prior consul left
              */
             if (end($this->proposals)->outcome === FALSE) {
                 if (end($this->proposals)->type=='Consuls') {
@@ -3953,6 +3943,27 @@ class Game
                         $this->senate_appointOfficial('Censor', $candidates[0]->senatorID) ;
                         $this->subPhase='Prosecutions';
                     }
+                } elseif (end($this->proposals)->type=='Concessions') {
+                    $flippedConcessionsMessage='';
+                    foreach (end($this->proposals)->parameters as $key=>$parameter) {
+                        if ($key %2 == 1) {
+                            foreach($this->forum->cards as $card) {
+                                if ($card->type=='Concession' && $card->id == $parameter) {
+                                    $card->flipped = TRUE ;
+                                    $flippedConcessionsMessage .= $card->name.(($key==count(end($this->proposals)->parameters)-1 ? '.' : ', ' ) );
+                                }
+                            }
+                        }
+                    }
+                    array_push ($messages , array
+                        (
+                            sprintf
+                                (_('The following Concessions%s flipped and cannot be assigned during this Senate phase : %s') ,
+                                    (count(end($this->proposals)->parameters)==2 ? ' is' : 's are') ,
+                                    $flippedConcessionsMessage
+                                )
+                        )
+                    );
                 }
             /*
              * TO DO : Results of succesful votes that don't require a decision
@@ -3967,6 +3978,8 @@ class Game
                     foreach($prosecutionSuccessfulMessages as $message) {
                         array_push($messages, $message) ;
                     }
+                } elseif (end($this->proposals)->type=='Concessions') {
+                    
                 }
             } else {
                 return array(array(_('Error on vote outcome.') , 'error' , $user_id));
@@ -5264,6 +5277,26 @@ class Game
         return $result ;
     }
     
+    /**
+     * Returns a detailed description of a Concession proposal
+     * @param type $parameters
+     * @return String
+     */
+    private function senate_getConcessionProposalDetails ($parameters) {
+        $result='';
+        foreach($parameters as $key=>$parameter) {
+            if ($key%2==0) {
+                $result.= sprintf (' %s to %s (%s) %s' ,
+                    $this->getSpecificCard('id', $parameters[$key+1])['card']->name ,
+                    $this->getSenatorWithID($parameter)->name ,
+                    $this->getPartyOfSenatorWithID($parameter)->fullName() ,
+                    ($key==count($parameters)-2 ? '.' : ($key==count($parameters)-4 ? ' and ' : ' , '))
+                );
+            }
+        }
+        return $result;
+    }
+
      /**
      * senate_view returns all the data needed to render senate templates. The function returns an array $output :
      * $output['state'] (Mandatory) gives the name of the current state to be rendered :
@@ -5592,7 +5625,7 @@ class Game
         if ($targetProposal->proposedBy == NULL) {
             $description = _('Automatic proposal for : ');
         } else {
-            $description = sprintf(_('%s is proposing : ') , $this->party[$targetProposal->proposedBy]->fullName());
+            $description = sprintf(_('%s is proposing ') , $this->party[$targetProposal->proposedBy]->fullName());
         }
         switch ($targetProposal->type) {
             case 'Consuls' :
@@ -5616,6 +5649,9 @@ class Game
                 break ;
             case 'Assassin prosecution' :
                 $description.= _('Special Major Prosecution for assassination');
+                break ;
+            case 'Concessions' :
+                $description.='to assign Concessions as follows : '.$this->senate_getConcessionProposalDetails($targetProposal->parameters);
                 break ;
             // TO DO : other types of proposals
         }
