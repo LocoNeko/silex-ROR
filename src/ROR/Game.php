@@ -673,6 +673,7 @@ class Game
             }
         } elseif ($this->subPhase=='Persuasion') {
             // Skip all parties who have no money in their party treasury
+            // TO DO : Should we do that ?
             do {
                 if ($this->party[$orderOfPlay[0]]->treasury == 0) {
                     array_push( $result['messages'], array(sprintf(_('Skipping {%s} : no talents in the party treasury to counter-bribe.'),$this->party[$orderOfPlay[0]]->user_id)) );
@@ -2536,6 +2537,7 @@ class Game
      * Returns an array with a complete list of information about the current persuasion attempt
      * @return type
      */
+    // TO DO : should I really return the whole party in this funciton, or just the user_id and update the use of this function's results from $result['target']['party'] to $this->party[$result['target']['party']]?
     public function forum_persuasionListCurrent() {
         $rollOdds = array(2 => 1/36 , 3 => 2/36 , 4 => 6/36 , 5 => 10/36 , 6 => 15/36 , 7 => 21/36 , 8 => 26/36 , 9 => 30/36 );
         $result = array();
@@ -2595,7 +2597,7 @@ class Game
                 // target [0] = senatorID , [1] = treasury , [2] = party , [3] = actual loyalty
                 $target = explode('|' , $targetRaw);
                 $partyTarget = $this->getPartyOfSenatorWithID($target[0]) ;
-                if ($partyTarget==$target[2]) {
+                if ($partyTarget->user_id==$target[2]) {
                     // Everything is fine so far, proceed to check persuader
                     // persuader [0] = senatorID , [1] = treasury , [2] = INF , [3] = ORA
                     $persuader = explode('|' , $persuaderRaw);
@@ -2641,10 +2643,10 @@ class Game
                             return array(array(_('Amount error'),'error',$user_id));
                         }
                     } else {
-                        return array(array(_('Error - party mismatch'),'error',$user_id));
+                        return array(array(_('Error - persuading Senator party mismatch'),'error',$user_id));
                     }
                 } else {
-                    return array(array(_('Error - party mismatch'),'error',$user_id));
+                    return array(array(_('Error - target Senator party mismatch'),'error',$user_id));
                 }
             /* 
              * We know the target, this is a bribe     
@@ -2685,9 +2687,9 @@ class Game
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
                                     array_push ($messages , array( sprintf(_('%s leaves the forum and joins {%s}.') , $senator->name , $user_id) ));
                                 } else {
-                                    $senator = $this->party[$currentPersuasion['target']['party']]->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
+                                    $senator = $currentPersuasion['target']['party']->senators->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
-                                    array_push ($messages , array( sprintf(_('%s leaves {%s} and joins {%s}.') , $senator->name , $this->party[$currentPersuasion['target']['party']].user_id , $user_id) ));
+                                    array_push ($messages , array( sprintf(_('%s leaves {%s} and joins {%s}.') , $senator->name , $currentPersuasion['target']['party']->user_id , $user_id) ));
                                 }
                             }
                             $totalBids = 0 ;
@@ -2761,7 +2763,7 @@ class Game
     public function forum_removePersuasionCard($user_id , $senatorID , $id , $outcome) {
         $senator = $this->getSenatorWithID($senatorID);
         if ($senator!==FALSE) {
-            $card = $senator->controls->drawCardWithValue($id) ;
+            $card = $senator->controls->drawCardWithValue('id',$id) ;
             if ($card!==FALSE) {
                 $completeMessage=sprintf(_('The %s card is discarded.') , $card->name);
                 if ($card->name=="BLACKMAIL") {
@@ -2944,6 +2946,10 @@ class Game
             } else {
                 array_push($messages , array(_('Error - Wrong party') , 'error' , $user_id));
             }
+        } elseif ( ($this->phase=='Forum') && ($this->subPhase=='SponsorGames') && ($this->forum_whoseInitiative()==$user_id) && $type==0) {
+            array_push($messages , array(sprintf(_('{%s} doesn\'t sponsor games during this initiative.') , $user_id) ));
+            $this->subPhase = 'ChangeLeader';
+            array_push ($messages , array( _('Change Leader Sub Phase') ));
         }
         return $messages ;
     }

@@ -1,6 +1,8 @@
 {% block myScripts %}
 <script type="text/javascript">
-    function updateBidAmount(minimum) {
+    function updateBidAmount() {
+      var minimum = highestBidder.value ;
+      alert(minimum) ;
       value =  senator.value.substr(senator.value.indexOf("|")+1) ;
       while ( amount.options.length ) amount.options[0] = null ;
       option = new Option( "Don't bid" , "NONE" );
@@ -77,7 +79,7 @@
     function updateGames() {
         index1 = senator.value.indexOf("|")+1;
         index2 = senator.value.indexOf("|",index1)+1;
-        treasury = parseInt(target.value.substr(index2)) ;
+        treasury = parseInt(senator.value.substr(index2)) ;
         while ( type.options.length ) type.options[0] = null ;
         if (treasury>=7) {
             type.options[type.length] = new Option ("Slice & Dice" , 7);
@@ -104,11 +106,12 @@
 {% if output['state'] == 'bidding' %}
     Currently bidding for initiative number {{output['initiative']}}<br>
     You are the current bidder<br>
-    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bid'} ) }}">
+    <form class="form-horizontal" id="bidding" name="bidding" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_bid'} ) }}">
     The highest bidder is : {{output['highestBidder']['message']}}<br>
     You need to bid at least {{output['highestBidder']['bid']+1}}<br>
     Pick a Senator to bid for initiative :<br>
-        <select id='senator' name='senator' onClick="updateBidAmount({{output['highestBidder']['bid']+1}});">
+        <input type="hidden" name="highestBidder" id="highestBidder" value="{{output['highestBidder']['bid']+1}}">
+        <select id='senator' name='senator' onClick="updateBidAmount();">
         {%for senator in output['senatorList'] %}
             <option value="{{senator['senatorID']}}|{{senator['treasury']}}">{{senator['name']}} ({{senator['treasury']}} T)</option>
         {% endfor %}
@@ -156,7 +159,7 @@
                 #}
                 {% if output['targetKnown']==FALSE %}
                     Choose your persuasion target :<br><br>
-                    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
+                    <form class="form-horizontal" method="POST" id="persuasion" name="persuasion" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
                         USE :
                         <select id="persuader" name="persuader" onClick="updatePersuasionAmount() ; updateOdds();" style="width: 350px;">
                             {% for senator in output['listPersuaders'] %}
@@ -203,7 +206,7 @@
                         The user is the current bidder, so must choose to roll or bid more
                     #}
                     {% if output['briber'] %}
-                        {% embed 'action_forumPersuasion.twig' %}
+                            {% embed 'action_forumPersuasion.twig' %}
                         {% endembed %}
                         Add to current bribe or roll with current odds :
                         <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
@@ -294,6 +297,10 @@
                     </select>
                     <input type="submit" class="btn btn-info" value="SPONSOR GAMES">
                 </form>
+                <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_sponsorGames'} ) }}">
+                    <input type="hidden" id="type" name="type" value="0">
+                    <input type="submit" class="btn btn-danger" value="NO GAMES DURING THIS INITIATIVE">
+                </form>
             {% else %}
                 Error - no senator can sponsor game. 
             {% endif %}
@@ -371,3 +378,16 @@
     {% endif %}
     
 {% endif %}
+<script type="text/javascript">
+    // TO DO : Do this to all "onClick()" so I can replace them with "onChange()"
+    // Update bidding amount when pages loads according to which option is selected in the relevant <select>
+    if (document.getElementById("bidding")) {
+        if (document.getElementById("senator")) {
+            updateBidAmount();
+        }
+    }
+    // Update persuasion amount and odds when pages loads according to which option is selected in the relevant <select>
+    if (document.getElementById("persuasion")) {
+        updatePersuasionAmount() ; updateOdds();
+    }
+</script>

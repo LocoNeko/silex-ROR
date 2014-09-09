@@ -119,7 +119,7 @@
 {# sub phase : Redistribution - playing #}
 {% elseif output['state']=='Redistribution - Playing' %}
     Sub phase : Redistribution<br>
-    <form class="form-horizontal" id="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Redistribution'} ) }}">
+    <form class="form-horizontal" id="redistribution" name="redistribution" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Redistribution'} ) }}">
         <fieldset>
             Give from 
             <select id="fromRaw" name="fromRaw" onClick="updateRedistributionAmount();">
@@ -172,7 +172,7 @@
 {# sub phase : Contributions - playing #}
 {% elseif output['state']=='Contributions - Playing' %}
     Sub phase : Contributions<br>
-    <form class="form-horizontal" id="contributions" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Contributions'} ) }}">
+    <form class="form-horizontal" id="contributions" name="contributions" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'revenue_Contributions'} ) }}">
         <fieldset>
     Give from 
             <select id="senator" name="senator" onClick="updateContributionAmount();">
@@ -194,3 +194,13 @@
     </form>
 
 {% endif %}
+<script type="text/javascript">
+    // Update redistribution amount when pages loads according to which option is selected in the relevant <select>
+    if (document.getElementById("fromRaw")) {
+        updateRedistributionAmount();
+    }
+    // Update contribution amount when pages loads according to which option is selected in the relevant <select>
+    if (document.getElementById("senator")) {
+        updateContributionAmount();
+    }
+</script>
