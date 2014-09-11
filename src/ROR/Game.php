@@ -4694,6 +4694,7 @@ class Game
                 array_push($messages , $message) ;
             }
             unset($this->assassination);
+            // TO DO : Eliminate player if party leader was alone.
             array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
         } else {
             $leaderOfAssassinParty->changeINF(-5) ;
