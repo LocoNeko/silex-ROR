@@ -11,7 +11,7 @@
             <script src="http://autobahn.s3.amazonaws.com/js/autobahn.min.js"></script>
             <script>
                 var conn = new ab.Session(
-                    'ws://localhost:8081' // The host (our Ratchet WebSocket server) to connect to
+                    'ws://localhost:8080' // The host (our Ratchet WebSocket server) to connect to
                   , function() {            // Once the connection has been established
                         conn.subscribe('{{game_id|default('')}}', function(js_game_id, data) {
                             console.log('Action received. Data is : ' + JSON.stringify(data, null, 4));

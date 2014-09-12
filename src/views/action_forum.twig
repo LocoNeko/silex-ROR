@@ -2,7 +2,6 @@
 <script type="text/javascript">
     function updateBidAmount() {
       var minimum = highestBidder.value ;
-      alert(minimum) ;
       value =  senator.value.substr(senator.value.indexOf("|")+1) ;
       while ( amount.options.length ) amount.options[0] = null ;
       option = new Option( "Don't bid" , "NONE" );

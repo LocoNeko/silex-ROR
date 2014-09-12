@@ -2541,7 +2541,9 @@ class Game
         $rollOdds = array(2 => 1/36 , 3 => 2/36 , 4 => 6/36 , 5 => 10/36 , 6 => 15/36 , 7 => 21/36 , 8 => 26/36 , 9 => 30/36 );
         $result = array();
         $result['target']['senatorID'] = $this->persuasionTarget->senatorID ;
-        $result['target']['user_id'] = $this->getPartyOfSenator($this->persuasionTarget)->user_id ;
+        $targetParty = $this->getPartyOfSenator($this->persuasionTarget) ;
+        $result['target']['user_id'] = ($targetParty == 'forum' ? 'forum' : $targetParty->user_id) ;
+        $result['target']['party_name'] = ($targetParty == 'forum' ? 'forum' : $targetParty->fullName()) ;
         $result['target']['treasury'] = $this->persuasionTarget->treasury ;
         $result['target']['LOY'] = $this->getSenatorActualLoyalty($this->persuasionTarget) ;
         $result['target']['name'] = $this->persuasionTarget->name ;
@@ -2596,7 +2598,7 @@ class Game
                 // target [0] = senatorID , [1] = treasury , [2] = party , [3] = actual loyalty
                 $target = explode('|' , $targetRaw);
                 $partyTarget = $this->getPartyOfSenatorWithID($target[0]) ;
-                if ($partyTarget->user_id==$target[2]) {
+                if (($partyTarget=='forum' && $target[2]=='forum') || $partyTarget->user_id==$target[2]) {
                     // Everything is fine so far, proceed to check persuader
                     // persuader [0] = senatorID , [1] = treasury , [2] = INF , [3] = ORA
                     $persuader = explode('|' , $persuaderRaw);
@@ -2681,7 +2683,7 @@ class Game
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'SUCCESS') );
                                 }
                                 array_push ($messages , array( sprintf(_('SUCCESS - {%s} rolls %d, which is not greater than the target number of %d.') , $user_id , $roll['total'] , $currentPersuasion['odds']['total']) ));
-                                if ($currentPersuasion['target']['user_id'] == 'forum') {
+                                if ($currentPersuasion['target']['party_name'] == 'forum') {
                                     $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
                                     array_push ($messages , array( sprintf(_('%s leaves the forum and joins {%s}.') , $senator->name , $user_id) ));
@@ -3439,6 +3441,13 @@ class Game
             }
                 
         }
+        // Consuls proposal = we might need to swap parameters to ensure lexicographical order 
+        if ($type=='Consuls' && strcmp($parameters[0],$parameters[1])>0) {
+            $tmpparameter = $parameters[0] ;
+            $parameters[0] = $parameters[1] ;
+            $parameters[1] = $tmpparameter ;
+        }
+                
         /*
          * Basic checks
          */
