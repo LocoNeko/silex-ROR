@@ -3967,7 +3967,7 @@ class Game
                     array_push ($messages , array
                         (
                             sprintf
-                                (_('The following Concessions%s flipped and cannot be assigned during this Senate phase : %s') ,
+                                (_('The following Concessions%s flipped and cannot be assigned again during this Senate phase : %s') ,
                                     (count(end($this->proposals)->parameters)==2 ? ' is' : 's are') ,
                                     $flippedConcessionsMessage
                                 )
@@ -3988,7 +3988,20 @@ class Game
                         array_push($messages, $message) ;
                     }
                 } elseif (end($this->proposals)->type=='Concessions') {
-                    
+                    foreach (end($this->proposals)->parameters as $key=>$parameter) {
+                        if ($key %2 == 1) {
+                            $assignedTo = $this->getSenatorWithID(end($this->proposals)->parameters[$key-1]);
+                            if ($assignedTo===FALSE) {
+                                return array(array(_('Assigning Concession : Error on Senator ID.') , 'error' , $user_id));
+                            }
+                            $concessionAssigned = $this->forum->drawCardWithValue('id' , $parameter);
+                            if ($concessionAssigned===FALSE) {
+                                return array(array(_('Assigning Concession : Error on Concession.') , 'error' , $user_id));
+                            }
+                            $assignedTo->controls->putOnTop($concessionAssigned);
+                            array_push($messages , array(sprintf(_('%s is assigned to %s.') , $concessionAssigned->name, $assignedTo->name )));
+                        }
+                    }
                 }
             } else {
                 return array(array(_('Error on vote outcome.') , 'error' , $user_id));
@@ -4106,7 +4119,7 @@ class Game
             if (end($this->proposals)->parameters[1]=='major') {
                 array_push ($messages , array( sprintf(_('Major prosecution successful : %s is executed for his wrongdoings. ') , $accused->name ) ));
                 array_push ($messages , $this->mortality_killSenator($accused->senatorID , TRUE) );
-                $prosecutor->changeINF($INFloss) ;
+                $prosecutor->changeINF( (int)($INFloss/2) );
                 $message2 = sprintf(_('The prosecutor %s gains %d INF.') , $prosecutor->name , $INFloss);
                 if ($priorConsulMarker) {
                     $prosecutor->priorConsul = TRUE ;
@@ -4118,7 +4131,7 @@ class Game
             // This was a minor prosecution
             } else {
                 $accused->changePOP(-5) ;
-                $accused->changeINF(-5) ;
+                $accused->changeINF(-$INFloss) ;
                 $accused->priorConsul = FALSE ;
                 $message = sprintf(_('Minor prosecution successful : %s loses %d INF, 5 POP%s. ') , $accused->name , $INFloss , ($priorConsulMarker ? _(' and his prior consul marker') : '') );
                 $concessionLossMessage = NULL;
@@ -4137,7 +4150,7 @@ class Game
                     $message.=$concessionLossMessage ;
                 }
                 array_push($messages , array($message)) ;
-                $prosecutor->changeINF($INFloss) ;
+                $prosecutor->changeINF( (int)($INFloss/2) );
                 $message2 = sprintf(_('The prosecutor %s gains %d INF.') , $prosecutor->name , $INFloss);
                 if ($priorConsulMarker) {
                     $prosecutor->priorConsul = TRUE ;
