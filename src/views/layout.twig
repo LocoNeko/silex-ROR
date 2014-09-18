@@ -11,7 +11,7 @@
             <script src="http://autobahn.s3.amazonaws.com/js/autobahn.min.js"></script>
             <script>
                 var conn = new ab.Session(
-                    'ws://localhost:8080' // The host (our Ratchet WebSocket server) to connect to
+                    'ws://localhost:'+{{ws_port|default ('80')}} // The host (our Ratchet WebSocket server) to connect to. We need a port by default so I put 80, but ws will basically not work when ws_port is not provided
                   , function() {            // Once the connection has been established
                         conn.subscribe('{{game_id|default('')}}', function(js_game_id, data) {
                             console.log('Action received. Data is : ' + JSON.stringify(data, null, 4));

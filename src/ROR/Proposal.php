@@ -70,6 +70,23 @@ class Proposal {
             foreach ($party->senators->cards as $senator) {
                 // Always 0 for senators not in Rome
                 $thisSenatorsVotes = ($senator->inRome() ? $senator->ORA + $senator->knights : 0) ;
+                switch ($type) {
+                    // During prosecutions, the accused adds his Influence to his votes
+                    case 'Prosecutions' :
+                        if ($parameters[0]==$senator->senatorID && $senator->inRome() ) {
+                            $thisSenatorsVotes+=$senator->INF ;
+                        }
+                        break ;
+                    case 'Assassin prosecution' :
+                        
+                        break ;
+                    case 'Consul for life' :
+                        break ;
+                    case 'Deploy' :
+                    case 'Recall Proconsul' :
+                        break ;
+                    default :
+                }
                 // TO DO : compute the votes the senator has for this specific type of proposal, as some senators earn more votes for certain proposals (consul for life, war, etc)
                 $this->voting[] = array ('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes , 'talents' => 0) ;
             }

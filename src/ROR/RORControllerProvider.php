@@ -16,7 +16,7 @@ class RORControllerProvider implements ControllerProviderInterface
     {
         // creates a new controller based on the default route
         $controllers = $app['controllers_factory'];
-
+        
         /*
          * List existing games
          */
@@ -107,6 +107,8 @@ class RORControllerProvider implements ControllerProviderInterface
          * Action
          */
         $controllers->match('/Action/{game_id}/{action}', function(Request $request , $game_id , $action) use ($app) {
+            // Parse config file
+            $config=parse_ini_file(__DIR__.'/../../config/application.ini');
             $user_id = $app['user']->getId() ;
             /*
              * Handle any action submitted by POST, then display the action page
@@ -117,6 +119,7 @@ class RORControllerProvider implements ControllerProviderInterface
                 'content' => $content,
                 'game_id' => $game_id,
                 'user_id' => $user_id,
+                'ws_port' => $config['WS_LOCAL_PORT'],
             ));
         })
         ->value ('action' , NULL )
