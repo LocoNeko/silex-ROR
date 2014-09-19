@@ -7,7 +7,7 @@ Leader :
 None ,
 {% endif %}
 Treasury : {{ content['game'].party[user_id].treasury}} T<br>
-SENATORS :<br>
+SENATORS : (Current vote total : {{content['game'].party[user_id].getTotalVotes()}})<br>
 <div class="row">
 {% for senator in content['game'].party[user_id].senators.cards %}
     <div class="span3">

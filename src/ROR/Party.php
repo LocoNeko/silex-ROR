@@ -69,4 +69,13 @@ class Party
         return $result;
     }
     
+    public function getTotalVotes() {
+        $total = 0 ;
+        foreach ($this->senators->cards as $senator) {
+            if ($senator->inRome()) {
+                $total+=$senator->ORA + $senator->knights;
+            }
+        }
+        return $total ;
+    }
 }

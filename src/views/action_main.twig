@@ -58,6 +58,20 @@ YOUR HAND :<br>
 {% endembed %}
 
 <hr>
+{# DISPLAY OTHER PARTIES #}
+OTHER PARTIES :<br>
+{% for party in content['game'].party %}
+    {% if party.user_id != user_id%}
+        {% embed 'action_viewOtherParty.twig' %}
+        {% endembed %}<br><hr>
+    {% endif %}
+{% endfor %}
+
+{# NUMBER OF CARDS IN THE DRAW DECK #}
+CARDS LEFT TO DRAW IN THIS ERA : <b>{{content['game'].drawDeck.nbCards()}}</b>
+
+<hr>
+
 {# DISPLAY FORUM CARDS #}
 FORUM :<br>
 {% embed 'action_viewForum.twig' %}
@@ -77,6 +91,19 @@ WARS :<br>
 {% embed 'action_viewWars.twig' %}
 {% endembed %}
 
+<hr>
+
+{# EVENTS IN PLAY #}
+EVENTS IN PLAY: <br>
+<ul>
+{% for event in content['game'].events%}
+    {% if event['level']==1 %}
+        <li>{{event['name']}}
+    {% elseif event['level']>1 %}
+        <li>{{event['increased_name']}} (Level : {{event['level']}})
+    {% endif %}
+{% endfor %}
+</ul>
 <hr>
 
 {# CHAT #}
