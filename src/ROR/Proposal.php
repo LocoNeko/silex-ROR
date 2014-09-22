@@ -72,22 +72,22 @@ class Proposal {
                 $thisSenatorsVotes = ($senator->inRome() ? $senator->ORA + $senator->knights : 0) ;
                 switch ($type) {
                     // During prosecutions, the accused adds his Influence to his votes
+                    // A Consul for life candidate adds his Influence to his votes
                     case 'Prosecutions' :
+                    case 'Consul for life' :
                         if ($parameters[0]==$senator->senatorID && $senator->inRome() ) {
                             $thisSenatorsVotes+=$senator->INF ;
                         }
                         break ;
                     case 'Assassin prosecution' :
-                        
-                        break ;
-                    case 'Consul for life' :
+                        // TO DO : Accused get +1 but parameter is party, not senator
                         break ;
                     case 'Deploy' :
                     case 'Recall Proconsul' :
+                        // TO DO : Priest get +1
                         break ;
                     default :
                 }
-                // TO DO : compute the votes the senator has for this specific type of proposal, as some senators earn more votes for certain proposals (consul for life, war, etc)
                 $this->voting[] = array ('senatorID' => $senator->senatorID , 'name' => $senator->name , 'user_id' => $party->user_id , 'ballot' => NULL  , 'votes' => $thisSenatorsVotes , 'talents' => 0) ;
             }
         }

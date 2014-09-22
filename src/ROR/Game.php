@@ -673,7 +673,6 @@ class Game
             }
         } elseif ($this->subPhase=='Persuasion') {
             // Skip all parties who have no money in their party treasury
-            // TO DO : Should we do that ?
             do {
                 if ($this->party[$orderOfPlay[0]]->treasury == 0) {
                     array_push( $result['messages'], array(sprintf(_('Skipping {%s} : no talents in the party treasury to counter-bribe.'),$this->party[$orderOfPlay[0]]->user_id)) );
@@ -801,7 +800,6 @@ class Game
      */
     public function getTotalDroughtLevel() {
         $level = $this->getEventLevel('name' , 'Drought') ;
-        //TO DO : Check wars that cause drought even when inactive
         foreach ($this->activeWars->cards as $war) {
             if (strstr($war->causes,'drought')!==FALSE) {
                 $level++;
@@ -1647,7 +1645,7 @@ class Game
                             break ;
                         case 'DISBAND' :
                         default :
-                            array_push($messages , array( sprintf(_('Legion %s isreleased.') , $this->legion[$legionNumber]->name) ));
+                            array_push($messages , array( sprintf(_('Legion %s is released.') , $this->legion[$legionNumber]->name) ));
                             break ;
                     }
                 }
@@ -3840,7 +3838,6 @@ class Game
             foreach (end($this->proposals)->voting as $key => $voting) {
                 if ($voting['user_id']==$user_id) {
                     // Mandatory popular appeal in case of Special Major Prosecution for assassination
-                    // TO DO : This is wrong ! The popular appeal must check the victim's SenatorID
                     if ($this->subPhase=='Assassin prosecution' && $this->assassination['assassinParty']==$user_id) {
                         array_push($messages , array(sprintf(_('This is a Special Major Prosecution for assassination : {%s} must use popular appeal, modified by the victim\'s POP : %+d') , $user_id , $this->assassination['victimPOP'])) ) ;
                         $mandatoryAppealMessages = $this->senate_appeal($user_id) ;
@@ -4031,7 +4028,11 @@ class Game
             $accused = $this ->getSenatorWithID(end($this->proposals)->parameters[0]) ;
             if (end($this->proposals)->type == 'Prosecutions' && ($this ->getPartyOfSenator($accused) -> user_id == $user_id) && end($this->proposals)->parameters[4]===NULL ) {
                 $roll = $this->rollDice(2, -1) ;
-                array_push($messages , array(sprintf(_('Popular Appeal : %s rolls %d.') , $accused->name , $roll['total']))) ;
+                array_push($messages , array(sprintf(_('Popular Appeal : %s rolls %d%s.'),
+                    $accused->name,
+                    $roll['total'],
+                    ($accused->POP!=0 ? sprintf(_(' modified by his POP (%d)') , $accused->POP) : '')
+                ))) ;
                 $modifiedResult = $roll['total'] + $accused->POP ;
                 $appealEffects = $this->appealTable[max(2 , min(12 , $modifiedResult))] ;
                 if ($appealEffects['special']=='freed') {
@@ -4067,7 +4068,11 @@ class Game
         } elseif ($this->phase == 'Senate' && $this->subPhase == 'Assassin prosecution') {
             $accused = $this->getSenatorWithID($this->party[$this->assassination['assassinParty']]->leaderID) ;
             $roll = $this->rollDice(2, -1) ;
-            array_push($messages , array(sprintf(_('Popular Appeal : %s rolls %d.') , $accused->name , $roll['total']))) ;
+            array_push($messages , array(sprintf(_('Popular Appeal : %s rolls %d%s.') ,
+                $accused->name ,
+                $roll['total'] ,
+                ($this->assassination['victimPOP']!=0 ? sprintf(_(' modified by his victim\'s POP (%d)') , $this->assassination['victimPOP']) : '')
+            ))) ;
             $modifiedResult = $roll['total'] - $this->assassination['victimPOP'] ;
             $appealEffects = $this->appealTable[max(2 , min(12 , $modifiedResult))] ;
             if ($appealEffects['special']=='freed') {
@@ -4095,7 +4100,7 @@ class Game
                 $this->assassination['appealResult'] = 'killed' ;
             } else {
                 $this->assassination['appealResult'] = $appealEffects['votes'] ;
-                array_push($messages , array(sprintf(_('%s %s %d votes from his popular appeal.' , $accused->name , ($appealEffects['votes']>0 ? _('gains') : _('loses')) , $appealEffects['votes'] )))) ;
+                array_push($messages , array(sprintf(_('%s %s %d votes from his popular appeal.' , $accused->name , ($appealEffects['votes']>0 ? _('gains') : _('loses')) , abs($appealEffects['votes']) )))) ;
             }
         }
         return $messages ;
