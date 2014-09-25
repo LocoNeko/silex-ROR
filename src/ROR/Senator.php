@@ -31,6 +31,7 @@ class Senator extends Card
     public $INF ;
     public $specialLOY ;
     public $specialAbility ;
+    public $hasStatesman ; // Whether or not at least one Statesman exists for this family (TRUE|FALSE)
     public $knights ;
     public $treasury ;
     public $POP ;
@@ -43,6 +44,7 @@ class Senator extends Card
     public $captive ;
     public $freeTribune ;
     public $returningGovernor ;
+    public $conflict ; // the card ID of the conflict this Senator is fighting or FALSE
 
     /*
      * Creates a Senator card from an array
@@ -65,6 +67,7 @@ class Senator extends Card
             $this->INF = $this->baseINF ;
             $this->specialLOY = ( is_string($data[8]) ? $data[8] : NULL) ; /* A list of senatorID with + or - separated by ,. +X means : only loyal if X exists and is in the same party, -X : means loyalty 0 if in the same party as X*/
             $this->specialAbility = ( is_string($data[9]) ? $data[9] : NULL) ; /* A list of abilities separated by ,  */
+            $this->hasStatesman = (bool)($data[10]) ;
             $this->knights = 0 ;
             $this->treasury = 0 ;
             $this->POP = 0 ;
@@ -78,6 +81,7 @@ class Senator extends Card
             $this->rebel = FALSE ;
             $this->captive = FALSE ;
             $this->returningGovernor = FALSE ;
+            $this->conflict = FALSE ;
     }
 
     public function resetSenator() {

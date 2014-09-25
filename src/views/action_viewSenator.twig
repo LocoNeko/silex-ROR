@@ -1,6 +1,10 @@
 {% block content %}
 <pre>
-{{ senator.name }} ({{ senator.senatorID }}) - {{ senator.type }}
+{% if senator.hasStatesman %}
+{{ senator.name }} <span title='This family has a Statesman' style='font-weight: bold; text-decoration: underline;'>[{{senator.senatorID}}]</span> - {{ senator.type }}
+{% else %}
+{{ senator.name }} {{senator.senatorID}} - {{ senator.type }}
+{% endif %}
 {% if leader%}
 LEADER
 {% endif %}
@@ -18,8 +22,7 @@ Prior Consul
 {% endif %}
 {{ senator.knights }} knights , {{ senator.treasury }} T.
 {% if playable is defined %}
-{{ playable['flag'] ? 'PLAYABLE' : 'NOT PLAYABLE' }}
-{{ playable['message'] }}
+<span title='{{ playable['message'] }}' style='font-weight: bold; text-decoration: underline;'>{{ playable['flag'] ? 'PLAYABLE' : 'NOT PLAYABLE' }}</span>
 {% endif %}
 {% if senator.controls.cards|length >0 %}
 Controls :

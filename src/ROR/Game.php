@@ -759,6 +759,20 @@ class Game
     }
     
     /**
+     * Returns a description of the effects of evil omens on a die/dice roll. Empty if current evil omens level is 0
+     * @param type $effect -1|+1
+     * @return string description
+     */
+    public function getEvilOmensMessage($effect) {
+        $evilOmensLevel = $this->getEventLevel('name' , 'Evil Omens') ;
+        if ($evilOmensLevel==0) {
+            return '';
+        } else {
+            return sprintf(_(' (including %d from evil Omens)') , $effect*$evilOmensLevel);
+        }
+    }
+    
+    /**
      * Get a list of user_ids separated by ";" with all user_ids but one
      * Useful to send a different message to non-phasing players
      * @param type $not_this_user_id
@@ -1335,8 +1349,8 @@ class Game
         $governorMIL = $senator->MIL ;
         $roll = $this->rollDice(2, -1) ;
         $total = $writtenForce + 2 * $garrisons + $governorMIL + $roll['total'];
-        $message = sprintf(_('Province %s is attacked by %s Barabarian raids. Military force is %d (written force) + %d (for %d legions) + %d (%s\'s MIL), a %d (white die %d, black die %d) is rolled for a total of %d ') ,
-                $provinceName , ($barbarianRaids==2 ? 'increased ' : '') , $writtenForce , 2*$garrisons , $garrisons , $governorMIL , $governorName , $roll['total'] , $roll[0] , $roll[1] , $total
+        $message = sprintf(_('Province %s is attacked by %s Barabarian raids. Military force is %d (written force) + %d (for %d legions) + %d (%s\'s MIL), a %d (white die %d, black die %d) is rolled for a total of %d%s ') ,
+                $provinceName , ($barbarianRaids==2 ? 'increased ' : '') , $writtenForce , 2*$garrisons , $garrisons , $governorMIL , $governorName , $roll['total'] , $roll[0] , $roll[1] , $total , $this->getEvilOmensMessage(-1)
                 );
         if ($total>( $barbarianRaids==1 ? 15 : 17)) {
             $message.= sprintf(_(' which is greater than %d, the province is safe.') , ($barbarianRaids==1 ? 15 : 17)) ;
@@ -1391,7 +1405,7 @@ class Game
         $messages = array() ;
         $garrisons = $this->getProvinceGarrisons($province) ;
         $roll = $this->rollOneDie(-1);
-        $message = sprintf(_('Province %s faces internal disorder, %s rolls a %d + %d garrisons for a total of %d' , $province->name , $senator->name , $roll , $garrisons , ($roll+$garrisons) ));
+        $message = sprintf(_('Province %s faces internal disorder, %s rolls a %d%s + %d garrisons for a total of %d' , $province->name , $senator->name , $roll , $this->getEvilOmensMessage(-1)  , $garrisons , ($roll+$garrisons) ));
         if (($roll+$garrisons) > ($internalDisorder == 1 ? 4 : 5)) {
             $message.sprintf(_(' which is greater than %d. The province will not generate revenue and cannot be improved this turn.') , ($internalDisorder == 1 ? '4' : '5'));
             // Using the overrun property both for Barbarian raids & Internal Disorder
@@ -1567,7 +1581,7 @@ class Game
                         $roll = $this->rollOneDie(-1) ;
                         $modifier = ( ($senator->corrupt) ? 0 : 1) ;
                         if ( ($roll+$modifier) >= 6 ) {
-                            $message.= sprintf(_(' A %d is rolled%s, the province is developed. %s gains 3 INFLUENCE.') , $roll , ($modifier==1 ? _(' (modified by +1 since the governor is not corrupt)') : '') , $senator->name);
+                            $message.= sprintf(_(' A %d is rolled%s%s, the province is developed. %s gains 3 INFLUENCE.') , $roll , ($modifier==1 ? _(' (modified by +1 since the governor is not corrupt)') : '') , $this->getEvilOmensMessage(-1)  , $senator->name);
                             $province->developed = TRUE ;
                             $senator->INF+=3;
                         } else {
@@ -2278,10 +2292,11 @@ class Game
                                 }
                             }
                         }
+                        array_push($messages , array( sprintf(_('{%s} draws %s.') , $user_id , $card->name) ));
                         // No corresponding statesman : Family goes to the Forum
                         if (count($possibleStatemen)==0) {
                             $this->forum->putOnTop($card) ;
-                            array_push($messages , array( sprintf(_('{%s} draws %s that goes to the forum.') , $user_id , $card->name) ));
+                            array_push($messages , array( _('he goes to the forum.')));
                         // Found one or more (in case of brothers) corresponding Statesmen : put the Family under them
                         // Case 1 : only one Statesman
                         } elseif (count($possibleStatemen)==1) {
@@ -2674,13 +2689,13 @@ class Game
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'FAILURE') );
                                 }
                                 
-                                array_push ($messages , array( sprintf(_('FAILURE - {%s} rolls %d, which is greater than the target number of %d.') , $user_id , $roll['total'] , $currentPersuasion['odds']['total']) ));
+                                array_push ($messages , array( sprintf(_('FAILURE - {%s} rolls %d%s, which is greater than the target number of %d.') , $user_id , $roll['total'] , $this->getEvilOmensMessage(1) , $currentPersuasion['odds']['total']) ));
                             // Success
                             } else {
                                 if (($currentPersuasion['target']['card']!==FALSE)) {
                                     array_push ($messages , $this->forum_removePersuasionCard($user_id , $currentPersuasion['target']['senatorID'] , $currentPersuasion['target']['card'] , 'SUCCESS') );
                                 }
-                                array_push ($messages , array( sprintf(_('SUCCESS - {%s} rolls %d, which is not greater than the target number of %d.') , $user_id , $roll['total'] , $currentPersuasion['odds']['total']) ));
+                                array_push ($messages , array( sprintf(_('SUCCESS - {%s} rolls %d%s, which is not greater than the target number of %d.') , $user_id , $roll['total'] , $this->getEvilOmensMessage(1) , $currentPersuasion['odds']['total']) ));
                                 if ($currentPersuasion['target']['party_name'] == 'forum') {
                                     $senator = $this->forum->drawCardWithValue('senatorID' , $currentPersuasion['target']['senatorID']);
                                     $this->party[$user_id]->senators->putOnTop($senator) ;
@@ -2771,7 +2786,7 @@ class Game
                         $rollPOP = max(0,$this->rollDice(2, -1)['total']) ;
                         $senator->changeINF(-$rollINF);
                         $senator->changePOP(-$rollPOP);
-                        $completeMessage.=sprintf(_(' The failure of the persuasion causes a loss of %d INF and %d POP to %s') , $rollINF , $rollPOP , $senator->name);
+                        $completeMessage.=sprintf(_(' The failure of the persuasion causes a loss of %d INF and %d POP%s to %s') , $rollINF , $rollPOP , $this->getEvilOmensMessage(-1) , $senator->name);
                     }
                 }
                 $message = array($completeMessage);
@@ -2819,9 +2834,9 @@ class Game
                         $roll = $this->rollOneDie(-1);
                         if (($roll+$amount) >= 6) {
                             $senator->knights++;
-                            array_push($messages , array( sprintf(_('Attracting Knight : SUCCESS - %s ({%s}) spends %dT and rolls %d. The total is >= 6.') , $senator->name , $user_id , $amount , $roll) )) ;
+                            array_push($messages , array( sprintf(_('Attracting Knight : SUCCESS - %s ({%s}) spends %dT and rolls %d%s. The total is >= 6.') , $senator->name , $user_id , $amount , $roll , $this->getEvilOmensMessage(-1)) )) ;
                         } else {
-                            array_push($messages , array( sprintf(_('Attracting Knight : FAILURE - %s ({%s}) spends %dT and rolls %d. The total is < 6.') , $senator->name , $user_id , $amount , $roll) )) ;
+                            array_push($messages , array( sprintf(_('Attracting Knight : FAILURE - %s ({%s}) spends %dT and rolls %d%s. The total is < 6.') , $senator->name , $user_id , $amount , $roll , $this->getEvilOmensMessage(-1)) )) ;
                         }
                         $this->subPhase = 'SponsorGames';
                         array_push ($messages , array(_('Sponsor Games Sub Phase')));
@@ -2870,7 +2885,7 @@ class Game
                                 $total+=$roll;
                             }
                             $message = substr($message, 0 , -2) ;
-                            $message.= sprintf(_('. Earns a total of %dT.') , $total);
+                            $message.= sprintf(_('%s. Earns a total of %dT.') , $this->getEvilOmensMessage(-1) , $total);
                             array_push($messages , array($message));
                         } else {
                             $error = TRUE ;
@@ -3051,17 +3066,17 @@ class Game
                     $roll = $this->rollOneDie(-1) ;
                     if ($roll>=5) {
                         array_push($cardsToMoveToForum , $card->id);
-                        array_push($messages , array( sprintf(_('A %d is rolled and %s comes back to the forum.') , $roll , $card->name) ));
+                        array_push($messages , array( sprintf(_('A %d%s is rolled and %s comes back to the forum.') , $roll , $this->getEvilOmensMessage(-1) , $card->name) ));
                     } else {
-                        array_push($messages , array( sprintf(_('A %d is rolled and %s stays in the curia.') , $roll , $card->name) ));
+                        array_push($messages , array( sprintf(_('A %d%s is rolled and %s stays in the curia.') , $roll , $this->getEvilOmensMessage(-1) , $card->name) ));
                     }
                 } elseif ($card->type=='Leader') {
                     $roll = $this->rollOneDie(-1) ;
                     if ($roll>=5) {
                         array_push($cardsToDiscard , $card->id);
-                        array_push($messages , array( sprintf(_('A %d is rolled and %s is discarded.') , $roll , $card->name) ));
+                        array_push($messages , array( sprintf(_('A %d%s is rolled and %s is discarded.') , $roll , $this->getEvilOmensMessage(-1) , $card->name) ));
                     } else {
-                        array_push($messages , array( sprintf(_('A %d is rolled and %s stays in the curia.') , $roll , $card->name) ));
+                        array_push($messages , array( sprintf(_('A %d%s is rolled and %s stays in the curia.') , $roll , $this->getEvilOmensMessage(-1) , $card->name) ));
                     }
                 }
             }
@@ -3151,7 +3166,9 @@ class Game
     public function forum_view($user_id) {
         $output = array () ;
         $output['initiative'] = $this->initiative ;
-        
+        // This is only necessary for subPhase == 'Knights', but needed for JavaScript functions in every state/subPhase
+        // TO DO : Check if eveil omens are taken into account for persuasion
+        $output['evilOmens'] = $this->getEventLevel('name','Evil Omens') ;
         // We don't know who has the initiative : we are bidding
         if ($this->forum_whoseInitiative() === FALSE) {
             if ($this->currentBidder == $user_id) {
@@ -3197,13 +3214,12 @@ class Game
                             $output['persuasionList'] = $this->forum_persuasionListCurrent() ;
                         } else {
                             $output['briber'] = FALSE;
-                            $output['briberFullName'] = $this->party[$this->currentBidder].fullName() ;
+                            $output['briberFullName'] = $this->party[$this->currentBidder]->fullName() ;
                         }
                     }
                 } elseif ($output['subPhase'] == 'Knights' ) {
                     $output['listKnights'] = $this->forum_listKnights($user_id) ;
                     $output['canPressure'] = FALSE ;
-                    $output['evilOmens'] = $this->getEventLevel('name','Evil Omens') ;
                     foreach ($output['listKnights'] as $item) {
                         if ($item['knights']> 0) {
                             $output['canPressure'] = TRUE ;
@@ -3289,7 +3305,7 @@ class Game
             $HRAO = $this->getHRAO();
             // $total is minimum -1 and maximum 18
             $total = max (-1 , min (18 , $roll['total'] + $this->unrest - $HRAO['senator']->POP )) ;
-            array_push($messages , array( sprintf(_('%s rolls %d + current unrest (%d) - HRAO\'s Popularity (%d)  for a total of %d.') , $HRAO['senator']->name , $roll['total'] , $this->unrest , $HRAO['senator']->POP , $total) ));
+            array_push($messages , array( sprintf(_('%s rolls %d%s + current unrest (%d) - HRAO\'s Popularity (%d)  for a total of %d.') , $HRAO['senator']->name , $roll['total'] , $this->getEvilOmensMessage(-1) , $this->unrest , $HRAO['senator']->POP , $total) ));
             if ($total!=-1) {
                 $effects = $this->populationTable[$total];
                 foreach ($effects as $effect) {
@@ -4028,10 +4044,11 @@ class Game
             $accused = $this ->getSenatorWithID(end($this->proposals)->parameters[0]) ;
             if (end($this->proposals)->type == 'Prosecutions' && ($this ->getPartyOfSenator($accused) -> user_id == $user_id) && end($this->proposals)->parameters[4]===NULL ) {
                 $roll = $this->rollDice(2, -1) ;
-                array_push($messages , array(sprintf(_('Popular Appeal : %s rolls %d%s.'),
+                array_push($messages , array(sprintf(_('Popular Appeal : %s rolls %d%s%s.'),
                     $accused->name,
                     $roll['total'],
-                    ($accused->POP!=0 ? sprintf(_(' modified by his POP (%d)') , $accused->POP) : '')
+                    ($accused->POP!=0 ? sprintf(_(' modified by his POP (%d)') , $accused->POP) : ''),
+                    $this->getEvilOmensMessage(-1) 
                 ))) ;
                 $modifiedResult = $roll['total'] + $accused->POP ;
                 $appealEffects = $this->appealTable[max(2 , min(12 , $modifiedResult))] ;
@@ -4068,10 +4085,11 @@ class Game
         } elseif ($this->phase == 'Senate' && $this->subPhase == 'Assassin prosecution') {
             $accused = $this->getSenatorWithID($this->party[$this->assassination['assassinParty']]->leaderID) ;
             $roll = $this->rollDice(2, -1) ;
-            array_push($messages , array(sprintf(_('Popular Appeal : %s rolls %d%s.') ,
+            array_push($messages , array(sprintf(_('Popular Appeal : %s rolls %d%s%s.') ,
                 $accused->name ,
                 $roll['total'] ,
-                ($this->assassination['victimPOP']!=0 ? sprintf(_(' modified by his victim\'s POP (%d)') , $this->assassination['victimPOP']) : '')
+                ($this->assassination['victimPOP']!=0 ? sprintf(_(' modified by his victim\'s POP (%d)') , $this->assassination['victimPOP']) : ''),
+                $this->getEvilOmensMessage(-1) 
             ))) ;
             $modifiedResult = $roll['total'] - $this->assassination['victimPOP'] ;
             $appealEffects = $this->appealTable[max(2 , min(12 , $modifiedResult))] ;
@@ -4678,7 +4696,7 @@ class Game
             $this->assassination['roll'] = $roll + ($this->assassination['assassinCards']===NULL ? 0 : 1 ) ;
             $rollMessage =  sprintf(_('He rolls a %d%s%s.') , 
                                 $roll ,
-                                ($this->getEventLevel('name' , 'Evil Omens')>0 ? _(' (including the effects of evil omens)') : '') ,
+                                $this->getEvilOmensMessage(-1) ,
                                 ($this->assassination['assassinCards']===NULL ? '' : _(' +1 by playing an assassin card') ) 
                             ) ;
             $caughtMessages = FALSE ;
@@ -4811,7 +4829,7 @@ class Game
                             $user_id ,
                             $bodyGuardRoll ,
                             $bodyGuardNumber ,
-                            ($this->getEventLevel('name' , 'Evil Omens')>0 ? _(' including the effects of evil omens,') : '') ,
+                            $this->getEvilOmensMessage(-1) ,
                             ($this->assassination['assassinCards']===NULL ? '' : _(' +1 for the assassin card,') ) ,
                             $nbOfBodyGuards
                         )

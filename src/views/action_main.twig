@@ -106,6 +106,15 @@ EVENTS IN PLAY: <br>
 </ul>
 <hr>
 
+{# DISCARD #}
+DISCARD PILE: <br>
+<ul>
+{% for card in content['game'].discard.cards%}
+        <li>{{card.name}}
+{% endfor %}
+</ul>
+<hr>
+
 {# CHAT #}
 Chat :<br>
 <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'chat'} ) }}">

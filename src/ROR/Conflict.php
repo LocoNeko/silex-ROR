@@ -20,14 +20,11 @@ class Conflict extends Card {
         public $standoff ;
         public $spoils ;
         /*
-        * Leaders and Commanders are 2 decks of cards with the enemy leaders and the Roman commanders currently linked to the war card
+        * Leaders is a deck of cards with the enemy leaders linked to the war card
         * For example :
         * - Hannibal and Hasdrubal in the "leaders" deck of the second Punic War
-        * - T. Quinctius Flaminius in the "commanders" deck as commander of forces on the first Macedonian war.
-        * If a senator is Master of horse, he is considered part of the forces sent with the Dictator
         */
         public $leaders ;
-        public $commanders ;
 
 	public function create ($data) {
                 // Inherited from Card    
@@ -50,7 +47,5 @@ class Conflict extends Card {
                 $this->standoff = $data[15];
                 $this->spoils = (int)$data[16] ;
                 $this->leaders = new Deck() ;
-                $this->commanders = new Deck() ;
-
 	}
 }

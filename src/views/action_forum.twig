@@ -1,8 +1,8 @@
 {% block myScripts %}
 <script type="text/javascript">
     function updateBidAmount() {
-      var minimum = highestBidder.value ;
-      value =  senator.value.substr(senator.value.indexOf("|")+1) ;
+      var minimum = parseInt(highestBidder.value) ;
+      var value =  parseInt(senator.value.substr(senator.value.indexOf("|")+1)) ;
       while ( amount.options.length ) amount.options[0] = null ;
       option = new Option( "Don't bid" , "NONE" );
       amount.options[amount.length] = option ;
@@ -14,7 +14,7 @@
     function updatePersuasionAmount() {
       index1 = persuader.value.indexOf("|")+1;
       index2 = persuader.value.indexOf("|",index1);
-      value =  persuader.value.substr(index1,index2-index1) ;
+      var value =  parseInt(persuader.value.substr(index1,index2-index1)) ;
       while ( amount.options.length ) amount.options[0] = null ;
       for ( i = 0; i <= value; i++ ) {
           option = new Option( i , i );
@@ -110,7 +110,7 @@
     You need to bid at least {{output['highestBidder']['bid']+1}}<br>
     Pick a Senator to bid for initiative :<br>
         <input type="hidden" name="highestBidder" id="highestBidder" value="{{output['highestBidder']['bid']+1}}">
-        <select id='senator' name='senator' onClick="updateBidAmount();">
+        <select id='senator' name='senator' onChange="updateBidAmount();">
         {%for senator in output['senatorList'] %}
             <option value="{{senator['senatorID']}}|{{senator['treasury']}}">{{senator['name']}} ({{senator['treasury']}} T)</option>
         {% endfor %}
@@ -160,19 +160,19 @@
                     Choose your persuasion target :<br><br>
                     <form class="form-horizontal" method="POST" id="persuasion" name="persuasion" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
                         USE :
-                        <select id="persuader" name="persuader" onClick="updatePersuasionAmount() ; updateOdds();" style="width: 350px;">
+                        <select id="persuader" name="persuader" onChange="updatePersuasionAmount() ; updateOdds();" style="width: 350px;">
                             {% for senator in output['listPersuaders'] %}
                                     <option value="{{senator['senatorID']}}|{{senator['treasury']}}|{{senator['INF']}}|{{senator['ORA']}}">{{senator['name']}} - INF {{senator['INF']}} + ORA {{senator['ORA']}} = {{senator['INF']+senator['ORA']}}, Treasury = {{senator['treasury']}} </option>
                             {% endfor %}
                         </select><br>
                         TO PERSUADE :
-                        <select id="target" name="target" onClick="updateOdds();" style="width: 350px;">
+                        <select id="target" name="target" onChange="updateOdds();" style="width: 350px;">
                             {% for senator in output['listTargets'] %}
                                     <option value="{{senator['senatorID']}}|{{senator['treasury']}}|{{senator['party']}}|{{senator['LOY']}}">{{senator['name']}} in {{senator['party'] == 'forum' ? 'forum' : content['game'].party[senator['party']].fullname()}} - LOY {{senator['LOY']}} , Treasury = {{senator['treasury']}} </option>
                             {% endfor %}
                         </select><br>
                         BY SPENDING :
-                        <select id="amount" name="amount" onClick="updateOdds();" style="width: 50px;">
+                        <select id="amount" name="amount" onChange="updateOdds();" style="width: 50px;">
                         </select><br>
                         {#
                             Show cards that can be used for persuasion (if any)
@@ -209,7 +209,7 @@
                         {% endembed %}
                         Add to current bribe or roll with current odds :
                         <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
-                            <select id="amount" name="amount" style="width: 200px;" onClick="updateBribeRollButton();">
+                            <select id="amount" name="amount" style="width: 200px;" onChange="updateBribeRollButton();">
                                 {% for x in 0..output['persuasionList']['persuader']['treasury']%}
                                     {% if x==0 %}
                                         <option value='0' selected>0 (Roll with current odds)</option>
@@ -238,13 +238,13 @@
         {% elseif output['subPhase']=='Knights' %}
             Knights :<br>
             Attract a knight for :<br>
-            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_knights'} ) }}">
+            <form class="form-horizontal" method="POST" name="knightPersuasion" id="knightPersuasion" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_knights'} ) }}">
                 {#
                     Note : the updateKnightPersuasionAmount(x) function gets the current evilOmens level as a parameter
                     This way, should evil omens be in play and attract roll reduced, the player has the option to spend more than 5T
                     Otherwise, the function caps the amount spent at 5
                 #}
-                <select id="senator" name="senator" style="width: 420px;" onClick="updateKnightPersuasionAmount({{output['evilOmens']}})">
+                <select id="senator" name="senator" style="width: 420px;" onChange="updateKnightPersuasionAmount({{output['evilOmens']}})">
                     {% for senator in output['listKnights'] %}
                         {% if senator['inRome']%}
                             <option value="{{senator['senatorID']}}|{{senator['treasury']}}">{{senator['name']}} : {{senator['knights']}} knights, {{senator['treasury']}}T</option>
@@ -282,8 +282,8 @@
 
         {% elseif output['subPhase']=='SponsorGames' %}
             {% if output['listGames']|length > 0 %}
-                <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_sponsorGames'} ) }}">
-                    <select id="senator" name="senator" style="width: 300px;" onClick="updateGames();">
+                <form class="form-horizontal" method="POST" name="games" id="games" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_sponsorGames'} ) }}">
+                    <select id="senator" name="senator" style="width: 300px;" onChange="updateGames();">
                         {% for senator in output['listGames'] %}
                             {% if senator['treasury']>=7 %}
                                 <option value="{{senator['senatorID']}}|{{senator['name']}}|{{senator['treasury']}}">{{senator['name']}}</option>
@@ -351,8 +351,8 @@
                     {% embed 'action_forumPersuasion.twig' %}
                     {% endembed %}
                 Counter-bribe (from party treasury) : 
-                <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
-                    <select id="amount" name="amount" onClick="updateCounterBribeRollButton();" style="width: 50px;">
+                <form class="form-horizontal" method="POST" name="counterBribing" id="counterBribing" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'forum_persuasion'} ) }}">
+                    <select id="amount" name="amount" onChange="updateCounterBribeRollButton();" style="width: 50px;">
                         {% for x in 0..output['treasury'] %}
                             <option>{{x}}</option>
                         {% endfor %}
@@ -378,7 +378,6 @@
     
 {% endif %}
 <script type="text/javascript">
-    // TO DO : Do this to all "onClick()" so I can replace them with "onChange()"
     // Update bidding amount when pages loads according to which option is selected in the relevant <select>
     if (document.getElementById("bidding")) {
         if (document.getElementById("senator")) {
@@ -389,4 +388,18 @@
     if (document.getElementById("persuasion")) {
         updatePersuasionAmount() ; updateOdds();
     }
+    // Update knight persuasion amount when pages loads
+    if (document.getElementById("knightPersuasion")) {
+        updateKnightPersuasionAmount({{output['evilOmens']}}) ;
+    }
+    // Update games amount when pages loads
+    if (document.getElementById("games")) {
+        updateGames() ;
+    }
+    // Update counter bribing amount when pages loads
+    if (document.getElementById("counterBribing")) {
+        updateCounterBribeRollButton() ;
+    }
+    
+    
 </script>
