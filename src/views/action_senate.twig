@@ -418,7 +418,19 @@
         Decision - Master of Horse appointment by the dictator
     #}
     {% elseif output['type'] =='Master of horse'%}
-        TO DO : MoH appointment
+        {% if output['canDecide']%}
+            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_decision'} ) }}">
+                <input type="hidden" name="type" id="type" value="masterOfHorse">
+                <select name="senator">
+                    {% for senator in output['list']%}
+                        <option value="{{senator['senatorID']}}">{{senator['name']}} ({{senator['party_name']}})</option>
+                    {% endfor %}
+                </select><br>
+                <button type="submit" class="btn-danger">OK</button>
+            </form>
+        {% else %}
+            Waiting for the Dictator to appoint his Master of Horse.
+        {% endif %}
     {#
         Decision - Prosecutor
     #}

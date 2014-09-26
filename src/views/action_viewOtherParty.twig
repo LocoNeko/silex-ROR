@@ -1,4 +1,4 @@
-<h4>{{party.name}}</h4>
+<h4>{{party.fullName()}}</h4>
 Leader : <b>
 {%if party.leaderID is defined and content['game'].getSenatorWithID(party.leaderID) != FALSE %}
 {{content['game'].getSenatorWithID(party.leaderID).name}}

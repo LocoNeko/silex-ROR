@@ -48,7 +48,7 @@ class Game
     /*
      * Some default values and validators
      */
-    public static $VALID_PHASES = array('Setup','Mortality','Revenue','Forum','Population','Senate','Combat','Revolution');
+    public static $VALID_PHASES = array('Setup','Mortality','Revenue','Forum','Population','Senate','Combat','Revolution','Rome falls');
     public static $VALID_ACTIONS = array('Bid','RollEvent','Persuasion','Knights','ChangeLeader','SponsorGames','curia');
     public static $DEFAULT_PARTY_NAMES = array ('Imperials' , 'Plutocrats' , 'Conservatives' , 'Populists' , 'Romulians' , 'Remians');
     public static $VALID_SCENARIOS = array('EarlyRepublic');
@@ -672,16 +672,15 @@ class Game
                 }
             }
         } elseif ($this->subPhase=='Persuasion') {
-            // Skip all parties who have no money in their party treasury
-            do {
+            // Skip all parties who have no money in their party treasury. But whatever happens, we must never pass the player with the initiative, as all bids will have to stop there anyway
+            while ($orderOfPlay[0] != $this->forum_whoseInitiative()) {
                 if ($this->party[$orderOfPlay[0]]->treasury == 0) {
                     array_push( $result['messages'], array(sprintf(_('Skipping {%s} : no talents in the party treasury to counter-bribe.'),$this->party[$orderOfPlay[0]]->user_id)) );
                     array_push( $orderOfPlay, array_shift($orderOfPlay) );
                 } else {
                     break ;
                 }
-            // Whatever happens, we must never pass the player with the initiative, as all bids will have to stop there anyway
-            } while ($orderOfPlay[0] != $this->forum_whoseInitiative()) ;
+            }
         }
         $result['user_id'] = $orderOfPlay[0];
         return $result ;
@@ -1200,11 +1199,13 @@ class Game
      * @param string $senatorID The SenatorID of the dead senator
      * @param specificID TRUE if the Senator with this specific ID should be killed,<br>FALSE if the ID is a family, and Statesmen must be tested (default)
      * @param specificParty FALSE or equal to the $user_id of the party to which the dead Senator must belong<br>
+     * @param POPThreshold FALSE or equal to the level of POP at which a Senator is safe
+     * @param epidemic FALSE or equal to either 'domestic' or 'foreign'
      * senators from other parties will not be killed.<br>
      * FALSE (default)
      * @return array Just a one message-array, not an array of messages
      */
-    public function mortality_killSenator($senatorID , $specificID=FALSE , $specificParty=FALSE) {
+    public function mortality_killSenator($senatorID , $specificID=FALSE , $specificParty=FALSE , $POPThreshold=FALSE , $epidemic=FALSE) {
         $message = '' ;
         
         // Case of a random mortality chit
@@ -1213,10 +1214,15 @@ class Game
             $deadSenators = array() ;
             foreach($this->party as $party) {
                 // If no party is targetted put any senator in the array, otherwise only put senators belonging to that party
-                if ($specificParty===FALSE || ($specificParty!=FALSE && $specificParty==$party->user_id) ) {
+                if ($specificParty===FALSE || ($specificParty!=FALSE && $specificParty==$party->user_id)) {
                     foreach ($party->senators->cards as $senator) {
                         // On top of that, if the $specificParty flag is set, we only consider senators in Rome
-                        if (($specificParty && $senator->inRome()) || $specificParty===FALSE) {
+                        // And if the POPThreshold is set, only kill senators with POP below that
+                        if (
+                                ($specificParty===FALSE || ($specificParty && $senator->inRome())) &&
+                                ($POPThreshold===FALSE || ($senator->POP<$POPThreshold && $senator->inRome())) &&
+                                ($epidemic===FALSE || ( ($epidemic='domestic' && $senator->inRome()) || ($epidemic='foreign' && !$senator->inRome()) ) )
+                        ) {
                             if ( ($senator->type == 'Statesman') && ($senator->statesmanFamily() == $senatorID ) ) {
                                 array_push($deadSenators , $senator) ;
                             } elseif ( ($senator->type == 'Family') && ($senator->senatorID == $senatorID) ) {
@@ -2270,8 +2276,10 @@ class Game
                 $eventRoll = $this->rollDice(3,0) ;
                 array_push($messages , array( sprintf(_('{%s} rolls a 7, then rolls a %d on the events table.') , $user_id , $eventRoll['total']) ));
                 $eventNumber = $this->eventTable[(int)$eventRoll['total']][$this->scenario] ;
-                $message = $this->forum_putEventInPlay('number' , $eventNumber) ;
-                array_push($messages, array($message , 'alert'));
+                $eventMessage = $this->forum_putEventInPlay('number' , $eventNumber) ;
+                foreach ($eventMessage as $message) {
+                    $messages[] = $message;
+                }
             } else {
                 // Card
                 array_push($messages , array( sprintf(_('{%s} rolls a %d and draws a card.') , $user_id , $roll['total']) ));
@@ -2420,7 +2428,7 @@ class Game
      */
     public function forum_putEventInPlay($type , $parameter) {
         // events is an array => (array => ('name' , 'increased_name' , 'max_level' , 'level'))
-        $message = '' ;
+        $messages = array() ;
         $eventNumber = NULL ;
         if ($type == 'number') {
             $eventNumber = (int)$parameter ;
@@ -2431,24 +2439,109 @@ class Game
                 }
             }
         }
+        $hasAnEffect = FALSE ;
         if ($eventNumber!==NULL) {
             // The event is not currently in play
             if ($this->events[$eventNumber]['level'] == 0) {
                 $this->events[$eventNumber]['level']++ ;
-                $message=sprintf(_('Event %s is now in play.') , $this->events[$eventNumber]['name']);
+                $messages[] = array(sprintf(_('Event %s is now in play.') , $this->events[$eventNumber]['name']) , 'alert') ;
+                $hasAnEffect = TRUE ;
             // The event is currently in play at maximum level & CANNOT increase
             } elseif ($this->events[$eventNumber]['level'] == $this->events[$eventNumber]['max_level']) {
                 $nameToUse = ($this->events[$eventNumber]['level']> 1 ? $this->events[$eventNumber]['increased_name'] : $this->events[$eventNumber]['name'] ) ;
-                $message=sprintf(_('Event %s is already in play at its maximum level (%d).') , $nameToUse , $this->events[$eventNumber]['max_level']);
+                $messages[] = array(sprintf(_('Event %s is already in play at its maximum level (%d).') , $nameToUse , $this->events[$eventNumber]['max_level']) , 'alert');
             // The event is currently in play and not yet at maximum level : it can increase
             } else {
                 $this->events[$eventNumber]['level']++ ;
-                $message=sprintf(_('Event %s has its level increased to %s (level %d).') , $this->events[$eventNumber]['name'] , $this->events[$eventNumber]['increased_name'] , $this->events[$eventNumber]['level']);
+                $messages[] = array(sprintf(_('Event %s has its level increased to %s (level %d).') , $this->events[$eventNumber]['name'] , $this->events[$eventNumber]['increased_name'] , $this->events[$eventNumber]['level']) , 'alert');
+                $hasAnEffect = TRUE ;
             }
         } else {
-            $message = _('Error retrieving event.') ;
+            return _('Error retrieving event.') ;
         }
-        return $message ;
+        // TO DO : All events that have an immediate effect 
+        if ($eventNumber!==NULL && $hasAnEffect) {
+            $level = $this->events[$eventNumber]['level'] ;
+            switch ($eventNumber) {
+                // Epidemic
+                case 167 :
+                    $nbOfMortalityChits = $this->rollOneDie(1) ;
+                    foreach ($this->mortality_chits($nbOfMortalityChits) as $chit) {
+                        if ($chit!='NONE' && $chit!='DRAW 2') {
+                            $returnedMessage= $this->mortality_killSenator((string)$chit,FALSE,FALSE,FALSE,($level==1 ? 'domestic' : 'foreign')) ;
+                            $messages[] = array(sprintf(_('Chit drawn : %s. ') , $chit).$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) );
+                        } else {
+                            $messages[] = array(sprintf(_('Chit drawn : %s') , $chit)) ;
+                        }
+                    }
+                    break ;
+                // Mob Violence
+                case 171 :
+                    $roll = $this->rollOneDie(1) ;
+                    $nbOfMortalityChits = $this->unrest + ($level==1 ? 0 : $roll );
+                    $POPThreshold = $this->unrest + ($level==1 ? 0 : 1 );
+                    $messages[] = array(
+                        sprintf(_('The unrest level is %d %s%s, so %d mortality chit%s are drawn. Senators in Rome with a POP below %d will be killed.') , 
+                            $this->unrest ,
+                            ($level>1 ? ' +'.$roll : '') ,
+                            ($level>1 ? $this->getEvilOmensMessage(1) : '') ,
+                            $nbOfMortalityChits ,
+                            ($nbOfMortalityChits == 1 ? '' : 's'),
+                            $POPThreshold
+                        ) ,
+                        'alert');
+                    foreach ($this->mortality_chits($nbOfMortalityChits) as $chit) {
+                        if ($chit!='NONE' && $chit!='DRAW 2') {
+                            $returnedMessage= $this->mortality_killSenator((string)$chit,FALSE,FALSE,$POPThreshold) ;
+                            $messages[] = array(sprintf(_('Chit drawn : %s. ') , $chit).$returnedMessage[0] , (isset($returnedMessage[1]) ? $returnedMessage[1] : NULL) );
+                        } else {
+                            $messages[] = array(sprintf(_('Chit drawn : %s') , $chit)) ;
+                        }
+                    }
+                    break ;
+                // Natural Disaster
+                case 172 :
+                    // First : Pay 50T the first time the vent is played
+                    if ($level==1) {
+                        $this->treasury-=50 ;
+                        $messages[] = array (_('Rome must pay 50T.') , 'alert');
+                        if ($this->treasury<0) {
+                            $messages[] = array (_('ROME IS BANKRUPT - GAME OVER') , 'alert');
+                            $this->phase = 'Rome falls' ;
+                            return $messages ;
+                        }
+                    }
+                    // Then : Ruin some stuff
+                    $roll = $this->rollOneDie(0) ;
+                    $ruin = '' ;
+                    switch($roll) {
+                        case 1:
+                        case 2:
+                            $ruin = 'MINING' ;
+                            break ;
+                        case 3:
+                        case 4:
+                            $ruin = 'HARBOR FEES' ;
+                            break ;
+                        case 5 :
+                            $ruin = 'ARMAMENTS' ;
+                            break ;
+                        case 6:
+                            $ruin = 'SHIP BUILDING' ;
+                            break ;
+                    }
+                    $ruinresult = $this->getSpecificCard('name', $ruin) ;
+                    if ($ruinresult['where']=='forum') {
+                        $messages[] = array(sprintf(_('The %s concession was in the forum. It is destroyed and moved to the curia') , $ruinresult['card']->name) , 'alert') ;
+                        $this->curia->putOnTop($ruinresult['deck']->drawCardWithValue('name' , $ruin));
+                    }
+                    if ($ruinresult['where']=='senator' ) {
+                        $messages[] = array(sprintf(_('The %s concession was controlled by %s. It is destroyed and moved to the curia') , $ruinresult['card']->name , $ruinresult['senator']->name) , 'alert') ;
+                        $this->curia->putOnTop($ruinresult['deck']->drawCardWithValue('name' , $ruin));
+                    }
+            }
+        }
+        return $messages ;
     }
     
     /**
@@ -3311,15 +3404,21 @@ class Game
                 foreach ($effects as $effect) {
                     switch($effect) {
                         case 'MS' :
-                            array_push($messages , array($this->forum_putEventInPlay('name' , 'Manpower Shortage'),'alert'));
+                            $eventMessage = $this->forum_putEventInPlay('name' , 'Manpower Shortage') ;
+                            foreach ($eventMessage as $message) {
+                                $messages[] = $message;
+                            }
                             break ;
                         case 'NR' :
-                            array_push($messages , array($this->forum_putEventInPlay('name' , 'No Recruitment'),'alert'));
+                            $eventMessage = $this->forum_putEventInPlay('name' , 'No Recruitment') ;
+                            foreach ($eventMessage as $message) {
+                                $messages[] = $message;
+                            }
                             break ;
                         case 'Mob' :
                             $mobMessages = $this->population_mob() ;
                             foreach ($mobMessages as $message) {
-                                array_push($messages , $message);
+                                $messages[] = $message;
                             }
                             break ;
                         case 0 :
@@ -3334,7 +3433,9 @@ class Game
                     }
                 }
             } else {
-                array_push($messages , array(_('People revolt - Game over.') , 'error'));
+                array_push($messages , array(_('PEOPLE REVOLT - GAME OVER.') , 'error'));
+                $this->phase = 'Rome falls' ;
+                return $messages ;
             }
             array_push($messages , array('SENATE PHASE','alert'));
             $init_messages = $this->senate_init();
@@ -4281,11 +4382,12 @@ class Game
     }
 
     /**
-     * A decision (not a vote) has been made on a proposal that was voted (outcome is TRUE) :<br>
+     * A decision (not a vote) has been made on a proposal. Some decisions occur before the outcome of the proposal, some after :<br>
      * - Consuls deciding who will do what<br>
+     * - Consuls appoiting a Dictator<br>
+     * - Prosecutor accepting/refusing nomination (that's before the vote)<br>
+     * - Governors decision : returning governors agreeing to go again on the same turn (that's before the vote)
      * - Dictator appointing MoH<br>
-     * - Prosecutor accepting/refusing nomination<br>
-     *   etc...
      * @param string $user_id user_id
      * @param array $request the POST data
      * @return array message array
@@ -4412,13 +4514,19 @@ class Game
                 return array(array(sprintf(_('{%s} doesn\'t want his return governor(s) to go to a province again this turn. The proposal is discarded.') , $user_id)));
             }
         /*
-         * TO DO : Other decision types
-         * - Dictator appoints Master of horse
-         * - Accused calls Popular Appeal
-         * etc
+         * Master of Horse appointment
          */
+        } elseif ($this->phase=='Senate' && $this->subPhase=='Dictator' && end($this->proposals)!==FALSE && end($this->proposals)->outcome===TRUE && end($this->proposals)->parameters[2]===NULL && $request['type']=='masterOfHorse') {
+            $masterOfHorse = $this->getSenatorWithID($request['senator']) ;
+            if ($masterOfHorse===FALSE) {
+                $this->senate_appointOfficial('Master of Horse', $masterOfHorse->senatorID) ;
+                end($this->proposals)->parameters[2] = $masterOfHorse->senatorID ;
+                $messages[] = array(sprintf(_('The dictator appoints %s (%s) as Master of Horse.') , $masterOfHorse->name , $this->getPartyOfSenator($masterOfHorse)->fullName()));
+            } else {
+                return array(array(_('Error retrieving information on the senator appointed Master of Horse.')  , 'error' , $user_id));
+            }
         } else {
-            
+            return array(array(_('Error on decision.')  , 'error' , $user_id));
         }
         return $messages ;
     }
@@ -4460,7 +4568,7 @@ class Game
     
     /**
      * Returns the reason why a dictator can be appointed. If impossible, the array will be empty.
-     * @return array
+     * @return array message
      */
     private function senate_getDictatorFlag() {
         $result = array() ;
@@ -5022,11 +5130,12 @@ class Game
     
     /**
      * Returns an array of senators satisfying a criteria
+     * @param filter 'prosecutor' , 'concession' , 'landBillSponsor' , 'possibleDictators' , 'possibleMastersOfHorse'
      * @return array 'senatorID' , 'name' , 'user_id' , optional : 'POP' (only for 'landBillSponsor')
      */
-    // TO DO : Integrate senate_getListAssassinationTargets($user_id) functions
-
+    
     public function senate_getFilteredListSenators($filter) {
+        // TO DO : Integrate senate_getListAssassinationTargets($user_id) functions
         $result = array() ;
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
@@ -5047,6 +5156,7 @@ class Game
                         }
                         break;
                     case 'possibleDictators' :
+                    case 'possibleMastersOfHorse' :
                         if ($senator->inRome() && ($senator->office===NULL || $senator->office==='Censor')) {
                            $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName() , 'user_id' => $party->user_id) ;
                         }
@@ -5481,9 +5591,10 @@ class Game
                 $output['canDecide'] = end($this->proposals)->proposedBy!=$user_id && ( ($this->senate_findOfficial('Rome Consul')['user_id'] == $user_id) || ($this->senate_findOfficial('Field Consul')['user_id'] == $user_id) );
             // Dictator appoints Master of horse
             } elseif ($this->phase=='Senate' && $this->subPhase=='Dictator' && end($this->proposals)!==FALSE && end($this->proposals)->parameters[2]===NULL && end($this->proposals)->outcome===TRUE) {
-                // TO DO
                 $output['state'] = 'Decision' ;
                 $output['type'] = 'Master of horse' ;
+                $output['list'] = $this->senate_getFilteredListSenators('possibleMastersOfHorse');
+                $output['canDecide'] = ($this->senate_findOfficial('Dictator')['user_id'] == $user_id);
             /**
              * Assassin special prosecution : allow the Censor to chose voting order
              */
