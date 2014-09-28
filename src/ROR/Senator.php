@@ -75,7 +75,7 @@ class Senator extends Card
             $this->priorConsul = FALSE ;
             $this->corrupt = FALSE ;
             $this->controls = new Deck ; // cards the senator controls.
-            $this->controls->name = sprintf(_('%s \'cards') , $this->name) ;
+            $this->controls->name = sprintf(_('%s \'s cards') , $this->name) ;
             $this->major = FALSE ;
             $this->freeTribune = 0 ;
             $this->rebel = FALSE ;

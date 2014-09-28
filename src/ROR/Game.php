@@ -8,6 +8,8 @@ namespace ROR;
  * $phase (string) : the current turn phase, can have any value defined in $VALID_PHASES
  * $subPhase (string) : the current sub phase of the current phase
  * $initiative (int) : Current initiative from 1 to 6
+ * $censorIsDone (bool) : Whether or not the Censor has finished prosecutions
+ * $senateAdjourned (bool) : Whether or not the president has adjourned the Senate
  * $scenario (string), can have any value defined in $VALID_SCENARIOS
  * $variants (array) : an array of values that must be in $VALID_SCENARIOS
  * $unrest (int) : current unrest level
@@ -56,7 +58,7 @@ class Game
     
     private $id ;
     public $name ;
-    public $turn , $phase , $subPhase , $initiative , $senateAdjourned ;
+    public $turn , $phase , $subPhase , $initiative , $censorIsDone , $senateAdjourned ;
     public $scenario , $variants , $unrest , $treasury , $nbPlayers ;
     public $currentBidder , $persuasionTarget ;
     public $party ;
@@ -528,7 +530,7 @@ class Game
     /**
      * Returns the Senator, Party, and user_id of the HRAO
      * if $presiding is TRUE, ignores senators who have stepped down
-     * @return array 'senator' , 'party' , 'user_id'
+     * @return array 'senator' , 'user_id'
      */
     public function getHRAO($presiding=FALSE) {
         /*
@@ -539,8 +541,8 @@ class Game
         foreach ($this->party as $user_id=>$party) {
             foreach ($party->senators->cards as $senator) {
                 if ( $senator->inRome() && $senator->office!==NULL && (!$presiding || !in_array($senator->senatorID , $this->steppedDown) )) {
-                    // This will put an array ('senator','party','user_id') in another array $rankedSenators, ordered by Valid Offices keys (Dictator first, Rome Consul second, etc...
-                    $rankedSenators[array_search($senator->office, Senator::$VALID_OFFICES)] = array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
+                    // This will put an array ('senator','user_id') in another array $rankedSenators, ordered by Valid Offices keys (Dictator first, Rome Consul second, etc...
+                    $rankedSenators[array_search($senator->office, Senator::$VALID_OFFICES)] = array ('senator' => $senator , 'party_name' => $this->party[$user_id]->fullName() , 'user_id' => $user_id) ;
                 }
                 /*
                  * In case the HRAO couldn't be determined through offices because no official is in Rome
@@ -549,10 +551,12 @@ class Game
                 array_push($allSenators , $senator);
             }
         }
+        ksort($rankedSenators) ;
         // We found at least one ranked Senator
         if (count($rankedSenators)>0) {
-            // If we are looking for the presiding magistrate, The Censor must be returned during the Senate phase, Prosecutions subPhase
-            if ( $presiding && $this->phase=='Senate' && $this->subPhase=='Prosecutions' && isset($rankedSenators[3]) ) {
+            // If we are looking for the presiding magistrate, The Censor must be returned during the Senate phase if the latest proposal was a prosecution
+            // TO DO : what if the all thing was interupted by a Special Assassin Prosecution ?
+            if ( $presiding && $this->phase=='Senate' && end($this->proposals)->type=='Prosecutions' && isset($rankedSenators[3]) ) {
                 return $rankedSenators[3] ;
             // Otherwise, the HRAO
             } else {
@@ -583,7 +587,7 @@ class Game
         $senator = $allSenators[0] ;
         $party = $this->getPartyOfSenator($senator) ;
         $user_id = $party->user_id ;
-        return array ('senator' => $senator , 'party' => $party , 'user_id'=>$user_id) ;
+        return array ('senator' => $senator , 'party_name' => $party->fullName() , 'user_id'=>$user_id) ;
     }
     
     /**
@@ -1698,7 +1702,7 @@ class Game
                 array_push($result , array('list' => 'to' , 'type' => 'party' , 'id' => $key , 'name' => $this->party[$key]->name ));
             }
             // For the HRAO only, give a list of released legions to let him chose if they are maintained or disbanded.
-            if ($this->getHRAO()['party']==$user_id) {
+            if ($this->getHRAO()['user_id']==$user_id) {
                 foreach($this->legion as $key => $legion) {
                     if ($legion->location =='released') {
                         array_push($result , array('list' => 'releasedLegions' , 'number' => $key , 'name' => $legion->name)) ;
@@ -2137,7 +2141,7 @@ class Game
         }
         if ($result['bid']==0) {
             $HRAO = $this->getHRAO() ;
-            $result['message'] = sprintf(_('The HRAO (%s) as all bets are 0.') , $HRAO['party']->fullName());
+            $result['message'] = sprintf(_('The HRAO (%s) as all bets are 0.') , $this->party[$HRAO['user_id']]->fullName());
             $result['user_id'] = $HRAO['user_id'];
         }
         return $result ;
@@ -2182,9 +2186,9 @@ class Game
         }
         $HRAO = $this->getHRAO();
         $this->currentBidder = $HRAO['user_id'];
-        $richestSenator = $HRAO['party']->getRichestSenator() ;
+        $richestSenator = $this->party[$HRAO['user_id']]->getRichestSenator() ;
         if ($richestSenator['amount']==0) {
-            array_push($messages , array( sprintf(_('Skipping the HRAO ({%s}): not enough talents to bid.') , $HRAO['party']->user_id) )) ;
+            array_push($messages , array( sprintf(_('Skipping the HRAO ({%s}): not enough talents to bid.') , $HRAO['user_id']) )) ;
             $nextPlayer = $this->whoIsAfter($HRAO['user_id']);
             $this->currentBidder = $nextPlayer['user_id'];
             foreach ($nextPlayer['messages'] as $message) {
@@ -3477,6 +3481,7 @@ class Game
         $this->phase = 'Senate';
         $this->subPhase = 'Consuls';
         $this->senateAdjourned = FALSE;
+        $this->censorIsDone = FALSE;
         unset($this->steppedDown); $this->steppedDown = array() ;
         unset($this->proposals); $this->proposals = array() ;
         // Free tribunes per party, based on Senators inRome & specialAbility
@@ -3550,7 +3555,7 @@ class Game
                 }
             }
             if ($finished) {
-                return (array(array($this->senate_setSubPhaseBack() , 'alert' )));
+                return $this->senate_nextSubPhase() ;
             } else {
                 return array(array(_('You do not wish to propose a Dictator this turn.') , 'message' , $user_id)) ;
             }
@@ -3669,7 +3674,13 @@ class Game
                     $reasonText = $reason['text'] ;
                 }
             }
-            array_push($messages , array(sprintf(_('The Censor %s of {%s} accuses %s, appointing %s as prosecutor. Reason : %s') , $this->senate_findOfficial('Censor')['senator']->name , $user_id , $this->getSenatorFullName($parameters[0]) , $this->getSenatorFullName($parameters[2]) , $reasonText )) );
+            // If prosecutor and Censor are in the same party, prosecutor automagically accepts
+            $autoAccept = '';
+            if ($this->getPartyOfSenatorWithID($parameters[2])->user_id == $user_id) {
+                $proposal->parameters[3] = TRUE ;
+                $autoAccept = _(' (being in the same party as the Censor, he accepts immediately)') ;
+            }
+            array_push($messages , array(sprintf(_('The Censor %s of {%s} accuses %s, appointing %s as prosecutor%s. Reason : %s') , $this->senate_findOfficial('Censor')['senator']->name , $user_id , $this->getSenatorFullName($parameters[0]) , $this->getSenatorFullName($parameters[2]) , $autoAccept , $reasonText )) );
             $this->proposals[] = $proposal ;
         
         // Governorships
@@ -3906,9 +3917,10 @@ class Game
             if ($censor['user_id']!=$user_id) {
                 return array(array(_('ERROR - Only the Censor can end prosecutions') , 'error' , $user_id));
             } else {
+                $this->censorIsDone = TRUE ;
                 array_push($messages , array( sprintf(_('The Censor %s returns the floor to the Presiding Magistrate') , $censor['senator']->name) ));
                 // Sub phase will turn either to 'Governors' or 'Other business'
-                array_push($messages , $this->senate_setSubPhaseBack() );
+                $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
             }
         }
         return $messages ;
@@ -4059,13 +4071,7 @@ class Game
                         array_push($messages , array(sprintf(_('%s and %s are nominated consuls as the only available pair.') , $senator1->name , $senator2->name)) );
                     }
                 } elseif (end($this->proposals)->type=='Censor') {
-                    $candidates = $this->senate_possibleCensors() ;
-                    // Only one eligible candidate : appoint him and move to prosecution phase
-                    if (count($candidates)==1) {
-                        array_push($messages , array(sprintf(_('Only %s is eligible for Censorship, so he is automatically elected.') , $candidates[0]->name)) );
-                        $this->senate_appointOfficial('Censor', $candidates[0]->senatorID) ;
-                        $this->subPhase='Prosecutions';
-                    }
+                    $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
                 } elseif (end($this->proposals)->type=='Concessions') {
                     $flippedConcessionsMessage='';
                     foreach (end($this->proposals)->parameters as $key=>$parameter) {
@@ -4095,7 +4101,7 @@ class Game
                 if (end($this->proposals)->type=='Censor') {
                     $this->senate_appointOfficial('Censor', end($this->proposals)->parameters[0]) ;
                     array_push($messages , array(sprintf(_('%s is elected Censor.') , $this->getSenatorWithID(end($this->proposals)->parameters[0])->name )) );
-                    $this->subPhase='Prosecutions';
+                    $messages = array_merge($messages , $this->senate_nextSubPhase() );
                 } elseif (end($this->proposals)->type=='Prosecutions' || end($this->proposals)->type=='Assassin prosecution') {
                     $prosecutionSuccessfulMessages = $this->senate_prosecutionSuccessful($user_id) ;
                     foreach($prosecutionSuccessfulMessages as $message) {
@@ -4120,15 +4126,9 @@ class Game
             } else {
                 return array(array(_('Error on vote outcome.') , 'error' , $user_id));
             }
-            /*
-             * Moving to next phase after 1 major or 2 minor prosecutions
-             */
-            if (end($this->proposals)->type=='Prosecutions') {
-                $finishedProsecutions=$this->senate_getFinishedProsecutions();
-                if ($finishedProsecutions['minor']==2 || $finishedProsecutions['major']==1) {
-                    // Sub phase will turn either to 'Governors' or 'Other business'
-                    array_push($messages , array($this->senate_setSubPhaseBack() , 'alert'));
-                }
+            // This will either stay in 'Prosecutions' or move to the next phase after 1 major or 2 minor prosecutions
+            if (end($this->proposals)->type=='Prosecutions' && $this->subPhase != 'Unanimous defeat') {
+                $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
             }
         }
         return $messages ;
@@ -4251,7 +4251,7 @@ class Game
                 }
                 array_push($messages , array($message2)) ;
                 // Sub phase will turn either to 'Governors' or 'Other business'
-                array_push($messages , $this->senate_setSubPhaseBack());
+                $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
             // This was a minor prosecution
             } else {
                 $accused->changePOP(-5) ;
@@ -4281,11 +4281,8 @@ class Game
                     $message2.=' As well as the accused\'s prior consul marker.';
                 }
                 array_push($messages , array($message2)) ;
-                $finishedProsecutions=$this->senate_getFinishedProsecutions();
-                if ($finishedProsecutions['minor']==2) {
-                    // Sub phase will turn either to 'Governors' or 'Other business'
-                    array_push($messages , $this->senate_setSubPhaseBack());
-                }
+                // Sub phase will turn either to 'Governors' or 'Other business'
+                $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
             }
         // Case of a Special Major Prosecution for Assassination
         } elseif (end($this->proposals)->type=='Assassin prosecution' && end($this->proposals)->outcome==TRUE) {
@@ -4297,7 +4294,7 @@ class Game
                 array_push($messages , $message) ;
             }
             unset($this->assassination);
-            array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
+            $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
         }
         return $messages ;
     }
@@ -4317,16 +4314,16 @@ class Game
                 array_push($messages , array(sprintf(_('%s stays presiding magistrate after his unanimous defeat, losing 1 Influence.') , $HRAO['senator']->name )) );
             } else {
                 array_push ($this->steppedDown ,  $HRAO['senator']->senatorID ) ;
-                array_push($messages , array(sprintf(_('%s steps down as presiding magistrate after his unanimous defeat.') , $HRAO['senator']->name )) );
+                array_push ($messages , array(sprintf(_('%s steps down as presiding magistrate after his unanimous defeat.') , $HRAO['senator']->name )) );
+            }
+            // If the Censor steps down, move to Governors election.
+            // TO DO : what if the latest proposal was interrupted by an assassin prosecution ? (and therefore the test below doesn't work)
+            if ($stepDown==1 && end($this->proposals)->type == 'Prosecutions') {
+                $this->censorIsDone = TRUE ;
+                array_push($messages , array(_('With the Censor stepping down, the Prosecution phase ends.')) );
             }
             // Set the subphase back to where it belongs based on the latest proposal
-            array_push($messages , array($this->senate_setSubPhaseBack() , 'alert') );
-            // If the Censor steps down, move to Governors election.
-            if ($stepDown==1 && $this->subPhase == 'Prosecutions') {
-                array_push($messages , array(_('With the Censor stepping down, the Prosecution phase ends.')) );
-                // Sub phase will turn either to 'Governors' or 'Other business'
-                array_push($messages , $this->senate_setSubPhaseBack());
-            }
+            $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
         } else {
             return array(array(_('You are not presiding magistrate, hence cannot step down.') , 'error' , $user_id));
         }
@@ -4334,53 +4331,109 @@ class Game
     }
 
     /**
-     * Sets the senate subphase based on the latest proposal, since after 'Governors' the subPhase should be 'Other business' for any type of proposal<br>
-     * After Prosecutions, the Senate subPhase should be either 'Governors' or 'Other business' based on the situation<br>
-     * If there is at least one province in play (even with a governor, because a recall is possible),<br>
-     * set the phase to 'Governors', otherwise set it to 'Other business'<br>
-     * @return string Message array (not an array of messages)
-     */
-    private function senate_setSubPhaseBack() {
-        if ($this->subPhase=='Prosecutions') {
-            $listOfAvailableProvinces = $this->senate_getListAvailableProvinces() ;
-            if (count($listOfAvailableProvinces) >0) {
-                $this->subPhase='Governors';
-            } else {
-                $this->subPhase='Other business';
+     * Sets the subPhase to what it should be based on the latest successful proposal, available candidates, possibl dictators, available provinces, etc
+     * @return array messages
+     */    
+    private function senate_nextSubPhase() {
+        $messages = array() ;
+        // If the subPhase is not standard, determine the current subphase based on the latest proposal
+        if ($this->subPhase == 'Unanimous defeat' || $this->subPhase == 'Assassin prosecution' || $this->subPhase =='Consul for life') {
+            foreach ($this->proposals as $latestProposal) {
+                if ($latestProposal->type!='Assassin prosecution' && $latestProposal->type!='Consul for life') {
+                    $this->subPhase = $latestProposal->type ;
+                }
             }
-        // latest Proposal can only be false at the very beginning opf the Senate phase : set the subPhase to 'Consuls'
-        } elseif(end($this->proposals)===FALSE) {
-            $this->subPhase = 'Consuls';
-        } elseif (in_array(end($this->proposals)->type , array('Consuls' , 'Pontifex Maximus' , 'Censor' , 'Governors')) ) {
-            $this->subPhase = end($this->proposals)->type ;
-        } elseif (end($this->proposals)->type==='Dictator') {
-            $this->subPhase = 'Censor' ;
+        }
+        $previousSubPhase = $this->subPhase ;
+        switch ($this->subPhase) {
+            case 'Consuls' :
+                // Check if Consuls have been elected and have chosen who is who, then move to Pontifex
+                foreach ($this->proposals as $proposal) {
+                    if ($proposal->type=='Consuls' && $proposal->outcome==TRUE && $proposal->parameters[2]!=NULL && $proposal->parameters[3]!=NULL) {
+                        $this->subPhase = 'Pontifex Maximus' ;
+                    }
+                }
+                break ;
+            case 'Censor' :
+                break ;
+            case 'Dictator' :
+                // Check if a Dictator has been appointed/elected and has chosen his MoH, then move to Censor
+                foreach ($this->proposals as $proposal) {
+                    if ($proposal->type=='Dictator' && $proposal->outcome==TRUE && $proposal->parameters[2]!=NULL) {
+                        $this->subPhase = 'Censor';
+                    }
+                }
+                break ;
+            // Prosecutions are finished if : there was 2 minor, 1 major or the Censor has declared he was done
+            // Once prosecutions are finished, move to Governors if there is at least one available province, otherwise move to Other business.
+            // Also, even if we had a successful 'Governors' proposal, we need to test if some provinces are still available, though in that case the prosecutions test is actually superfluous
+            case 'Prosecutions' :
+            case 'Governors' :
+                $finishedProsecutions=$this->senate_getFinishedProsecutions();
+                if ($finishedProsecutions['minor']==2 || $finishedProsecutions['major']==1 || $this->censorIsDone) {
+                    if (count($this->senate_getListAvailableProvinces()) >0) {
+                        $this->subPhase='Governors' ;
+                    } else {
+                        $this->subPhase='Other business' ;
+                    }
+                }
+                break ;
+            // For any proposal of the type below, the subPhase should be 'Other business', as they can be proposed in any order
+            case 'Concessions' :
+            case 'Land Bills' :
+            case 'Forces' :
+            case 'Garrison' :
+            case 'Deploy' :
+            case 'Recall Proconsul' :
+            case 'Recall Pontifex' :
+            case 'Priests' :
+            case 'Minor' :
+            case 'Other business' :
+                $this->subPhase = 'Other business' ;
+                break ;
+        }
+        if ($this->subPhase=='Pontifex Maximus') {
+            $this->subPhase='Dictator';
+            // TO DO : Change this once Pontifex variant is implemented
+        }
+        // Handles possibility of Dictator appointment
+        if ($this->subPhase=='Dictator') {
+            $dictatorFlag = $this->senate_getDictatorFlag();
+            if (count($dictatorFlag)==0) {
+                $messages[] = array(_('A dictator cannot be appointed or elected. Moving on to Censor election.'));
+                $this->subPhase='Censor';
+            // A dictator can be appointed/elected. Set each party's "bidDone" to FALSE to give them all a chance to do so.
+            } else {
+                foreach ($dictatorFlag as $flag) {
+                    $messages[] = array($flag) ;
+                }
+                $messages[] = array(_('A dictator can be appointed or elected.')) ;
+                foreach($this->party as $party) {
+                    $party->bidDone = FALSE ;
+                }
+            }
+        }
+        // Handles automatic Censor appointment
+        if ($this->subPhase=='Censor') {
             $candidates = $this->senate_possibleCensors() ;
             // Only one eligible candidate : appoint him and move to prosecution phase
             if (count($candidates)==1) {
                 $this->senate_appointOfficial('Censor', $candidates[0]->senatorID) ;
+                // Automatically put this proposal in the array of proposals
+                $proposal = new Proposal ;
+                $proposal->init('Censor' , NULL , NULL , $this->party , array($candidates[0]->senatorID) , NULL) ;
+                $proposal->outcome = TRUE ;
+                $this->proposals[] = $proposal ;
                 $this->subPhase='Prosecutions';
-                return sprintf(_('Only %s is eligible for Censorship, so he is automatically elected. The Senate sub Phase is now : Prosecutions.') , $candidates[0]->name) ;
-            } else {
-                $this->subPhase='Censor';
+                $messages[] = array(sprintf(_('Only %s is eligible for Censorship, so he is automatically elected. The Senate sub Phase is now : Prosecutions.') , $candidates[0]->name) );
             }
-        } elseif (end($this->proposals)->type == 'Assassin prosecution') {
-            if (count($this->proposals)<=1) {
-                $this->subPhase = 'Consuls' ;
-            // Push the assassination prosecution before the last proposal, then call the function again
-            } else {
-                $index = count($this->proposals)-1 ;
-                $tempProposal = $this->proposals[$index-1] ;
-                $this->proposal[$index-1] = $this->proposal[$index] ;
-                $this->proposal[$index] = $tempProposal ;
-                $this->senate_setSubPhaseBack() ;
-            }
-        } else {
-            $this->subPhase = 'Other business';
         }
-        return sprintf(_('The senate sub phase is now : %s') , $this->subPhase ) ;
+        // Only give a message about a new subPhase if it has actually changed
+        if ($previousSubPhase != $this->subPhase) {
+            $messages[] = array(sprintf(_('The senate sub phase is now : %s') , $this->subPhase ) , 'alert') ;
+        }
+        return $messages ;
     }
-
     /**
      * A decision (not a vote) has been made on a proposal. Some decisions occur before the outcome of the proposal, some after :<br>
      * - Consuls deciding who will do what<br>
@@ -4439,30 +4492,9 @@ class Game
             } else {
                 array_push($messages , array(_('Now waiting for the other elected consul to pick a position.') , 'message' , $user_id ));
             }
-            // Consuls have been elected : check possibility of a dictator
+            // Consuls have been elected : move on to next subPhase (Pontifex, Dictator, or Censor)
             if (end($this->proposals)->parameters[2]!==NULL && end($this->proposals)->parameters[3]!==NULL) {
-                $dictatorFlag = $this->senate_getDictatorFlag();
-                if (count($dictatorFlag)==0) {
-                    array_push($messages , array(_('A dictator cannot be appointed or elected. Moving on to Censor election.')) );
-                    $this->subPhase='Censor';
-                    $candidates = $this->senate_possibleCensors() ;
-                    // Only one eligible candidate : appoint him and move to prosecution phase
-                    if (count($candidates)==1) {
-                        array_push($messages , array(sprintf(_('Only %s is eligible for Censorship, so he is automatically elected.') , $candidates[0]->name)) );
-                        $this->senate_appointOfficial('Censor', $candidates[0]->senatorID) ;
-                        $this->subPhase='Prosecutions';
-                    }
-                // A dictator can be appointed/elected. Set each party's "bidDone" to FALSE to give them all a chance to do so.
-                } else {
-                    foreach ($dictatorFlag as $flag) {
-                        array_push($messages , array($flag) );
-                    }
-                    array_push($messages , array(_('A dictator can be appointed or elected.')) );
-                    foreach($this->party as $party) {
-                        $party->bidDone = FALSE ;
-                    }
-                    $this->subPhase='Dictator';
-                }
+                $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
             }
         /*
          * Appoint dictator decision (A consul suggested to appoint a Senator as Dictator, and the other accepts/refuses)
@@ -4518,7 +4550,7 @@ class Game
          */
         } elseif ($this->phase=='Senate' && $this->subPhase=='Dictator' && end($this->proposals)!==FALSE && end($this->proposals)->outcome===TRUE && end($this->proposals)->parameters[2]===NULL && $request['type']=='masterOfHorse') {
             $masterOfHorse = $this->getSenatorWithID($request['senator']) ;
-            if ($masterOfHorse===FALSE) {
+            if ($masterOfHorse!==FALSE) {
                 $this->senate_appointOfficial('Master of Horse', $masterOfHorse->senatorID) ;
                 end($this->proposals)->parameters[2] = $masterOfHorse->senatorID ;
                 $messages[] = array(sprintf(_('The dictator appoints %s (%s) as Master of Horse.') , $masterOfHorse->name , $this->getPartyOfSenator($masterOfHorse)->fullName()));
@@ -4771,17 +4803,17 @@ class Game
             }
             if ($error1) {
                 array_push($messages , array(_('Wrong assassination target.') , 'error' , $user_id)) ;
-                array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
+                $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
                 return $messages ;
             }
             if ($error2) {
                 array_push($messages , array(_('Wrong assassin.') , 'error' , $user_id)) ;
-                array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
+                $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
                 return $messages ;
             }
             if ($error3) {
                 array_push($messages , array(_('Wrong assassination card.') , 'error' , $user_id)) ;
-                array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
+                $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
                 return $messages ;
             }
             $this->assassination['assassinID'] = $assassin ;
@@ -4848,7 +4880,7 @@ class Game
             }
             unset($this->assassination);
             // TO DO : Eliminate player if party leader was alone.
-            array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
+            $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
         } else {
             $leaderOfAssassinParty->changeINF(-5) ;
             sprintf(_('%s, leader of the assassin\'s party loses 5 INF (now %d) and is immediately subject to a special major prosecution.') , $leaderOfAssassinParty->name , $leaderOfAssassinParty->INF);
@@ -4958,7 +4990,7 @@ class Game
             // Return to a normal Senate phase after the bloodshed
             } else {
                 unset($this->assassination);
-                array_push($messages , array($this->senate_setSubPhaseBack() , 'alert')) ;
+                $messages = array_merge($messages , $this->senate_nextSubPhase()) ;
             }
         }
         return $messages ;
@@ -5046,7 +5078,7 @@ class Game
             foreach($party->senators->cards as $senator) {
                 if ($senator->priorConsul && $senator->inRome() && $senator->office != 'Dictator' && $senator->office != 'Rome Consul' && $senator->office != 'Field Consul' && !in_array($senator->senatorID , $alreadyRejected) ) {
                     array_push($result , $senator);
-                }    
+                }
             }
         }
         // If there is no possible candidate, the Censor can exceptionnaly be a Senator without prior consul marker
@@ -5174,7 +5206,7 @@ class Game
      * Each element array is of the form : 'province_name' , 'province_id' , 'senator_name' , 'senator_id' , 'user_id'<br>
      * - 'senator_name' , 'senator_id' , 'user_id' : can be NULL<br>
      * - 'user_id' : can be 'forum'<br>
-     * @return array an array of arrays
+     * @return array an array of arrays. Empty if no province
      */
     public function senate_getListAvailableProvinces() {
         $result = array() ;
