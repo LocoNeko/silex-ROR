@@ -375,6 +375,75 @@ class Game
         return $result ;
     }
     
+    /**
+     * Returns an array with detailed information on legions :
+     * 'location' => ''|'error'|'Rome'|'released'|'with XXX' where XX is a Senator's name
+     * 'veteran' => ''|'error'|'YES'|'NO'
+     * 'action' => ''|'RECRUIT'|'DISBAND'
+     * @return type
+     */
+    public function getLegionDetails() {
+        $result = array () ;
+        foreach ($this->legion as $key=>$legion) {
+            $result[$key]['name'] = $legion->name ;
+            switch($legion->location) {
+                case NULL :
+                    $result[$key]['location'] = '' ;
+                    $result[$key]['action'] = 'RECRUIT' ;
+                    break ;
+                case 'Rome' :
+                case 'released' :
+                    $result[$key]['location'] = $legion->location ;
+                    $result[$key]['action'] = 'DISBAND' ;
+                    break ;
+                default :
+                    $senator = $this->getSenatorWithID($legion->location) ;
+                    if ($senator==FALSE) {
+                        $result[$key]['location'] = 'error' ;
+                    } else {
+                        $result[$key]['location'] = 'with '.$senator->name;
+                    }
+                    $result[$key]['action'] = '' ;
+            }
+            $result[$key]['veteran'] = ($result[$key]['location']== '' ? '' : ($legion->veteran ? 'YES' : 'NO')) ;
+            if ($legion->loyalty!=NULL) {
+                $senator = $this->getSenatorWithID($legion->loyalty) ;
+                if ($senator==FALSE) {
+                    $result[$key]['veteran'] = 'error' ;
+                } else {
+                    $result[$key]['veteran'] = $senator->name;
+                }
+            }
+        }
+        return $result ;
+    }
+    
+    public function getFleetDetails() {
+        $result = array () ;
+        foreach ($this->fleet as $key=>$fleet) {
+            $result[$key]['name'] = $fleet->name ;
+            switch($fleet->location) {
+                case NULL :
+                    $result[$key]['location'] = '' ;
+                    $result[$key]['action'] = 'RECRUIT' ;
+                    break ;
+                case 'Rome' :
+                    $result[$key]['location'] = $fleet->location ;
+                    $result[$key]['action'] = 'DISBAND' ;
+                    break ;
+                default :
+                    $senator = $this->getSenatorWithID($fleet->location) ;
+                    if ($senator==FALSE) {
+                        $result[$key]['location'] = 'error' ;
+                    } else {
+                        $result[$key]['location'] = 'with '.$senator->name;
+                    }
+                    $result[$key]['action'] = '' ;
+            }
+        }
+        return $result ;
+    }
+    
     public function getProvinceGarrisons($province) {
         $result = 0 ;
         if ($province->type == 'Province') {
@@ -556,7 +625,7 @@ class Game
         if (count($rankedSenators)>0) {
             // If we are looking for the presiding magistrate, The Censor must be returned during the Senate phase if the latest proposal was a prosecution
             // TO DO : what if the all thing was interupted by a Special Assassin Prosecution ?
-            if ( $presiding && $this->phase=='Senate' && end($this->proposals)->type=='Prosecutions' && isset($rankedSenators[3]) ) {
+            if ( $presiding && $this->phase=='Senate' && count($this->proposals)>0 && end($this->proposals)->type=='Prosecutions' && isset($rankedSenators[3]) ) {
                 return $rankedSenators[3] ;
             // Otherwise, the HRAO
             } else {
@@ -5461,6 +5530,7 @@ class Game
         foreach ($this->senate_getListPossibleLandBills() as $key=>$value) {
             $result[]=array('LandBill'.$key,$value);
         }
+        $result[]=array('Forces',_('Raise/Disband forces'));
         $result[]=array('Minor',_('Minor motion'));
         return $result ;
     }
@@ -5780,6 +5850,8 @@ class Game
                             $output['list'] = $this->senate_getListOtherBusiness();
                             $output['possibleConcessionSenators'] = $this->senate_getFilteredListSenators('concession');
                             $output['concessions'] = $this->senate_getListAvailableConcessions();
+                            $output['legions'] = $this->getLegionDetails();
+                            $output['fleets'] = $this->getFleetDetails();
                             /*
                              * TO DO
                              */

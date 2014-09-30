@@ -8,6 +8,7 @@
             document.getElementById("LandBill3").style.display = "none";
             document.getElementById("LandBill-2").style.display = "none";
             document.getElementById("LandBill-3").style.display = "none";
+            document.getElementById("Forces").style.display = "none";
             document.getElementById("Minor").style.display = "none";
             var typePicked = document.getElementById("type").value;
             switch(typePicked) {
@@ -28,6 +29,9 @@
                     break;
                 case "LandBill-3":
                     document.getElementById("LandBill-3").style.display = "block";
+                    break;
+                case "Forces":
+                    document.getElementById("Forces").style.display = "block";
                     break;
                 case "Minor":
                     document.getElementById("Minor").style.display = "block";
@@ -217,6 +221,78 @@
             </span>
             <span id="LandBill-3" style="display: none;">
                 Repeal Land Bill III<BR>
+            </span>
+            <span id="Forces" style="display: none;">
+                Raise/Disband Forces<BR>
+                <table border="3">
+                    <tr>
+                        <td>
+                            <table border="1">
+                                <tr>
+                                    <td colspan="5" style="text-align:center;">
+                                        LEGIONS
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Location</td>
+                                    <td>Veteran</td>
+                                    <td>Recruit</td>
+                                    <td>Disband</td>
+                                </tr>
+                                {% for key, legion in output['legions']%}
+                                    <tr>
+                                        <td>{{legion.name}}</td>
+                                        <td>{{legion.location}}</td>
+                                        <td>{{legion.veteran }}</td>
+                                        <td>
+                                            {% if legion.action=='RECRUIT' %}
+                                                <input type="radio" name="parameters[{{key}}]" value="R">
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if legion.action=='DISBAND' %}
+                                                <input type="radio" name="parameters[{{key}}]" value="D">
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                        <td>
+                            <table border="1">
+                                <tr>
+                                    <td colspan="3" style="text-align:center;">
+                                        FLEETS
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Name</td>
+                                    <td>Location</td>
+                                    <td>Recruit</td>
+                                    <td>Disband</td>
+                                </tr>
+                                {% for key, fleet in output['fleets']%}
+                                    <tr>
+                                        <td>{{fleet.name}}</td>
+                                        <td>{{fleet.location}}</td>
+                                        <td>
+                                            {% if fleet.action=='RECRUIT' %}
+                                                <input type="radio" name="parameters[{{key+25}}]" value="R">
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if fleet.action=='DISBAND' %}
+                                                <input type="radio" name="parameters[{{key+25}}]" value="D">
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <input type="hidden" name="parameters">
             </span>
             <span id="Minor" style="display: none;">
                 Minor motion<BR>

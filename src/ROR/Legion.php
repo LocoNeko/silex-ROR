@@ -29,7 +29,13 @@ class Legion
         $this->name = ( (strlen($romanName)>0) ? $romanName : NULL) ;
         $this->veteran = FALSE ;
         $this->loyalty = NULL ;
-        // location is 'rome','released' or a SenatorID
+        /* 
+         * Location can be :
+         * - NULL : The legion doesn't exist
+         * - Rome : The legion is in Rome
+         * - released : The legion has been released by its commander, so the HRAO has a chance to pay its maintenance
+         * - <SenatorID> : The legion is commanded by this Senator
+         */
         $this->location = NULL ;
     }
         
