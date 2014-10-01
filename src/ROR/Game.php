@@ -377,13 +377,25 @@ class Game
     
     /**
      * Returns an array with detailed information on legions :
+     * If the key is a number, the other dimensions are :
      * 'location' => ''|'error'|'Rome'|'released'|'with XXX' where XX is a Senator's name
      * 'veteran' => ''|'error'|'YES'|'NO'
      * 'action' => ''|'RECRUIT'|'DISBAND'
-     * @return type
+     * If the key is 'totals', we get total numbers of regular and veteran legions in Rome, released, away (loyal), away (rebel), and in garrison
+     * @return array
      */
     public function getLegionDetails() {
         $result = array () ;
+        $result['totals']['Rome']['regular'] = 0 ;
+        $result['totals']['Rome']['veteran'] = 0 ;
+        $result['totals']['released']['regular'] = 0 ;
+        $result['totals']['released']['veteran'] = 0 ;
+        $result['totals']['awayLoyal']['regular'] = 0 ;
+        $result['totals']['awayLoyal']['veteran'] = 0 ;
+        $result['totals']['awayRebel']['regular'] = 0 ;
+        $result['totals']['awayRebel']['veteran'] = 0 ;
+        $result['totals']['garrison']['regular'] = 0 ;
+        $result['totals']['garrison']['veteran'] = 0 ;
         foreach ($this->legion as $key=>$legion) {
             $result[$key]['name'] = $legion->name ;
             switch($legion->location) {
@@ -395,13 +407,21 @@ class Game
                 case 'released' :
                     $result[$key]['location'] = $legion->location ;
                     $result[$key]['action'] = 'DISBAND' ;
+                    $result['totals'][$legion->location][($legion->veteran ? 'veteran' : 'regular')]++ ;
                     break ;
                 default :
                     $senator = $this->getSenatorWithID($legion->location) ;
                     if ($senator==FALSE) {
-                        $result[$key]['location'] = 'error' ;
+                        $province = $this->getSpecificCard('id', $legion->location) ;
+                        if ($province==FALSE) {
+                            $result[$key]['location'] = 'error' ;
+                        } else {
+                            $result[$key]['location'] = 'garrison in '.$province->name;
+                            $result['totals']['garrison'][($legion->veteran ? 'veteran' : 'regular')]++ ;
+                        }
                     } else {
                         $result[$key]['location'] = 'with '.$senator->name;
+                        $result['totals'][($senator->rebel ? 'awayRebel' : 'awayLoyal')][($legion->veteran ? 'veteran' : 'regular')]++ ;
                     }
                     $result[$key]['action'] = '' ;
             }
@@ -418,6 +438,12 @@ class Game
         return $result ;
     }
     
+    /**
+     * Returns an array with detailed information on fleets :
+     * 'location' => ''|'error'|'Rome'|'with XXX' where XX is a Senator's name
+     * 'action' => ''|'RECRUIT'|'DISBAND'
+     * @return array
+     */
     public function getFleetDetails() {
         $result = array () ;
         foreach ($this->fleet as $key=>$fleet) {
@@ -1999,6 +2025,7 @@ class Game
                     $this->landBill[1] = 0 ;
                 }
                 // Forces maintenance
+                // TO DO : Correct the below, use 'totals' from $this->getLegionDetails()
                 $nbLegions = $this->getNbOfLegions();
                 $nbFleets = $this->getNbOfFleets();
                 $totalCostForces=2*($nbLegions + $nbFleets) ;
@@ -3648,6 +3675,7 @@ class Game
          * Parameters validation
          */
         // For Concessions, sort the parameters by keys, then remove the Concessions assigned to nobody
+        // TO DO : This is UGLY (c)(tm) and should happen on front end side
         if ($type=='Concessions') {
             ksort($parameters);
             foreach($parameters as $key=>$parameter) {
@@ -3658,7 +3686,7 @@ class Game
         }
         $rules = Proposal::validationRules($type) ;
         // For Prosecutions, parameters 0 & 1 are 'compressed' into parameter 0 at the time of form submission
-        // This is UGLY (c)(tm)
+        // TO DO : This is UGLY (c)(tm) and should happen on front end side
         if ($type=='Prosecutions') {
             $compressedParameter = explode(',' , $parameters[0]);
             $parameters[0] = $compressedParameter[0] ;
@@ -3671,7 +3699,6 @@ class Game
                 return array(array($validation , 'error' , $user_id)) ;
             }
         }
-
         // For Governors, the 'SenatorAccepts' parameters are set to 'PENDING' if the proposed governor is a returning governor, and to 'NA' otherwise
         if ($type=='Governors') {
             foreach ($parameters as $key => $parameter) {
@@ -3688,6 +3715,7 @@ class Game
          */
         $proposal = new Proposal ;
         $result = $proposal->init($type , $user_id , $description , $this->party , $parameters , $votingOrder) ;
+
         if ($result !== TRUE) {
             return array(array($result)) ;
         }
@@ -3757,13 +3785,15 @@ class Game
             // TO DO
         } elseif ($type=='Concessions') {
             $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
-            $proposalMessage = sprintf('%s {%s} proposes to assign concessions as follows : ' , $using , $user_id);
-            $proposalMessage.=$this->senate_getConcessionProposalDetails($parameters);
-            array_push($messages, array($proposalMessage)) ;
+            array_push($messages, array( sprintf(_('%s {%s} proposes to assign concessions as follows : ') , $using , $user_id).$this->senate_getConcessionProposalDetails($parameters) )) ;
             $this->proposals[] = $proposal ;
         } elseif ($type=='Land Bills') {
+            $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
             // TO DO
         } elseif ($type=='Forces') {
+            $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
+            array_push($messages, array( sprintf(_('%s {%s} proposes : ') , $using , $user_id).$this->senate_getForcesProposalDetails($parameters) )) ;
+            $this->proposals[] = $proposal ;
             // TO DO
         } elseif ($type=='Garrison') {
             // TO DO
@@ -3956,7 +3986,6 @@ class Game
                 $atLeastOneSenator = FALSE ;
                 foreach ($parameters as $key=>$parameter) {
                     if ( ($key % 2) == 0 ) {
-                        // This has been removed after basic checks and should not happen, but what the hell
                         if ($parameter!='NOBODY') {
                             $atLeastOneSenator = TRUE ;
                             if ($this->getSenatorWithID($parameter)!=FALSE && !$this->getSenatorWithID($parameter)->inRome()) {
@@ -3965,11 +3994,42 @@ class Game
                                 return _('Senator ID not recognised.') ;
                             }
                         } else {
+                            // This has been removed after basic checks and should not happen, but what the hell
                             return _('Senator is a nobody.') ;
                         }
                     }
                 }
                 return ( $atLeastOneSenator ? TRUE : _('You must name at least one senator.') ) ;
+            case 'Forces':
+                $nbUnits = 0;
+                foreach ($parameters as $parameter) {
+                    $forceType = substr($parameter , 0 , 1) ;
+                    $action = substr($parameter , -1);
+                    $number = substr($parameter , 1 , -1) ;
+                    if ( ($forceType===FALSE) || ($action===FALSE) || ($number===FALSE) || (($forceType!='F') && ($forceType!='L')) || (($action!='R') && ($action!='D')) || (((int)$number<0) && ((int)$number>25)) ) {
+                        return _('Legion/Fleet : Invalid parameter') ;
+                    }
+                    if (($forceType=='L') && ($action=='R') && !$this->legion[$number]->canBeRecruited()) {
+                        return sprintf(_('Legion %s cannot be recruited.') , $this->legion[$number]->name ) ;
+                    }
+                    if (($forceType=='L') && ($action=='D') && !$this->legion[$number]->canBeDisbanded()) {
+                        return sprintf(_('Legion %s cannot be disbanded.') , $this->legion[$number]->name ) ;
+                    }
+                    if (($forceType=='F') && ($action=='R') && !$this->fleet[$number]->canBeRecruited()) {
+                        return sprintf(_('Fleet %s cannot be recruited.') , $this->fleet[$number]->name ) ;
+                    }
+                    if (($forceType=='F') && ($action=='D') && $this->fleet[$number]->canBeDisbanded()) {
+                        return sprintf(_('Fleet %s cannot be disbanded.') , $this->fleet[$number]->name ) ;
+                    }
+                    if ($action=='R') {
+                        $nbUnits++;
+                    }
+                }
+                if ( ($this->getEventLevel('name' , 'No Recruitment')>0) && $nbUnits>0) {
+                    return _('Invalid proposal. The \'No Recruitment\' event is in place.');
+                }
+                $cost = $nbUnits * 10 * (1 + $this->getEventLevel('name', 'Manpower Shortage'));
+                return ($this->treasury>=$cost ? TRUE : sprintf(_('Invalid proposal. The cost of raising those forces would be %d. There is only %d in Rome\'s treasury.') , $cost , $this->treasury ));
         }
         return 'Wrong rule';
     }
@@ -4164,7 +4224,7 @@ class Game
                     );
                 }
             /*
-             * TO DO : Results of succesful votes that don't require a decision
+             * Results of succesful votes that don't require a decision
              */
             } elseif (end($this->proposals)->outcome === TRUE) {
                 if (end($this->proposals)->type=='Censor') {
@@ -4191,7 +4251,41 @@ class Game
                             array_push($messages , array(sprintf(_('%s is assigned to %s.') , $concessionAssigned->name, $assignedTo->name )));
                         }
                     }
+                } elseif (end($this->proposals)->type=='Forces') {
+                    $nbLegions = 0 ;
+                    $nbFleets = 0 ;
+                    foreach (end($this->proposals)->parameters as $parameter) {
+                        $forceType = substr($parameter , 0 , 1) ;
+                        $action = substr($parameter , -1);
+                        $number = (int)substr($parameter , 1 , -1) ;
+                        switch($forceType) {
+                            case 'L' :
+                                $this->legion[$number]->location = ($action=='R' ? 'Rome' : NULL);
+                                $nbLegions+=($action=='R' ? 1 : 0);
+                                break ;
+                            case 'F' :
+                                $this->fleet[$number]->location = ($action=='R' ? 'Rome' : NULL);
+                                $nbFleets+=($action=='R' ? 1 : 0);
+                                break ;
+                        }
+                    }
+                    $cost = ($nbLegions + $nbFleets) * 10 * (1 + $this->getEventLevel('name', 'Manpower Shortage'));
+                    $this->treasury -= $cost;
+                    $messages[] = array(sprintf(_('The forces are Recruited & Disbanded as proposed for a total cost of %d.') , $cost));
+                    $armaments = $this->getSpecificCard('name', 'ARMAMENTS') ;
+                    $shipBuilding = $this->getSpecificCard('name', 'SHIP BUILDING') ;
+                    if ($armaments['where']=='senator') {
+                        $armaments['card']->corrupt = TRUE ;
+                        $armaments['senator']->treasury += 2*$nbLegions ;
+                        $messages[] = array(sprintf(_('%s controls the Armaments concession and gains %d from this recruitment.') , $armaments['senator']->name , 2*$nbLegions));
+                    }
+                    if ($shipBuilding['where']=='senator') {
+                        $shipBuilding['card']->corrupt = TRUE ;
+                        $shipBuilding['senator']->treasury += 3*$nbFleets ;
+                        $messages[] = array(sprintf(_('%s controls the Ship Building concession and gains %d from this recruitment.') , $armaments['senator']->name , 3*$nbFleets));
+                    }
                 }
+                // TO DO : all other types
             } else {
                 return array(array(_('Error on vote outcome.') , 'error' , $user_id));
             }
@@ -5555,6 +5649,54 @@ class Game
         return $result;
     }
 
+    private function senate_getForcesProposalDetails ($parameters) {
+        $detail = array();
+        $detail['L']['R'] = 0;
+        $detail['L']['D'] = 0;
+        $detail['F']['R'] = 0;
+        $detail['F']['D'] = 0;
+        $veterans = array() ;
+        foreach ($parameters as $parameter) {
+            $forceType = substr($parameter , 0 , 1) ;
+            $action = substr($parameter , -1);
+            $number = (int)substr($parameter , 1 , -1) ;
+            $detail[$forceType][$action]++ ;
+            // If the proposal includes disbanding of a Legion, indicate if it's a Veteran and if it's loyal to someone.
+            if ($forceType=='L' && $action=='D') {
+                if ($this->legion[$number]->veteran) {
+                    $senator = $this->getSenatorWithID($this->legion[$number]->loyalty) ;
+                    if ($senator===FALSE) {
+                        if (isset($veterans['nobody'])) {
+                            $veterans['nobody']++;
+                        } else {
+                            $veterans['nobody']=1;
+                        }
+                    } else {
+                        if (isset($veterans[$senator->name])) {
+                            $veterans[$senator->name]++;
+                        } else {
+                            $veterans[$senator->name]=1;
+                        }
+                    }
+                }
+            }
+        }
+        $veteranMessage='' ;
+        foreach($veterans as $key => $veteranInfo) {
+            $veteranMessage.=sprintf(_('%d loyal to %s, ') , $veteranInfo , $key);
+        }
+        if (strlen($veteranMessage)>0) {
+            $veteranMessage = substr($veteranMessage , 0 , -2) ;
+        }
+        return sprintf(_('Recruit %d legions & %d fleets. Disband %d legions & %d Fleets.%s') ,
+                $detail['L']['R'] ,
+                $detail['F']['R'] ,
+                $detail['L']['D'] ,
+                $detail['F']['D'] ,
+                ($veteranMessage!='' ? sprintf(_(' Disbanded veteran legions : %s') , $veteranMessage): '')
+        ) ;
+    }
+
      /**
      * senate_view returns all the data needed to render senate templates. The function returns an array $output :
      * $output['state'] (Mandatory) gives the name of the current state to be rendered :
@@ -5913,6 +6055,9 @@ class Game
                 break ;
             case 'Concessions' :
                 $description.='to assign Concessions as follows : '.$this->senate_getConcessionProposalDetails($targetProposal->parameters);
+                break ;
+            case 'Forces' :
+                $description.=' : '.$this->senate_getForcesProposalDetails($targetProposal->parameters);
                 break ;
             // TO DO : other types of proposals
         }

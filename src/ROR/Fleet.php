@@ -17,5 +17,13 @@ class Fleet
         $this->name = ( (strlen($romanName)>0) ? $romanName : NULL) ;
         $this->location = NULL ;
     }
+
+    public function canBeRecruited() {
+        return ($this->location == NULL) ;
+    }
+
+    public function canBeDisbanded() {
+        return ($this->location == 'Rome') ;
+    }
         
 }

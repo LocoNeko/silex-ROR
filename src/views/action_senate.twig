@@ -241,21 +241,23 @@
                                     <td>Disband</td>
                                 </tr>
                                 {% for key, legion in output['legions']%}
-                                    <tr>
-                                        <td>{{legion.name}}</td>
-                                        <td>{{legion.location}}</td>
-                                        <td>{{legion.veteran }}</td>
-                                        <td>
-                                            {% if legion.action=='RECRUIT' %}
-                                                <input type="radio" name="parameters[{{key}}]" value="R">
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if legion.action=='DISBAND' %}
-                                                <input type="radio" name="parameters[{{key}}]" value="D">
-                                            {% endif %}
-                                        </td>
-                                    </tr>
+                                    {% if key != 'totals' %}
+                                        <tr>
+                                            <td>{{legion.name}}</td>
+                                            <td>{{legion.location}}</td>
+                                            <td>{{legion.veteran }}</td>
+                                            <td>
+                                                {% if legion.action=='RECRUIT' %}
+                                                    <input type="checkbox" name="parameters[]" value="L{{key}}R">
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if legion.action=='DISBAND' %}
+                                                    <input type="checkbox" name="parameters[]" value="L{{key}}D">
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
                                 {% endfor %}
                             </table>
                         </td>
@@ -278,12 +280,12 @@
                                         <td>{{fleet.location}}</td>
                                         <td>
                                             {% if fleet.action=='RECRUIT' %}
-                                                <input type="radio" name="parameters[{{key+25}}]" value="R">
+                                                <input type="checkbox" name="parameters[]" value="F{{key}}R">
                                             {% endif %}
                                         </td>
                                         <td>
                                             {% if fleet.action=='DISBAND' %}
-                                                <input type="radio" name="parameters[{{key+25}}]" value="D">
+                                                <input type="checkbox" name="parameters[]" value="F{{key}}D">
                                             {% endif %}
                                         </td>
                                     </tr>
@@ -292,7 +294,6 @@
                         </td>
                     </tr>
                 </table>
-                <input type="hidden" name="parameters">
             </span>
             <span id="Minor" style="display: none;">
                 Minor motion<BR>

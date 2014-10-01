@@ -199,12 +199,14 @@ class Proposal {
                 $result[4] = array('prosecutionRejected' , NULL) ;
                 break ;
             case 'Governors' :
-                $result[0] = array('possibleGovernors',NULL) ;
-                $result[1] = array('possibleProvinces',NULL) ;
+                $result[0] = array('possibleGovernors' , NULL) ;
+                $result[1] = array('possibleProvinces' , NULL) ;
                 break ;
             case 'Concessions' :
-                $result[0] = array('concessionOddParameters',NULL) ;
-                $result[1] = array('concessionEvenParameters',NULL) ;
+                $result[0] = array('concessionOddParameters' , NULL) ;
+                $result[1] = array('concessionEvenParameters' , NULL) ;
+            case 'Forces' :
+                $result[0] = array('Forces' , NULL) ;
                 break ;
         }
         return $result ;

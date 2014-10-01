@@ -35,8 +35,17 @@ class Legion
          * - Rome : The legion is in Rome
          * - released : The legion has been released by its commander, so the HRAO has a chance to pay its maintenance
          * - <SenatorID> : The legion is commanded by this Senator
+         * - <card ID> : THe legion is in garrison in the province with this id
          */
         $this->location = NULL ;
     }
-        
+    
+    public function canBeRecruited() {
+        return ($this->location == NULL) ;
+    }
+
+    public function canBeDisbanded() {
+        return ($this->location == 'Rome' || $this->location == 'released') ;
+    }
+
 }

@@ -67,8 +67,17 @@ OTHER PARTIES :<br>
     {% endif %}
 {% endfor %}
 
-{# NUMBER OF CARDS IN THE DRAW DECK #}
-CARDS LEFT TO DRAW IN THIS ERA : <b>{{content['game'].drawDeck.nbCards()}}</b> | CURRENT UNREST : <b>{{content['game'].unrest}}</b>
+{# OTHER INFO #}
+ROME'S TREASURY : <b>{{content['game'].treasury}}</b> | CARDS LEFT TO DRAW IN THIS ERA : <b>{{content['game'].drawDeck.nbCards()}}</b> | CURRENT UNREST : <b>{{content['game'].unrest}}</b><br>
+LEGIONS : <br>
+{% set legionsInfo = content['game'].getLegionDetails()['totals'] %}
+In Rome        : <b>{{legionsInfo['Rome']['regular']}}</b> regulars & <b>{{legionsInfo['Rome']['veteran']}}</b> veterans.<br>
+Released       : <b>{{legionsInfo['released']['regular']}}</b> regulars, <b>{{legionsInfo['released']['veteran']}}</b> veterans.<br>
+Abroad (loyal) : <b>{{legionsInfo['awayLoyal']['regular']}}</b> regulars, <b>{{legionsInfo['awayLoyal']['veteran']}}</b> veterans.<br>
+Abroad (rebel) : <b>{{legionsInfo['awayRebel']['regular']}}</b> regulars, <b>{{legionsInfo['awayRebel']['veteran']}}</b> veterans.<br>
+In garrison    : <b>{{legionsInfo['garrison']['regular']}}</b> regulars, <b>{{legionsInfo['garrison']['veteran']}}</b> veterans.<br>
+FLEETS : <br>
+In Rome        : <b>{{content['game'].getNbOfFleets()}}</b>
 
 <hr>
 
