@@ -1047,11 +1047,28 @@ class Game
         $result['support'] = $conflict->support ;
         $result['fleet'] = $conflict->fleet ;
         $matchedConflicts = $this->getNumberOfMatchedConflicts($conflict) ;
-        $result['land'] *= $matchedConflicts ;
-        $result['fleet'] *= $matchedConflicts ;
+        $result['land'] *= 1+$matchedConflicts ;
+        $result['fleet'] *= 1+$matchedConflicts ;
         foreach ($conflict->leaders->cards as $leader) {
             $result['land']+=$leader->strength ;
             $result['fleet']+=$leader->strength ;
+        }
+        return $result ;
+    }
+    
+    public function getListOfConflicts() {
+        $result = array() ;
+        foreach ($this->activeWars->cards as $card) {
+            $result[] = array('id' => $card->id , 'name' => $card->name , 'land' => $this->getModifiedConflictStrength($card)['land'] , 'support' => $this->getModifiedConflictStrength($card)['support'] , 'fleet' => $this->getModifiedConflictStrength($card)['fleet']);
+        }
+        foreach ($this->unprosecutedWars->cards  as $card) {
+            $result[] = array('id' => $card->id , 'name' => $card->name , 'land' => $this->getModifiedConflictStrength($card)['land'] , 'support' => $this->getModifiedConflictStrength($card)['support'] , 'fleet' => $this->getModifiedConflictStrength($card)['fleet']);
+        }
+        foreach ($this->imminentWars->cards  as $card) {
+            $result[] = array('id' => $card->id , 'name' => $card->name , 'land' => $this->getModifiedConflictStrength($card)['land'] , 'support' => $this->getModifiedConflictStrength($card)['support'] , 'fleet' => $this->getModifiedConflictStrength($card)['fleet']);
+        }
+        foreach ($this->inactiveWars->cards as $card) {
+            $result[] = array('id' => $card->id , 'name' => $card->name , 'land' => $this->getModifiedConflictStrength($card)['land'] , 'support' => $this->getModifiedConflictStrength($card)['support'] , 'fleet' => $this->getModifiedConflictStrength($card)['fleet']);
         }
         return $result ;
     }
@@ -3590,6 +3607,12 @@ class Game
                         $party->freeTribunes[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name ) ;
                     }
                 }
+                // Re-initialise corrupt state of all concessions before Senate starts
+                foreach ($senator->controls->cards as $card) {
+                    if ($card->type=='Concession') {
+                        $card->corrupt=FALSE ;
+                    }
+                }
             }
             // Reset assasination attemps and targets
             $party->assassinationAttempt = FALSE ;
@@ -3685,13 +3708,6 @@ class Game
             }
         }
         $rules = Proposal::validationRules($type) ;
-        // For Prosecutions, parameters 0 & 1 are 'compressed' into parameter 0 at the time of form submission
-        // TO DO : This is UGLY (c)(tm) and should happen on front end side
-        if ($type=='Prosecutions') {
-            $compressedParameter = explode(',' , $parameters[0]);
-            $parameters[0] = $compressedParameter[0] ;
-            $parameters[1] = $compressedParameter[1] ;
-        }
         
         foreach ($rules as $rule) {
             $validation = $this->senate_validateParameter($rule[0] , $parameters , $rule[1]) ;
@@ -3799,7 +3815,7 @@ class Game
             // TO DO
         } elseif ($type=='Deploy') {
             // TO DO
-        } elseif ($type=='Recall Proconsul') {
+        } elseif ($type=='Recall') {
             // TO DO
         } elseif ($type=='Recall Pontifex') {
             // TO DO
@@ -4547,7 +4563,7 @@ class Game
             case 'Forces' :
             case 'Garrison' :
             case 'Deploy' :
-            case 'Recall Proconsul' :
+            case 'Recall' :
             case 'Recall Pontifex' :
             case 'Priests' :
             case 'Minor' :
@@ -5326,7 +5342,7 @@ class Game
     /**
      * Returns an array of senators satisfying a criteria
      * @param filter 'prosecutor' , 'concession' , 'landBillSponsor' , 'possibleDictators' , 'possibleMastersOfHorse'
-     * @return array 'senatorID' , 'name' , 'user_id' , optional : 'POP' (only for 'landBillSponsor')
+     * @return array 'senatorID' , 'name' , 'user_id' , optional : 'POP' (only for 'landBillSponsor') , 'MIL' (only for 'commanders') , 'office' (only for 'commanders')
      */
     
     public function senate_getFilteredListSenators($filter) {
@@ -5355,6 +5371,12 @@ class Game
                         if ($senator->inRome() && ($senator->office===NULL || $senator->office==='Censor')) {
                            $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName() , 'user_id' => $party->user_id) ;
                         }
+                        break ;
+                    case 'commanders' :
+                        if (in_array($senator->office , array('Rome Consul' , 'Field Consul' , 'Dictator'))) {
+                            $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName() , 'user_id' => $party->user_id , 'office' => $senator->office , 'MIL' => $senator->MIL ) ;
+                        }
+                        break ;
                     default :
                         break;
                 }
@@ -5615,7 +5637,7 @@ class Game
     private function senate_getListOtherBusiness() {
         $result = array () ;
         // TO DO : List of all possible proposals that are 'other business' :
-        // 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall Proconsul' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
+        // 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
         // There is at least one concession in the forum
         
         if ($this->forum->getIdOfCardWithValue('type','Concession')!==FALSE) {
@@ -5625,6 +5647,7 @@ class Game
             $result[]=array('LandBill'.$key,$value);
         }
         $result[]=array('Forces',_('Raise/Disband forces'));
+        $result[]=array('Deploy',_('Deploy forces to fight a Conflict'));
         $result[]=array('Minor',_('Minor motion'));
         return $result ;
     }
@@ -5981,7 +6004,7 @@ class Game
                         $output['list'] = $this->senate_getListAvailableProvinces();
                         $output['possibleGovernors'] = $this->senate_getListAvailableGovernors();
                     /*
-                     * Other Business : 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall Proconsul' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
+                     * Other Business : 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
                      */
                     } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Other business') ) {
                         $output['state'] = 'Proposal';
@@ -5994,6 +6017,8 @@ class Game
                             $output['concessions'] = $this->senate_getListAvailableConcessions();
                             $output['legions'] = $this->getLegionDetails();
                             $output['fleets'] = $this->getFleetDetails();
+                            $output['commanders'] = $this->senate_getFilteredListSenators('commanders') ;
+                            $output['conflicts'] = $this->getListOfConflicts() ;
                             /*
                              * TO DO
                              */

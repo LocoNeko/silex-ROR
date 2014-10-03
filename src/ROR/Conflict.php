@@ -39,13 +39,14 @@ class Conflict extends Card {
                 $this->causes = ( is_string($data[7]) ? $data[7] : null) ;
                 $this->attacks = ( is_string($data[8]) ? $data[8] : null) ;
                 $this->revolt = ( is_string($data[9]) ? $data[9] : null) ;
+                // TO DO : Creates can only be 11
                 $this->creates = ( is_string($data[10]) ? $data[10] : null) ;
-                $this->land = (int)$data[11] ;
-                $this->support = (int)$data[12] ;
-                $this->fleet = (int)$data[13] ;
-                $this->disaster = $data[14];
-                $this->standoff = $data[15];
-                $this->spoils = (int)$data[16] ;
+                $this->land = (int)$data[12] ;
+                $this->support = (int)$data[13] ;
+                $this->fleet = (int)$data[14] ;
+                $this->disaster = $data[15];
+                $this->standoff = $data[16];
+                $this->spoils = (int)$data[17] ;
                 $this->leaders = new Deck() ;
 	}
 }

@@ -1,4 +1,4 @@
-{# JS to handle dynamic content for Other business #}
+{# JS to handle dynamic content for Prosecutions & Other business #}
 {% block myScripts %}
     <script type="text/javascript">
         function pickOtherBusiness() {
@@ -9,6 +9,7 @@
             document.getElementById("LandBill-2").style.display = "none";
             document.getElementById("LandBill-3").style.display = "none";
             document.getElementById("Forces").style.display = "none";
+            document.getElementById("Deploy").style.display = "none";
             document.getElementById("Minor").style.display = "none";
             var typePicked = document.getElementById("type").value;
             switch(typePicked) {
@@ -33,10 +34,18 @@
                 case "Forces":
                     document.getElementById("Forces").style.display = "block";
                     break;
+                case "Deploy":
+                    document.getElementById("Deploy").style.display = "block";
+                    break;
                 case "Minor":
                     document.getElementById("Minor").style.display = "block";
                     break;
             }
+        }
+        function decompressProsecutionParameters() {
+            index = compressedParameters.value.indexOf(",")+1;
+            document.getElementById("parameters0").value = compressedParameters.value.substr(0,index-1) ;
+            document.getElementById("parameters1").value = compressedParameters.value.substr(index) ;
         }
     </script>
 {% endblock %}
@@ -142,13 +151,15 @@
             Prosecutions :<br>
             <input type="hidden" name="type" value="Prosecutions">
             Prosecute :
-            <select name="parameters[0]" style="width:750px;">
+            <select onChange="decompressProsecutionParameters();" name="compressedParameters" id="compressedParameters" style="width:750px;">
                 {%for reason in output['list']%}
                 <option value="{{reason['senator'].senatorID}},{{reason['reason']}}">
                      {{reason['text']}}
                 </option>
                 {% endfor %}
             </select><br>
+            <input type="hidden" name="parameters[0]" id="parameters0">
+            <input type="hidden" name="parameters[1]" id="parameters1">
             With prosecutor :
             <select name="parameters[2]">
                 {%for possibleProsecutor in output['possibleProsecutors']%}
@@ -294,6 +305,19 @@
                         </td>
                     </tr>
                 </table>
+            </span>
+            <span id="Deploy" style="display: none;">
+                Deploy Forces<BR>
+                <select name="parameters[0]" style="width:350px;">
+                    {% for commander in output['commanders'] %}
+                    <option value="{{commander['senatorID']}}">{{commander['name']}} ({{commander['office']}})</option>
+                    {% endfor %}
+                </select> to fight
+                <select name="parameters[1]" style="width:250px;">
+                    {% for conflict in output['conflicts'] %}
+                    <option value="{{conflict['id']}}">{{conflict['name']}} ({{conflict['land']}}/{{conflict['support']}}/{{conflict['fleet']}})</option>
+                    {% endfor %}
+                </select><br>
             </span>
             <span id="Minor" style="display: none;">
                 Minor motion<BR>
@@ -634,5 +658,9 @@ ERROR - Wrong state
     // Only applies if such a span is avaiable. here, we test "Concessions" but any other could actually be tested (LandBill1, Minor, etc)
     if (document.getElementById("Concessions")) {
         pickOtherBusiness();
+    }
+    // Prosecutions : Update parameters[0] and parameters[1] from compressedParameters
+    if (document.getElementById("compressedParameters")) {
+        decompressProsecutionParameters();
     }
 </script>
