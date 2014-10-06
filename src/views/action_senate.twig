@@ -1,6 +1,7 @@
 {# JS to handle dynamic content for Prosecutions & Other business #}
 {% block myScripts %}
     <script type="text/javascript">
+        
         function pickOtherBusiness() {
             document.getElementById("Concessions").style.display = "none";
             document.getElementById("LandBill1").style.display = "none";
@@ -42,11 +43,45 @@
                     break;
             }
         }
+        
         function decompressProsecutionParameters() {
             index = compressedParameters.value.indexOf(",")+1;
             document.getElementById("parameters0").value = compressedParameters.value.substr(0,index-1) ;
             document.getElementById("parameters1").value = compressedParameters.value.substr(index) ;
         }
+        
+        function decompressForcesParameters() {
+            if (document.getElementById("type").value === 'Deploy') {
+                var mainIndex = 0 ;
+                for (var baseIndex=0; baseIndex<5; baseIndex++) {
+                    Conflict = document.getElementById('Conflict_'+baseIndex);
+                    // A Conflict was selected : We need to decompress parameters.
+                    if (Conflict!==null && Conflict.value!=='NONE') {
+                        var LegionsParameter = document.getElementById('Regulars_'+baseIndex).value + ',' + document.getElementById('Veterans_'+baseIndex).value ;
+                        for (var i=0; i<25; i++) {
+                            var Legion = document.getElementById('Legion_'+baseIndex+'_'+i) ;
+                            if (Legion!==null) {
+                                LegionsParameter=LegionsParameter+(Legion.checked ? ','+i : '') ;
+                            }
+                        }
+                        document.getElementById("parameters_"+(mainIndex*5)).value = Conflict.value ;
+                        document.getElementById("parameters_"+(mainIndex*5+1)).value = document.getElementById('Commander_'+baseIndex).value;
+                        document.getElementById("parameters_"+(mainIndex*5+2)).value = LegionsParameter ;
+                        document.getElementById("parameters_"+(mainIndex*5+3)).value = document.getElementById('Fleet_'+baseIndex).value;
+                        mainIndex++;
+                    }
+                }
+                // This is to remove any parameter in excess
+                for (var toRemove=mainIndex; toRemove<5; toRemove++) {
+                    var elem = document.getElementById("parameters_"+(toRemove*5));   if (elem!==null) {elem.parentNode.removeChild(elem) ;}
+                    var elem = document.getElementById("parameters_"+(toRemove*5+1)); if (elem!==null) {elem.parentNode.removeChild(elem) ;}
+                    var elem = document.getElementById("parameters_"+(toRemove*5+2)); if (elem!==null) {elem.parentNode.removeChild(elem) ;}
+                    var elem = document.getElementById("parameters_"+(toRemove*5+3)); if (elem!==null) {elem.parentNode.removeChild(elem) ;}
+                    var elem = document.getElementById("parameters_"+(toRemove*5+4)); if (elem!==null) {elem.parentNode.removeChild(elem) ;}
+                }
+            }
+        }
+        
     </script>
 {% endblock %}
 
@@ -68,7 +103,7 @@
 
     You can make a Proposal<br>
 
-    <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_proposal'} ) }}">
+    <form class="form-horizontal" method="POST" name="proposal" id="proposal" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_proposal'} ) }}">
 
         {#
             Consuls proposal
@@ -286,20 +321,22 @@
                                     <td>Disband</td>
                                 </tr>
                                 {% for key, fleet in output['fleets']%}
-                                    <tr>
-                                        <td>{{fleet.name}}</td>
-                                        <td>{{fleet.location}}</td>
-                                        <td>
-                                            {% if fleet.action=='RECRUIT' %}
-                                                <input type="checkbox" name="parameters[]" value="F{{key}}R">
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if fleet.action=='DISBAND' %}
-                                                <input type="checkbox" name="parameters[]" value="F{{key}}D">
-                                            {% endif %}
-                                        </td>
-                                    </tr>
+                                    {% if key!='total'%}
+                                        <tr>
+                                            <td>{{fleet.name}}</td>
+                                            <td>{{fleet.location}}</td>
+                                            <td>
+                                                {% if fleet.action=='RECRUIT' %}
+                                                    <input type="checkbox" name="parameters[]" value="F{{key}}R">
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if fleet.action=='DISBAND' %}
+                                                    <input type="checkbox" name="parameters[]" value="F{{key}}D">
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endif %}
                                 {% endfor %}
                             </table>
                         </td>
@@ -308,16 +345,67 @@
             </span>
             <span id="Deploy" style="display: none;">
                 Deploy Forces<BR>
-                <select name="parameters[0]" style="width:350px;">
+                <table>
+                    <tr>
+                        <td>Send</td>
+                        <td>to fight</td>
+                        <td>regulars</td>
+                        <td>veterans</td>
+                        <td>fleets</td>
+                        <td>Specific veterans</td>
+                    </tr>
                     {% for commander in output['commanders'] %}
-                    <option value="{{commander['senatorID']}}">{{commander['name']}} ({{commander['office']}})</option>
+                        {% set ind=loop.index0 %}
+                        <tr>
+                            <td>
+                                <input type="hidden" name="Commander_{{ind}}" id="Commander_{{ind}}" value="{{commander['senatorID']}}">
+                                {{commander['name']}} ({{commander['office']}})
+                            </td>
+                            <td>
+                                <select name="Conflict_{{ind}}" id="Conflict_{{ind}}" style="width:250px;">
+                                    <option value='NONE'>Don't send</option>
+                                    {% for conflict in output['conflicts'] %}
+                                        <option value="{{conflict['id']}}">{{conflict['name']}} ({{conflict['land']}}/{{conflict['support']}}/{{conflict['fleet']}})</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select name="Regulars_{{ind}}" id="Regulars_{{ind}}" style="width:100px;">
+                                    {% for regular in 0..output['legions']['totals']['Rome']['regular'] %}
+                                        <option>{{regular}}</option>
+                                    {% endfor%}
+                                </select>
+                            </td>
+                            <td>
+                                <select name="Veterans_{{ind}}" id="Veterans_{{ind}}" style="width:100px;">
+                                    {% for veteran in 0..output['legions']['totals']['Rome']['veteran'] %}
+                                        <option>{{veteran}}</option>
+                                    {% endfor%}
+                                </select>
+                            </td>
+                            <td>
+                                <select name="Fleet_{{ind}}" id="Fleet_{{ind}}" style="width:100px;">
+                                    {% for fleet in 0..output['fleets']['total'] %}
+                                        <option>{{fleet}}</option>
+                                    {% endfor%}
+                                </select>
+                            </td>
+                            <td>
+                                {% if output['legions']['totals']['Rome']['veteran']>0 %}
+                                    {% for key, legion in output['legions']%}
+                                        {% if key != 'totals' and legion['location']=='Rome' and legion['veteran']!='NO' and legion['veteran']!='YES' %}
+                                            <input type="checkbox" name="Legion_{{ind}}_{{key}}" id="Legion_{{ind}}_{{key}}" title="Loyal to {{legion['veteran']}}"><span title="Loyal to {{legion['veteran']}}">{{legion['name']}}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            </td>
+                            <input type="hidden" name="parameters[{{ind*5}}]"   id="parameters_{{ind*5}}">
+                            <input type="hidden" name="parameters[{{ind*5+1}}]" id="parameters_{{ind*5+1}}">
+                            <input type="hidden" name="parameters[{{ind*5+2}}]" id="parameters_{{ind*5+2}}">
+                            <input type="hidden" name="parameters[{{ind*5+3}}]" id="parameters_{{ind*5+3}}">
+                        </tr>
                     {% endfor %}
-                </select> to fight
-                <select name="parameters[1]" style="width:250px;">
-                    {% for conflict in output['conflicts'] %}
-                    <option value="{{conflict['id']}}">{{conflict['name']}} ({{conflict['land']}}/{{conflict['support']}}/{{conflict['fleet']}})</option>
-                    {% endfor %}
-                </select><br>
+                </table>
             </span>
             <span id="Minor" style="display: none;">
                 Minor motion<BR>
@@ -342,7 +430,7 @@
             {% endembed %}
         {% endif %}
         <br>
-        <button type="submit" class="btn-danger">MAKE PROPOSAL</button>
+        <button onClick="decompressForcesParameters();" type="submit" class="btn-danger">MAKE PROPOSAL</button>
         {#
             Once the Senate is adjourned, players must have a way to signify they don't want to keep the Senate open
         #}

@@ -446,6 +446,7 @@ class Game
      */
     public function getFleetDetails() {
         $result = array () ;
+        $result['total'] = 0 ;
         foreach ($this->fleet as $key=>$fleet) {
             $result[$key]['name'] = $fleet->name ;
             switch($fleet->location) {
@@ -456,6 +457,7 @@ class Game
                 case 'Rome' :
                     $result[$key]['location'] = $fleet->location ;
                     $result[$key]['action'] = 'DISBAND' ;
+                    $result['total']++;
                     break ;
                 default :
                     $senator = $this->getSenatorWithID($fleet->location) ;
@@ -4046,6 +4048,27 @@ class Game
                 }
                 $cost = $nbUnits * 10 * (1 + $this->getEventLevel('name', 'Manpower Shortage'));
                 return ($this->treasury>=$cost ? TRUE : sprintf(_('Invalid proposal. The cost of raising those forces would be %d. There is only %d in Rome\'s treasury.') , $cost , $this->treasury ));
+            case 'Deploy' :
+                // Parameters : 0 = Commander SenatorID , 1 = conflict card id , 2 = (# of regular legions , # of veteran legions , list of specific legions) , 3 = # of fleets
+                if (count($parameters)==0) {
+                    return _('You need to pass at least one parameter');
+                }
+                $groupedProposals = (int) (count($parameters)/5) ;
+                $commanders = array() ;
+                for ($i=0; $i<=$groupedProposals; $i++) {
+                    $commanders[$i] = $this->getSenatorWithID($parameters[$i]) ;
+                }
+                print_r($commanders);
+                /*
+                 * To Check :
+                 * - Send valid commanders (Field Consul, Rome Consul, Dictator)
+                 * - Send commanders in the correct order 
+                 * - The Conflict exists
+                 * - Forces per categories (regulars, veterans, fleets) are available
+                 * - Number of veterans is equal or greater than number of specific veterans
+                 * - No specific veteran legion is picked twice
+                 */
+                return TRUE ;
         }
         return 'Wrong rule';
     }
@@ -6011,6 +6034,12 @@ class Game
                         $output['type'] = 'Other Business';
                         $output['adjourned'] = $this->senateAdjourned;
                         $output['wontKeepItOpen'] = $this->party[$user_id]->bidDone ;
+                        $this->legion[1]->veteran = TRUE ;
+                        $this->legion[2]->veteran = TRUE ;
+                        $this->legion[2]->loyalty = '22A' ;
+                        $this->legion[3]->veteran = TRUE ;
+                        $this->legion[3]->loyalty = '22A' ;
+                        $this->legion[4]->veteran = TRUE ;
                         if (!$output['adjourned'] || !$output['wontKeepItOpen']) {
                             $output['list'] = $this->senate_getListOtherBusiness();
                             $output['possibleConcessionSenators'] = $this->senate_getFilteredListSenators('concession');

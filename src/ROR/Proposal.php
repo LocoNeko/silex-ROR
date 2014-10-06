@@ -205,8 +205,12 @@ class Proposal {
             case 'Concessions' :
                 $result[0] = array('concessionOddParameters' , NULL) ;
                 $result[1] = array('concessionEvenParameters' , NULL) ;
+                break ;
             case 'Forces' :
                 $result[0] = array('Forces' , NULL) ;
+                break ;
+            case 'Deploy' :
+                $result[0] = array('Deploy' , NULL) ;
                 break ;
         }
         return $result ;

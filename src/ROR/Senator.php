@@ -134,7 +134,10 @@ class Senator extends Card
                 $result = FALSE ;
             }
         }
-        // TO DO : commander of an army & Proconsul
+        // Commander of an army & Proconsul
+        if ($this->conflict!=FALSE) {
+            $result = FALSE ;
+        }
         return $result ;
     }
     
