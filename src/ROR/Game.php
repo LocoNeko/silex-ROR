@@ -376,12 +376,12 @@ class Game
     }
     
     /**
-     * Returns an array with detailed information on legions :
-     * If the key is a number, the other dimensions are :
-     * 'location' => ''|'error'|'Rome'|'released'|'with XXX' where XX is a Senator's name
-     * 'veteran' => ''|'error'|'YES'|'NO'
-     * 'action' => ''|'RECRUIT'|'DISBAND'
-     * If the key is 'totals', we get total numbers of regular and veteran legions in Rome, released, away (loyal), away (rebel), and in garrison
+     * Returns an array with detailed information on legions :<br>
+     * If the key is a number, the other dimensions are :<br>
+     * 'location' => ''|'error'|'Rome'|'released'|'with XXX' where XX is a Senator's name<br>
+     * 'veteran' => ''|'error'|'YES'|'NO'<br>
+     * 'action' => ''|'RECRUIT'|'DISBAND'<br>
+     * If the key is 'totals', we get total numbers of regular and veteran legions in Rome, released, away (loyal), away (rebel), and in garrison<br>
      * @return array
      */
     public function getLegionDetails() {
@@ -439,9 +439,10 @@ class Game
     }
     
     /**
-     * Returns an array with detailed information on fleets :
-     * 'location' => ''|'error'|'Rome'|'with XXX' where XX is a Senator's name
-     * 'action' => ''|'RECRUIT'|'DISBAND'
+     * Returns an array with detailed information on fleets :<br>
+     * 'location' => ''|'error'|'Rome'|'with XXX' where XX is a Senator's name<br>
+     * 'action' => ''|'RECRUIT'|'DISBAND'<br>
+     * If the key is 'totals', we get total numbers of fleets in Rome<br>
      * @return array
      */
     public function getFleetDetails() {
@@ -4055,19 +4056,42 @@ class Game
                 }
                 $groupedProposals = (int) (count($parameters)/5) ;
                 $commanders = array() ;
+                $conflicts = array() ;
+                $regulars = 0 ;
+                $veterans = 0 ;
+                $fleets = 0 ;
+                $specificVeterans = array() ;
+                // Various checks : conflict exists, commander exists, commander is in Rome, commander can command forces , number of veterans is equal or greater than number of specific veterans , no specific veteran is picked twice
                 for ($i=0; $i<=$groupedProposals; $i++) {
-                    $commanders[$i] = $this->getSenatorWithID($parameters[$i]) ;
+                    $commanders[$i] = $this->getSenatorWithID($parameters[5*$i]) ;
+                    $conflicts[$i] = $this->getSpecificCard('id' , $parameters[1+5*$i]) ;
+                    if ($conflicts[$i]===FALSE) { return _('Error - Conflict doesn\'t exist'); }
+                    if ($commanders[$i]===FALSE) { return _('Error - Commander doesn\'t exist'); }
+                    if (!$commanders[$i]->inRome()) { return _('Error - Commander is not in Rome'); }
+                    if (!in_array($commanders[$i]->office , array('Dictator', 'Rome Consul' , 'Field Consul'))) { return _('Error - This Senator cannot be a Commander '); }
+                    $landForces = explode(',' , $parameters[2+5*$i]) ;
+                    $regulars += $landForces[0] ;
+                    $veterans += $landForces[1] ;
+                    if ((count($landForces)-2)>$landForces[1]) {
+                        return _('Error - more specific veteran legions picked than actual veteran legions in the proposal') ;
+                    }
+                    
+                    for ($j=2 ; $j<count($landForces) ; $j++) {
+                        if (in_array($landForces[$j] , $specificVeterans)) {
+                            return _('Error - same veteran legion picked twice');
+                        }
+                        $specificVeterans[] = $landForces[$j] ;
+                    }
+                    $fleets += $parameters[3+5*$i] ;
+                    if ( (($regulars+$veterans) == 0) && ($fleets == 0)) { return _('Error - The commander cannot go alone.'); }
                 }
-                print_r($commanders);
-                /*
-                 * To Check :
-                 * - Send valid commanders (Field Consul, Rome Consul, Dictator)
-                 * - Send commanders in the correct order 
-                 * - The Conflict exists
-                 * - Forces per categories (regulars, veterans, fleets) are available
-                 * - Number of veterans is equal or greater than number of specific veterans
-                 * - No specific veteran legion is picked twice
-                 */
+                // More checks : enough regulars, enough veterans, enough fleets
+                $legionsDetails = $this->getLegionDetails() ;
+                $fleetsDetails = $this->getFleetDetails() ;
+                if ($legionsDetails['totals']['Rome']['regular']<$regulars) { return _('Error - Not enough regular legions in Rome'); }
+                if ($legionsDetails['totals']['Rome']['veteran']<$veterans) { return _('Error - Not enough veteran legions in Rome'); }
+                if ($fleetsDetails['total']<$fleets) { return _('Error - Not enough fleets in Rome'); }
+                 //TO DO ? : Send commanders in the correct order : Field Consul before Rome Consul
                 return TRUE ;
         }
         return 'Wrong rule';
