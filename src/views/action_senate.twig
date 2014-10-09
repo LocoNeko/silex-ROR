@@ -1,6 +1,12 @@
 {# JS to handle dynamic content for Prosecutions & Other business #}
 {% block myScripts %}
     <script type="text/javascript">
+
+        function decompressProsecutionParameters() {
+            index = compressedParameters.value.indexOf(",")+1;
+            document.getElementById("parameters0").value = compressedParameters.value.substr(0,index-1) ;
+            document.getElementById("parameters1").value = compressedParameters.value.substr(index) ;
+        }
         
         function pickOtherBusiness() {
             document.getElementById("Concessions").style.display = "none";
@@ -44,40 +50,73 @@
             }
         }
         
-        function decompressProsecutionParameters() {
-            index = compressedParameters.value.indexOf(",")+1;
-            document.getElementById("parameters0").value = compressedParameters.value.substr(0,index-1) ;
-            document.getElementById("parameters1").value = compressedParameters.value.substr(index) ;
-        }
-        
-        function decompressForcesParameters() {
-            if (document.getElementById("type").value === 'Deploy') {
+        function otherBusinessParameters() {
+            // For other business motions, all parameters are located in the 'parameters_container' node, they must be cleared first
+            var container = document.getElementById('parameters_container');
+            while (container.hasChildNodes()) {
+                container.removeChild(container.lastChild);
+            }
+            // Then, each parameters[x] hidden element must be created, populated, and added to 'parameters_container'
+            if (document.getElementById("type").value === 'Concessions') {
+                var mainIndex = 0 ;
+                for (var baseIndex=0; baseIndex<20; baseIndex++) {
+                    if (document.getElementById('Concessions_senatorID_'+baseIndex)!==null) {
+                        var SenatorID = document.getElementById('Concessions_senatorID_'+baseIndex).value;
+                        if (SenatorID!=='NOBODY') {
+                            var ConcessionID = document.getElementById('Concessions_id_'+baseIndex).value;
+                            var input0 = document.createElement("input") ;
+                            input0.type = "hidden";
+                            input0.name = ("parameters["+(mainIndex*2)+"]") ;
+                            input0.value = SenatorID ;
+                            container.appendChild(input0) ;
+                            var input1 = document.createElement("input") ;
+                            input1.type = "hidden";
+                            input1.name = ("parameters["+(1+mainIndex*2)+"]") ;
+                            input1.value = ConcessionID ;
+                            container.appendChild(input1) ;
+                            mainIndex++ ;
+                        }
+                    }
+                }
+            } else if (document.getElementById("type").value === 'Deploy') {
                 var mainIndex = 0 ;
                 for (var baseIndex=0; baseIndex<5; baseIndex++) {
-                    Conflict = document.getElementById('Conflict_'+baseIndex);
+                    Conflict = document.getElementById('Deploy_Conflict_'+baseIndex);
                     // A Conflict was selected : We need to decompress parameters.
                     if (Conflict!==null && Conflict.value!=='NONE') {
-                        var LegionsParameter = document.getElementById('Regulars_'+baseIndex).value + ',' + document.getElementById('Veterans_'+baseIndex).value ;
+                        var LegionsParameter = document.getElementById('Deploy_Regulars_'+baseIndex).value + ',' + document.getElementById('Deploy_Veterans_'+baseIndex).value ;
                         for (var i=0; i<25; i++) {
-                            var Legion = document.getElementById('Legion_'+baseIndex+'_'+i) ;
+                            var Legion = document.getElementById('Deploy_Legion_'+baseIndex+'_'+i) ;
                             if (Legion!==null) {
                                 LegionsParameter=LegionsParameter+(Legion.checked ? ','+i : '') ;
                             }
                         }
-                        document.getElementById("parameters_"+(mainIndex*5)).value = document.getElementById('Commander_'+baseIndex).value;
-                        document.getElementById("parameters_"+(mainIndex*5+1)).value = Conflict.value ;
-                        document.getElementById("parameters_"+(mainIndex*5+2)).value = LegionsParameter ;
-                        document.getElementById("parameters_"+(mainIndex*5+3)).value = document.getElementById('Fleet_'+baseIndex).value;
+                        // Create & populate the parameters
+                        for (var j=0;j<=4;j++) {
+                            var input = document.createElement("input") ;
+                            input.type = "hidden";
+                            input.name = ("parameters["+(j+mainIndex*5)+"]") ;
+                            switch(j) {
+                                case 0:
+                                    input.value = document.getElementById('Deploy_Commander_'+baseIndex).value;
+                                    break ;
+                                case 1:
+                                    input.value = Conflict.value ;
+                                    break ;
+                                case 2:
+                                    input.value = LegionsParameter ;
+                                    break ;
+                                case 3 :
+                                    input.value = document.getElementById('Deploy_Fleet_'+baseIndex).value;
+                                    break ;
+                                default :
+                                    input.value = 'NULL' ;
+                                    break ;
+                            }
+                            container.appendChild(input) ;
+                        }
                         mainIndex++;
                     }
-                }
-                // This is to remove any parameter in excess
-                for (var toRemove=mainIndex; toRemove<5; toRemove++) {
-                    var elem = document.getElementById("parameters_"+(toRemove*5));   if (elem!==null) {elem.parentNode.removeChild(elem) ;}
-                    var elem = document.getElementById("parameters_"+(toRemove*5+1)); if (elem!==null) {elem.parentNode.removeChild(elem) ;}
-                    var elem = document.getElementById("parameters_"+(toRemove*5+2)); if (elem!==null) {elem.parentNode.removeChild(elem) ;}
-                    var elem = document.getElementById("parameters_"+(toRemove*5+3)); if (elem!==null) {elem.parentNode.removeChild(elem) ;}
-                    var elem = document.getElementById("parameters_"+(toRemove*5+4)); if (elem!==null) {elem.parentNode.removeChild(elem) ;}
                 }
             }
         }
@@ -244,8 +283,8 @@
             </select><br><br>
             <span id="Concessions" style="display: none;">
                 {% for concession in output['concessions']%}
-                    Give {{concession['name']}} <input type="hidden" name="parameters[{{loop.index0*2+1}}]" value="{{concession['id']}}">to
-                    <select name="parameters[{{loop.index0*2}}]">
+                    Give {{concession['name']}} <input type="hidden" name="Concessions_id_{{loop.index0}}" id="Concessions_id_{{loop.index0}}" value="{{concession['id']}}">to
+                    <select name="Concessions_senatorID_{{loop.index0}}" id="Concessions_senatorID_{{loop.index0}}">
                         <option value="NOBODY">Nobody</option>
                         {% for senator in output['possibleConcessionSenators']%}
                             <option value="{{senator['senatorID']}}">{{senator['name']}} ({{senator['party_name']}})</option>
@@ -358,11 +397,11 @@
                         {% set ind=loop.index0 %}
                         <tr>
                             <td>
-                                <input type="hidden" name="Commander_{{ind}}" id="Commander_{{ind}}" value="{{commander['senatorID']}}">
+                                <input type="hidden" name="Deploy_Commander_{{ind}}" id="Deploy_Commander_{{ind}}" value="{{commander['senatorID']}}">
                                 {{commander['name']}} ({{commander['office']}})
                             </td>
                             <td>
-                                <select name="Conflict_{{ind}}" id="Conflict_{{ind}}" style="width:250px;">
+                                <select name="Deploy_Conflict_{{ind}}" id="Deploy_Conflict_{{ind}}" style="width:250px;">
                                     <option value='NONE'>Don't send</option>
                                     {% for conflict in output['conflicts'] %}
                                         <option value="{{conflict['id']}}">{{conflict['name']}} ({{conflict['land']}}/{{conflict['support']}}/{{conflict['fleet']}})</option>
@@ -370,21 +409,21 @@
                                 </select>
                             </td>
                             <td>
-                                <select name="Regulars_{{ind}}" id="Regulars_{{ind}}" style="width:100px;">
+                                <select name="Deploy_Regulars_{{ind}}" id="Deploy_Regulars_{{ind}}" style="width:100px;">
                                     {% for regular in 0..output['legions']['totals']['Rome']['regular'] %}
                                         <option>{{regular}}</option>
                                     {% endfor%}
                                 </select>
                             </td>
                             <td>
-                                <select name="Veterans_{{ind}}" id="Veterans_{{ind}}" style="width:100px;">
+                                <select name="Deploy_Veterans_{{ind}}" id="Deploy_Veterans_{{ind}}" style="width:100px;">
                                     {% for veteran in 0..output['legions']['totals']['Rome']['veteran'] %}
                                         <option>{{veteran}}</option>
                                     {% endfor%}
                                 </select>
                             </td>
                             <td>
-                                <select name="Fleet_{{ind}}" id="Fleet_{{ind}}" style="width:100px;">
+                                <select name="Deploy_Fleet_{{ind}}" id="Deploy_Fleet_{{ind}}" style="width:100px;">
                                     {% for fleet in 0..output['fleets']['total'] %}
                                         <option>{{fleet}}</option>
                                     {% endfor%}
@@ -394,21 +433,19 @@
                                 {% if output['legions']['totals']['Rome']['veteran']>0 %}
                                     {% for key, legion in output['legions']%}
                                         {% if key != 'totals' and legion['location']=='Rome' and legion['veteran']!='NO' and legion['veteran']!='YES' %}
-                                            <input type="checkbox" name="Legion_{{ind}}_{{key}}" id="Legion_{{ind}}_{{key}}" title="Loyal to {{legion['veteran']}}"><span title="Loyal to {{legion['veteran']}}">{{legion['name']}}</span>
+                                            <input type="checkbox" name="Deploy_Legion_{{ind}}_{{key}}" id="Deploy_Legion_{{ind}}_{{key}}" title="Loyal to {{legion['veteran']}}"><span title="Loyal to {{legion['veteran']}}">{{legion['name']}}</span>
                                         {% endif %}
                                     {% endfor %}
                                 {% endif %}
                             </td>
-                            <input type="hidden" name="parameters[{{ind*5}}]"   id="parameters_{{ind*5}}">
-                            <input type="hidden" name="parameters[{{ind*5+1}}]" id="parameters_{{ind*5+1}}">
-                            <input type="hidden" name="parameters[{{ind*5+2}}]" id="parameters_{{ind*5+2}}">
-                            <input type="hidden" name="parameters[{{ind*5+3}}]" id="parameters_{{ind*5+3}}">
                         </tr>
                     {% endfor %}
                 </table>
             </span>
             <span id="Minor" style="display: none;">
                 Minor motion<BR>
+            </span>
+            <span id="parameters_container" style="display: none;">
             </span>
             <BR>
         {% endif %}
@@ -430,7 +467,8 @@
             {% endembed %}
         {% endif %}
         <br>
-        <button onClick="decompressForcesParameters();" type="submit" class="btn-danger">MAKE PROPOSAL</button>
+        {#<button onClick="decompressForcesParameters();" type="submit" class="btn-danger">MAKE PROPOSAL</button>#}
+        <button type="submit" onClick="otherBusinessParameters();" class="btn-danger">MAKE PROPOSAL</button>
         {#
             Once the Senate is adjourned, players must have a way to signify they don't want to keep the Senate open
         #}

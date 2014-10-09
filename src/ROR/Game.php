@@ -3689,7 +3689,6 @@ class Game
             $parameters[0] = $parameters[1] ;
             $parameters[1] = $tmpparameter ;
         }
-                
         /*
          * Basic checks
          */
@@ -3700,18 +3699,8 @@ class Game
         /*
          * Parameters validation
          */
-        // For Concessions, sort the parameters by keys, then remove the Concessions assigned to nobody
-        // TO DO : This is UGLY (c)(tm) and should happen on front end side
-        if ($type=='Concessions') {
-            ksort($parameters);
-            foreach($parameters as $key=>$parameter) {
-                if ($key%2 == 0 && $parameter=='NOBODY') {
-                    array_splice($parameters,$key,2) ;
-                }
-            }
-        }
         $rules = Proposal::validationRules($type) ;
-        
+
         foreach ($rules as $rule) {
             $validation = $this->senate_validateParameter($rule[0] , $parameters , $rule[1]) ;
             if ($validation !== TRUE) {
@@ -3817,6 +3806,8 @@ class Game
         } elseif ($type=='Garrison') {
             // TO DO
         } elseif ($type=='Deploy') {
+            $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
+            array_push($messages, array( sprintf(_('%s {%s} proposes : ') , $using , $user_id).$this->senate_getDeployProposalDetails($parameters) )) ;
             // TO DO
         } elseif ($type=='Recall') {
             // TO DO
@@ -4022,26 +4013,28 @@ class Game
             case 'Forces':
                 $nbUnits = 0;
                 foreach ($parameters as $parameter) {
-                    $forceType = substr($parameter , 0 , 1) ;
-                    $action = substr($parameter , -1);
-                    $number = substr($parameter , 1 , -1) ;
-                    if ( ($forceType===FALSE) || ($action===FALSE) || ($number===FALSE) || (($forceType!='F') && ($forceType!='L')) || (($action!='R') && ($action!='D')) || (((int)$number<0) && ((int)$number>25)) ) {
-                        return _('Legion/Fleet : Invalid parameter') ;
-                    }
-                    if (($forceType=='L') && ($action=='R') && !$this->legion[$number]->canBeRecruited()) {
-                        return sprintf(_('Legion %s cannot be recruited.') , $this->legion[$number]->name ) ;
-                    }
-                    if (($forceType=='L') && ($action=='D') && !$this->legion[$number]->canBeDisbanded()) {
-                        return sprintf(_('Legion %s cannot be disbanded.') , $this->legion[$number]->name ) ;
-                    }
-                    if (($forceType=='F') && ($action=='R') && !$this->fleet[$number]->canBeRecruited()) {
-                        return sprintf(_('Fleet %s cannot be recruited.') , $this->fleet[$number]->name ) ;
-                    }
-                    if (($forceType=='F') && ($action=='D') && $this->fleet[$number]->canBeDisbanded()) {
-                        return sprintf(_('Fleet %s cannot be disbanded.') , $this->fleet[$number]->name ) ;
-                    }
-                    if ($action=='R') {
-                        $nbUnits++;
+                    if (strlen($parameter)>0) { // TO DO : Remove this once parameters have been properly sanitise on the front end side
+                        $forceType = substr($parameter , 0 , 1) ;
+                        $action = substr($parameter , -1);
+                        $number = substr($parameter , 1 , -1) ;
+                        if ( ($forceType===FALSE) || ($action===FALSE) || ($number===FALSE) || (($forceType!='F') && ($forceType!='L')) || (($action!='R') && ($action!='D')) || (((int)$number<0) && ((int)$number>25)) ) {
+                            return _('Legion/Fleet : Invalid parameter') ;
+                        }
+                        if (($forceType=='L') && ($action=='R') && !$this->legion[$number]->canBeRecruited()) {
+                            return sprintf(_('Legion %s cannot be recruited.') , $this->legion[$number]->name ) ;
+                        }
+                        if (($forceType=='L') && ($action=='D') && !$this->legion[$number]->canBeDisbanded()) {
+                            return sprintf(_('Legion %s cannot be disbanded.') , $this->legion[$number]->name ) ;
+                        }
+                        if (($forceType=='F') && ($action=='R') && !$this->fleet[$number]->canBeRecruited()) {
+                            return sprintf(_('Fleet %s cannot be recruited.') , $this->fleet[$number]->name ) ;
+                        }
+                        if (($forceType=='F') && ($action=='D') && $this->fleet[$number]->canBeDisbanded()) {
+                            return sprintf(_('Fleet %s cannot be disbanded.') , $this->fleet[$number]->name ) ;
+                        }
+                        if ($action=='R') {
+                            $nbUnits++;
+                        }
                     }
                 }
                 if ( ($this->getEventLevel('name' , 'No Recruitment')>0) && $nbUnits>0) {
@@ -4061,36 +4054,38 @@ class Game
                 $veterans = 0 ;
                 $fleets = 0 ;
                 $specificVeterans = array() ;
-                // Various checks : conflict exists, commander exists, commander is in Rome, commander can command forces , number of veterans is equal or greater than number of specific veterans , no specific veteran is picked twice
+                // Various checks : conflict exists, commander exists, commander is in Rome, commander can command forces ,
+                //                  number of veterans is equal or greater than number of specific veterans , no specific veteran is picked twice , enough support fleets
                 for ($i=0; $i<=$groupedProposals; $i++) {
                     $commanders[$i] = $this->getSenatorWithID($parameters[5*$i]) ;
                     $conflicts[$i] = $this->getSpecificCard('id' , $parameters[1+5*$i]) ;
-                    if ($conflicts[$i]===FALSE) { return _('Error - Conflict doesn\'t exist'); }
-                    if ($commanders[$i]===FALSE) { return _('Error - Commander doesn\'t exist'); }
-                    if (!$commanders[$i]->inRome()) { return _('Error - Commander is not in Rome'); }
-                    if (!in_array($commanders[$i]->office , array('Dictator', 'Rome Consul' , 'Field Consul'))) { return _('Error - This Senator cannot be a Commander '); }
+                    if ($conflicts[$i]===FALSE) { return _('Error - Conflict doesn\'t exist.'); }
+                    if ($commanders[$i]===FALSE) { return _('Error - Commander doesn\'t exist.'); }
+                    if (!$commanders[$i]->inRome()) { return _('Error - Commander is not in Rome.'); }
+                    if (!in_array($commanders[$i]->office , array('Dictator', 'Rome Consul' , 'Field Consul'))) { return _('Error - This Senator cannot be a Commander.'); }
                     $landForces = explode(',' , $parameters[2+5*$i]) ;
                     $regulars += $landForces[0] ;
                     $veterans += $landForces[1] ;
                     if ((count($landForces)-2)>$landForces[1]) {
-                        return _('Error - more specific veteran legions picked than actual veteran legions in the proposal') ;
+                        return _('Error - more specific veteran legions picked than actual veteran legions in the proposal.') ;
                     }
                     
                     for ($j=2 ; $j<count($landForces) ; $j++) {
                         if (in_array($landForces[$j] , $specificVeterans)) {
-                            return _('Error - same veteran legion picked twice');
+                            return _('Error - same veteran legion picked twice.');
                         }
                         $specificVeterans[] = $landForces[$j] ;
                     }
                     $fleets += $parameters[3+5*$i] ;
+                    if ($fleets<$conflicts[$i]['card']->support) { return _('Error - Not enough support fleets.'); }
                     if ( (($regulars+$veterans) == 0) && ($fleets == 0)) { return _('Error - The commander cannot go alone.'); }
                 }
                 // More checks : enough regulars, enough veterans, enough fleets
                 $legionsDetails = $this->getLegionDetails() ;
                 $fleetsDetails = $this->getFleetDetails() ;
-                if ($legionsDetails['totals']['Rome']['regular']<$regulars) { return _('Error - Not enough regular legions in Rome'); }
-                if ($legionsDetails['totals']['Rome']['veteran']<$veterans) { return _('Error - Not enough veteran legions in Rome'); }
-                if ($fleetsDetails['total']<$fleets) { return _('Error - Not enough fleets in Rome'); }
+                if ($legionsDetails['totals']['Rome']['regular']<$regulars) { return _('Error - Not enough regular legions in Rome.'); }
+                if ($legionsDetails['totals']['Rome']['veteran']<$veterans) { return _('Error - Not enough veteran legions in Rome.'); }
+                if ($fleetsDetails['total']<$fleets) { return _('Error - Not enough fleets in Rome.'); }
                  //TO DO ? : Send commanders in the correct order : Field Consul before Rome Consul
                 return TRUE ;
         }
@@ -5767,6 +5762,40 @@ class Game
         ) ;
     }
 
+    private function senate_getDeployProposalDetails ($parameters) {
+        $fullMessage='';
+        $groupedProposals = (int) (count($parameters)/5) ;
+        $commanders = array() ;
+        $conflicts = array() ;
+        for ($i=0; $i<=$groupedProposals; $i++) {
+            if ($i>0) {
+                $fullMessage.=_(', ');
+            }
+            $veteranLoyalTo = array() ;
+            $commanders[$i] = $this->getSenatorWithID($parameters[5*$i]) ;
+            $conflicts[$i] = $this->getSpecificCard('id' , $parameters[1+5*$i]) ;
+            $landForces = explode(',' , $parameters[2+5*$i]) ;
+            for ($j=2 ; $j<count($landForces) ; $j++) {
+                $senatorID = $this->legion[$landForces[$j]]->loyalty;
+                if (!isset($veteranLoyalTo[$senatorID])) {
+                    $veteranLoyalTo[$senatorID] = 1 ;
+                } else {
+                    $veteranLoyalTo[$senatorID]++;
+                }
+            }
+            $fullMessage.= sprintf(_('Sending %s to fight %s with %d regulars, %d veterans and %d fleets') , $commanders[$i]->name , $conflicts[$i]['card']->name , $landForces[0] , $landForces[1] , $parameters[3+5*$i]);
+            if (count($veteranLoyalTo)>0) {
+                $fullMessage.='. This includes ';
+                foreach($veteranLoyalTo as $key=>$value) {
+                    $fullMessage.=sprintf(_('%d legion%s loyal to %s, ') , $value , ($value>1 ? 's' : '') , $this->getSenatorWithID($key)->name);
+                }
+                $fullMessage = substr($fullMessage , 0 , -2) ;
+            }
+        }
+        $fullMessage.='.';
+        return $fullMessage ;
+    }
+    
      /**
      * senate_view returns all the data needed to render senate templates. The function returns an array $output :
      * $output['state'] (Mandatory) gives the name of the current state to be rendered :
@@ -6058,12 +6087,6 @@ class Game
                         $output['type'] = 'Other Business';
                         $output['adjourned'] = $this->senateAdjourned;
                         $output['wontKeepItOpen'] = $this->party[$user_id]->bidDone ;
-                        $this->legion[1]->veteran = TRUE ;
-                        $this->legion[2]->veteran = TRUE ;
-                        $this->legion[2]->loyalty = '22A' ;
-                        $this->legion[3]->veteran = TRUE ;
-                        $this->legion[3]->loyalty = '22A' ;
-                        $this->legion[4]->veteran = TRUE ;
                         if (!$output['adjourned'] || !$output['wontKeepItOpen']) {
                             $output['list'] = $this->senate_getListOtherBusiness();
                             $output['possibleConcessionSenators'] = $this->senate_getFilteredListSenators('concession');
