@@ -26,4 +26,11 @@ class Fleet
         return ($this->location == 'Rome') ;
     }
         
+    public function recruit() {
+        $this->location = 'Rome' ;
+    }
+
+    public function disband() {
+        $this->location = NULL ;
+    }
 }

@@ -47,5 +47,17 @@ class Legion
     public function canBeDisbanded() {
         return ($this->location == 'Rome' || $this->location == 'released') ;
     }
+    
+    public function recruit() {
+        $this->location = 'Rome' ;
+        $this->veteran = FALSE ;
+        $this->loyalty = NULL ;
+    }
+
+    public function disband() {
+        $this->location = NULL ;
+        $this->veteran = FALSE ;
+        $this->loyalty = NULL ;
+    }
 
 }

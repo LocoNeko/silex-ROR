@@ -78,6 +78,28 @@
                         }
                     }
                 }
+            } else if (document.getElementById("type").value === 'Forces') {
+                // Create & populate the parameters. 0 to 4 are simple copies to parameters[], parameters[5] must be  a list of legion numbers separated by ','
+                for (var i=0;i<6;i++) {
+                    var input = document.createElement("input") ;
+                    input.type = "hidden";
+                    input.name = ("parameters["+i+"]") ;
+                    switch(i) {
+                        case 5 :
+                            input.value = '' ;
+                            for (var j=1; j<=25; j++) {
+                                var Legion = document.getElementById('Forces_5_'+j) ;
+                                if (Legion!==null) {
+                                    input.value = input.value + (Legion.checked ? (input.value.length>0 ? ',' : '')+j : '') ;
+                                }
+                            }
+                            break ;
+                        default:
+                            input.value = document.getElementById('Forces_'+i).value;
+                            break ;
+                    }
+                    container.appendChild(input) ;
+                }
             } else if (document.getElementById("type").value === 'Deploy') {
                 var mainIndex = 0 ;
                 for (var baseIndex=0; baseIndex<5; baseIndex++) {
@@ -309,77 +331,74 @@
             </span>
             <span id="Forces" style="display: none;">
                 Raise/Disband Forces<BR>
-                <table border="3">
+                <table>
+                    <tr>
+                        <td colspan="2">RECRUIT :</td>
+                    </tr>
                     <tr>
                         <td>
-                            <table border="1">
-                                <tr>
-                                    <td colspan="5" style="text-align:center;">
-                                        LEGIONS
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Location</td>
-                                    <td>Veteran</td>
-                                    <td>Recruit</td>
-                                    <td>Disband</td>
-                                </tr>
-                                {% for key, legion in output['legions']%}
-                                    {% if key != 'totals' %}
-                                        <tr>
-                                            <td>{{legion.name}}</td>
-                                            <td>{{legion.location}}</td>
-                                            <td>{{legion.veteran }}</td>
-                                            <td>
-                                                {% if legion.action=='RECRUIT' %}
-                                                    <input type="checkbox" name="parameters[]" value="L{{key}}R">
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if legion.action=='DISBAND' %}
-                                                    <input type="checkbox" name="parameters[]" value="L{{key}}D">
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endif %}
+                            Legions :
+                            <select name="Forces_0" id="Forces_0" style="width:100px;">
+                                {% for i in 0..output['legions']['totals']['recruitable']%}
+                                    <option>{{i}}</option>
                                 {% endfor %}
-                            </table>
+                            </select>
                         </td>
                         <td>
-                            <table border="1">
-                                <tr>
-                                    <td colspan="3" style="text-align:center;">
-                                        FLEETS
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Name</td>
-                                    <td>Location</td>
-                                    <td>Recruit</td>
-                                    <td>Disband</td>
-                                </tr>
-                                {% for key, fleet in output['fleets']%}
-                                    {% if key!='total'%}
-                                        <tr>
-                                            <td>{{fleet.name}}</td>
-                                            <td>{{fleet.location}}</td>
-                                            <td>
-                                                {% if fleet.action=='RECRUIT' %}
-                                                    <input type="checkbox" name="parameters[]" value="F{{key}}R">
-                                                {% endif %}
-                                            </td>
-                                            <td>
-                                                {% if fleet.action=='DISBAND' %}
-                                                    <input type="checkbox" name="parameters[]" value="F{{key}}D">
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endif %}
+                            Fleets :
+                            <select name="Forces_1" id="Forces_1" style="width:100px;">
+                                {% for i in 0..(25-output['fleets']['total']) %}
+                                    <option>{{i}}</option>
                                 {% endfor %}
-                            </table>
+                            </select>
                         </td>
                     </tr>
+                    <tr>
+                        <td colspan="2">DISBAND :</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Regular Legions :
+                            <select name="Forces_2" id="Forces_2" style="width:100px;">
+                                {% for i in 0..output['legions']['totals']['Rome']['regular'] %}
+                                    <option>{{i}}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            Fleets :
+                            <select name="Forces_4" id="Forces_4" style="width:100px;">
+                                {% for i in 0..output['fleets']['total'] %}
+                                    <option>{{i}}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            Veteran Legions :
+                            <select name="Forces_3" id="Forces_3" style="width:100px;">
+                                {% for i in 0..(output['legions']['totals']['Rome']['veteran']-output['legions']['totals']['Rome']['loyal_veteran']) %}
+                                    <option>{{i}}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td></td>
+                    </tr>
+                    {% if output['legions']['totals']['Rome']['loyal_veteran']>0 %}
+                        <tr>
+                            <td colspan="2">DISBAND SPECIFIC VETERAN LEGION :</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                {% for i in 1..25 %}
+                                    {% if output['legions'][i]['location']=='Rome' and output['legions'][i]['veteran']!='NO' and output['legions'][i]['veteran']!='YES' %}
+                                        <input type="checkbox" name="Forces_5_{{i}}" id="Forces_5_{{i}}">Legion {{output['legions'][i]['name']}} loyal to {{output['legions'][i]['veteran']}}
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    {% endif %}
                 </table>
             </span>
             <span id="Deploy" style="display: none;">
