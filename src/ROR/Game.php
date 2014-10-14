@@ -4188,8 +4188,9 @@ class Game
                                     end($this->proposals)->voting[$key]['talents'] = $amount ;
                                 }
                             }
-                            $votingMessage = sprintf(_('%s of party {%s} %s') , $voting['name'] , $user_id , $ballotMessage[$request[$voting['senatorID']]]) ;
+                            $votingMessage.= sprintf(_('%s of party {%s} %s') , $voting['name'] , $user_id , $ballotMessage[$request[$voting['senatorID']]]) ;
                             $votingMessage.= (end($this->proposals)->voting[$key]['talents']==0 ? '' : sprintf(_(' and spends %dT to increase his votes') , end($this->proposals)->voting[$key]['talents'])) ;
+                            $votingMessage.='. ';
                         } else {
                             return array(array(sprintf(_('On a per senator vote, %s\'s vote was not set.') , $voting['name']) , 'error' , $user_id));
                         }
@@ -4242,7 +4243,7 @@ class Game
                 $votingMessage = (end($this->proposals)->outcome ? _('The proposal is adopted') : _('The proposal is rejected')) ;
                 $votingMessage .= sprintf(_(' by %d votes for, %d against, and %d abstentions.') , $for , $against , $abstention);
                 array_push($messages , array($votingMessage)) ;
-                if ($unanimous && end($this->proposals)->proposedBy==$HRAO['user_id']) {
+                if ($unanimous && end($this->proposals)->proposedBy==$HRAO['user_id'] && end($this->proposals)->outcome===FALSE) {
                     array_push($messages , array(sprintf(_('The presiding magistrate %s has been unanimously defeated.') , $HRAO['senator']->name))) ;
                     $this->subPhase = 'Unanimous defeat' ;
                 }
@@ -4357,9 +4358,9 @@ class Game
                         }
                         $i++ ;
                     }
-                    $cost = ($legionsToRecruit + $fleetsToRecruit) * 10 * (1 + $this->getEventLevel('name', 'Manpower Shortage'));
+                    $cost = ($parameters[0] + $parameters[1]) * 10 * (1 + $this->getEventLevel('name', 'Manpower Shortage'));
                     $this->treasury -= $cost;
-                    $messages[] = array(sprintf(_('The forces are Recruited & Disbanded as proposed for a total cost of %d.') , $cost));
+                    $messages[] = array(sprintf(_('The forces are recruited & disbanded as proposed for a total cost of %d.') , $cost));
                     $armaments = $this->getSpecificCard('name', 'ARMAMENTS') ;
                     $shipBuilding = $this->getSpecificCard('name', 'SHIP BUILDING') ;
                     if ($armaments['where']=='senator') {
@@ -4372,6 +4373,9 @@ class Game
                         $shipBuilding['senator']->treasury += 3*$fleetsToRecruit ;
                         $messages[] = array(sprintf(_('%s controls the Ship Building concession and gains %d from this recruitment.') , $armaments['senator']->name , 3*$fleetsToRecruit));
                     }
+                } elseif (end($this->proposals)->type=='Deploy') {
+                    // TO DO
+                    
                 }
                 // TO DO : all other types
             } else {
@@ -5802,6 +5806,33 @@ class Game
         return $fullMessage ;
     }
     
+    /**
+     * Returns a list of potential weasels : user_ids of the commanders who are sent with insufficient forces against conflicts
+     * Note : For this function to fire, the subPhase is 'Other Business', there is a proposal, its type is 'Deploy', its outcome is NULL
+     * @return weasel array 
+     */
+    public function senate_getDeployWeaselCheck() {
+        // TO DO : here now
+        $weasel = array();
+        $proposal = end($this->proposals) ;
+        $groupedProposals = (int) (count($proposal->parameters)/5) ;
+        for ($i=0; $i<=$groupedProposals; $i++) {
+            $commander = $this->getSenatorWithID($proposal->parameters[5*$i]) ;
+            $conflict = $this->getSpecificCard('id' , $proposal->parameters[1+5*$i]) ;
+            $modifiedStrength = $this->getModifiedConflictStrength($conflict);
+            $landForces = explode(',' , $proposal->parameters[2+5*$i]) ;
+            $landTotal = $landForces[0] + 2*$landForces[1] ;
+            $fleets = $proposal->parameters[3+5*$i] ;
+            if ( ($fleets>0 && $fleets<$modifiedStrength['fleet']) || ($landTotal>0 && $landTotal<$modifiedStrength['land']) && $proposal->parameters[4+5*i]===NULL ) {
+                $commandersParty = $this->getPartyOfSenator($commander)->user_id ;
+                if (!in_array($commandersParty, $weasel)) {
+                    $weasel[] = $commandersParty ;
+                }
+            }
+        }
+        return $weasel ;
+    }
+    
      /**
      * senate_view returns all the data needed to render senate templates. The function returns an array $output :
      * $output['state'] (Mandatory) gives the name of the current state to be rendered :
@@ -5944,9 +5975,13 @@ class Game
                 $output['type'] = 'Master of horse' ;
                 $output['list'] = $this->senate_getFilteredListSenators('possibleMastersOfHorse');
                 $output['canDecide'] = ($this->senate_findOfficial('Dictator')['user_id'] == $user_id);
-            /**
-             * Assassin special prosecution : allow the Censor to chose voting order
-             */
+            // 'Deploy' Proposal : Check if a decision is needed by commander(s) to accept being sent to a Conflict with less than adequate Forces
+            } elseif ($this->phase=='Senate' && $this->subPhase=='Other Business' && end($this->proposals)!==FALSE && end($this->proposals)->type=='Deploy' && end($this->proposals)->outcome===NULL && count($checkWeasel=$this->senate_getDeployWeaselCheck())>0 ) {
+                // TO DO : Here now
+                $output['state'] = 'Decision' ;
+                $output['type'] = 'Weasel' ;
+                $output['canDecide'] = in_array($user_id, $checkWeasel) ;
+            // Assassin special prosecution : allow the Censor to chose voting order
             } elseif ($this->phase=='Senate' && $this->subPhase=='Assassin prosecution' && end($this->proposals)!==FALSE && end($this->proposals)->votingOrder===NULL) {
                 $output['state'] = 'Assassin prosecution voting order' ;
                 $output['canChoose'] = ($this->senate_findOfficial('Censor')['user_id'] == $user_id) ;
