@@ -3814,7 +3814,7 @@ class Game
         } elseif ($type=='Deploy') {
             $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
             array_push($messages, array( sprintf(_('%s {%s} proposes : ') , $using , $user_id).$this->senate_getDeployProposalDetails($parameters) )) ;
-            // TO DO
+            $this->proposals[] = $proposal ;
         } elseif ($type=='Recall') {
             // TO DO
         } elseif ($type=='Recall Pontifex') {
@@ -4063,7 +4063,7 @@ class Game
                 $specificVeterans = array() ;
                 // Various checks : conflict exists, commander exists, commander is in Rome, commander can command forces ,
                 //                  number of veterans is equal or greater than number of specific veterans , no specific veteran is picked twice , enough support fleets
-                for ($i=0; $i<=$groupedProposals; $i++) {
+                for ($i=0; $i<$groupedProposals; $i++) {
                     $commanders[$i] = $this->getSenatorWithID($parameters[5*$i]) ;
                     $conflicts[$i] = $this->getSpecificCard('id' , $parameters[1+5*$i]) ;
                     if ($conflicts[$i]===FALSE) { return _('Error - Conflict doesn\'t exist.'); }
@@ -4093,7 +4093,7 @@ class Game
                 if ($legionsDetails['totals']['Rome']['regular']<$regulars) { return _('Error - Not enough regular legions in Rome.'); }
                 if ($legionsDetails['totals']['Rome']['veteran']<$veterans) { return _('Error - Not enough veteran legions in Rome.'); }
                 if ($fleetsDetails['total']<$fleets) { return _('Error - Not enough fleets in Rome.'); }
-                 //TO DO ? : Send commanders in the correct order : Field Consul before Rome Consul
+                // TO DO : Check for minimum forces. If not applicable, set parameter[4] to TRUE, otherwise to NULL
                 return TRUE ;
         }
         return 'Wrong rule';
@@ -4799,6 +4799,25 @@ class Game
                 // Since this proposal was never actually put forward, simply discard it
                 unset ($this->proposals[count($this->proposals)-1]) ;
                 return array(array(sprintf(_('{%s} doesn\'t want his return governor(s) to go to a province again this turn. The proposal is discarded.') , $user_id)));
+            }
+        /*
+         * Deploy decision (commander accepting/refusing to be deployed with unsufficient forces)
+         */
+        } elseif ($this->phase=='Senate' && $this->subPhase=='Other business' && end($this->proposals)->outcome===NULL && $request['type']=='deploy') {
+            if ($request['accept']=='YES') {
+                // Set all this user_id's Consent to TRUE
+                foreach (end($this->proposals)->parameters as $key => $parameter) {
+                    if ($key % 5 == 4) {
+                        if ($this->getPartyOfSenatorWithID($parameter)->user_id == $user_id) {
+                            end($this->proposals)->parameters[$key] = TRUE ;
+                        }
+                    }
+                }
+                return array(array(sprintf(_('{%s} agrees that his returning governor(s) go to a province again this turn.') , $user_id)));
+            } else {
+                // Since this proposal was never actually put forward, simply discard it
+                unset ($this->proposals[count($this->proposals)-1]) ;
+                return array(array(sprintf(_('{%s} doesn\'t want his commander(s) to be deployed with unsufficient forces. The proposal is discarded.') , $user_id)));
             }
         /*
          * Master of Horse appointment
@@ -5751,7 +5770,7 @@ class Game
     private function senate_getForcesProposalDetails ($parameters) {
         $veteranMessage = '';
         $specificLegionsToDisband = explode(',' , $parameters[5]) ;
-        if (count($specificLegionsToDisband)>0) {
+        if ($specificLegionsToDisband[0] != NULL) {
             $veteranMessage.=' Also disband ';
             $veteranLoyalTo = array() ;
             for ($i=1 ; $i<count($specificLegionsToDisband) ; $i++) {
@@ -5777,7 +5796,7 @@ class Game
         $groupedProposals = (int) (count($parameters)/5) ;
         $commanders = array() ;
         $conflicts = array() ;
-        for ($i=0; $i<=$groupedProposals; $i++) {
+        for ($i=0; $i<$groupedProposals; $i++) {
             if ($i>0) {
                 $fullMessage.=_(', ');
             }
@@ -5812,14 +5831,15 @@ class Game
      * @return weasel array 
      */
     public function senate_getDeployWeaselCheck() {
-        // TO DO : here now
         $weasel = array();
         $proposal = end($this->proposals) ;
         $groupedProposals = (int) (count($proposal->parameters)/5) ;
-        for ($i=0; $i<=$groupedProposals; $i++) {
+        for ($i=0; $i<$groupedProposals; $i++) {
             $commander = $this->getSenatorWithID($proposal->parameters[5*$i]) ;
             $conflict = $this->getSpecificCard('id' , $proposal->parameters[1+5*$i]) ;
-            $modifiedStrength = $this->getModifiedConflictStrength($conflict);
+            $modifiedStrength = $this->getModifiedConflictStrength($conflict['card']);
+            //TO DO : just a test
+            $modifiedStrength['fleet']=15;
             $landForces = explode(',' , $proposal->parameters[2+5*$i]) ;
             $landTotal = $landForces[0] + 2*$landForces[1] ;
             $fleets = $proposal->parameters[3+5*$i] ;
@@ -5976,7 +5996,7 @@ class Game
                 $output['list'] = $this->senate_getFilteredListSenators('possibleMastersOfHorse');
                 $output['canDecide'] = ($this->senate_findOfficial('Dictator')['user_id'] == $user_id);
             // 'Deploy' Proposal : Check if a decision is needed by commander(s) to accept being sent to a Conflict with less than adequate Forces
-            } elseif ($this->phase=='Senate' && $this->subPhase=='Other Business' && end($this->proposals)!==FALSE && end($this->proposals)->type=='Deploy' && end($this->proposals)->outcome===NULL && count($checkWeasel=$this->senate_getDeployWeaselCheck())>0 ) {
+            } elseif ($this->phase=='Senate' && $this->subPhase=='Other business' && end($this->proposals)!==FALSE && end($this->proposals)->type=='Deploy' && end($this->proposals)->outcome===NULL && (count($checkWeasel=$this->senate_getDeployWeaselCheck())>0) ) {
                 // TO DO : Here now
                 $output['state'] = 'Decision' ;
                 $output['type'] = 'Weasel' ;

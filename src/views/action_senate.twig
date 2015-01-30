@@ -711,6 +711,23 @@
         {% else %}
             Waiting for returning governors to decide if they agree to go govern a province again this turn.
         {% endif %}
+    {#
+        Decision - Whether a commander can weasel out of a Deploy proposal when there is not enough forces
+    #}
+    {% elseif output['type'] =='Weasel'%}
+        {% if output['canDecide']%}
+            A proposal involves one of your Senator to be deployed with unsufficient forces. Do you accept ?<br>
+            <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_decision'} ) }}">
+                <input type="hidden" name="type" id="type" value="deploy">
+                <select name="accept">
+                    <option value="YES">YES - Morituri te salutant</option>
+                    <option value="NO">NO - Semper weaselum</option>
+                </select><br>
+                <button type="submit" class="btn-danger">OK</button>
+            </form>
+        {% else %}
+            Waiting for commander to accept being deployed with unsufficient forces.
+        {% endif %}
     {% else %}
     {% endif %}
 

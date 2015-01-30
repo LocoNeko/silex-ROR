@@ -17,11 +17,14 @@ class Message {
     public static $VALID_TYPES = array ('message' , 'alert' , 'error' , 'chat');
     
     /**
-     * @param type $text A string with a sprintf format, including the order of parameters to handle possible mixing because of i18n
+     * @param string $text A string with a sprintf format, including the order of parameters to handle possible mixing because of i18n
      * @param array $parameters An array of values to be used in the text or NULL if the text has no parameters
      * @param string $type message|alert|error|chat
      * @param array $recipients An array of all the recipients user IDs or NULL if everyone
-     * @param null $from user_id of the 
+     * @param string $from user_id of the sender of the message, or NULL
+     * @param array $playerNames an array of user_id => name with the names of the players in the game for this log, which will allow to :
+     *             - Change the text of a chat so it starts with 'A says to B,C & D' or 'A says to everyone'
+     *             - Replace players id with names within the message
      */
     function __construct($text , $parameters=NULL , $type='message' , $recipients=NULL , $from=NULL) {
         /* Error if :
@@ -71,6 +74,7 @@ class Message {
             $this->recipients = $recipients ;
             $this->from = $from ;
         }
+        $this->playerNames = $playerNames ;
         $this->time = microtime(TRUE) ;
     }
     
@@ -88,5 +92,36 @@ class Message {
             default :
                 return 'success' ;
         }
+    }
+    
+    public function show($playerNames) {
+        $formattedMessage = $this->text ;
+        if ($this->type=='chat') {
+            $recipientsList = '' ;
+            if ($this->recipients===NULL) {
+                $recipientsList = 'everyone';
+            } else {
+                foreach ($this->recipients as $user_id) {
+                    $recipientsList.=$playerNames[$user_id].' , ';
+                }
+                $recipientsList=substr($recipientsList, 0 , -3);
+            }
+            $formattedMessage = $playerNames[$this->from].' says to '.$recipientsList.' : '.$this->text ;
+        }
+        return vsprintf($formattedMessage, $this->parameters) ;
+    }
+    
+    public function colour() {
+        switch($this->type) {
+            case 'chat'     : $result='seagreen' ;  break ;
+            case 'alert'    : $result='orange' ;    break ;
+            case 'error'    : $result='red' ;       break ;
+            default         : $result='indigo' ;
+        }
+        return $result ;
+    }
+    
+    public function getTime() {
+        return $this->time ;
     }
 }
