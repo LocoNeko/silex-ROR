@@ -379,7 +379,7 @@ class Game
      * Returns an array with detailed information on legions :<br>
      * If the key is a number, the other dimensions are :<br>
      * 'location' => ''|'error'|'Rome'|'released'|'with XXX' where XX is a Senator's name<br>
-     * 'veteran' => ''|'error'|'YES'|'NO'<br>
+     * 'veteran' => ''|'error'|'YES'|'NO'|'Senator Name'<br>
      * 'action' => ''|'RECRUIT'|'DISBAND'<br>
      * If the key is 'totals', we get total numbers of regular and veteran legions in Rome, released, away (loyal), away (rebel), in garrison, recruitable, and veterans in Rome loyal to a Senator<br>
      * @return array
@@ -4290,7 +4290,7 @@ class Game
                     );
                 }
             /*
-             * Results of succesful votes that don't require a decision
+             * Results of succesful votes that don't require a decision after voting
              */
             } elseif (end($this->proposals)->outcome === TRUE) {
                 if (end($this->proposals)->type=='Censor') {
@@ -4374,8 +4374,52 @@ class Game
                         $messages[] = array(sprintf(_('%s controls the Ship Building concession and gains %d from this recruitment.') , $armaments['senator']->name , 3*$fleetsToRecruit));
                     }
                 } elseif (end($this->proposals)->type=='Deploy') {
-                    // TO DO
-                    
+                    // TO DO - here now
+                    // Senator->conflict is the card ID of the conflict for which the senator is a commander / MoH
+                    // fleet->location or legion->location is the Senator ID of the commander
+                    $parameters = end($this->proposals)->parameters ;
+                    for ($i = 0 ; count($parameters)/5 ; $i++) {
+                        $commander = $this->getSenatorWithID($parameters[5*$i]) ;
+                        $conflictAll = $this->getSpecificCard($parameters[5*$i+1]) ;
+                        $listOfLegions = explode(',',$parameters[5*$i + 2]) ;
+                        $specificVeteran = array() ;
+                        $legionDetails = $this->getLegionDetails() ;
+                        $veteranError = FALSE ;
+                        $fleetDetails = $this->getFleetDetails() ;
+                        // TO DO : Check if all legions are indeed available (regulars, veterans, specific veterans)
+                        foreach($listOfLegions as $key=>$value) {
+                            switch($key) {
+                                case 0 :
+                                   $nbRegulars = $value ;
+                                    break ;
+                                case 1 :
+                                   $nbVeterans = $value ;
+                                    break ;
+                                default :
+                                    if ( ($legionDetails[$value]['veteran']=='NO') || ($legionDetails[$value]['location']!='Rome') ) {
+                                        $veteranError = TRUE ;
+                                    } else {
+                                        $specificVeteran[] = $value ;
+                                    }
+                            }
+                        }
+                        $nbFleets = $parameters[5*$i + 3];
+                        if ($commander === FALSE) {
+                            return array(array(_('Deploy : Error on commander.') , 'error' , $user_id));
+                        } elseif ($conflictAll === FALSE) {
+                            return array(array(_('Deploy : Error on conflict.') , 'error' , $user_id));
+                        } elseif($nbRegulars > $legionDetails ['totals']['Rome']['regular']) {
+                            return array(array(_('Deploy : Error on regular legions.') , 'error' , $user_id));
+                        } elseif($nbVeterans > $legionDetails ['totals']['Rome']['veteran']) {
+                            return array(array(_('Deploy : Error on veteran legions.') , 'error' , $user_id));
+                        } elseif($veteranError) {
+                            return array(array(_('Deploy : Error on specific veteran legion.') , 'error' , $user_id));
+                        } elseif($nbFleets > $fleetDetails['total']) {
+                            return array(array(_('Deploy : Error on fleets.') , 'error' , $user_id));
+                        } else {
+                            $conflict = $conflictAll['card'] ;
+                        }
+                    }
                 }
                 // TO DO : all other types
             } else {
@@ -4813,7 +4857,7 @@ class Game
                         }
                     }
                 }
-                return array(array(sprintf(_('{%s} agrees that his returning governor(s) go to a province again this turn.') , $user_id)));
+                return array(array(sprintf(_('{%s} agrees for his commander(s) to be deployed with insufficient forces.') , $user_id)));
             } else {
                 // Since this proposal was never actually put forward, simply discard it
                 unset ($this->proposals[count($this->proposals)-1]) ;
@@ -5838,8 +5882,6 @@ class Game
             $commander = $this->getSenatorWithID($proposal->parameters[5*$i]) ;
             $conflict = $this->getSpecificCard('id' , $proposal->parameters[1+5*$i]) ;
             $modifiedStrength = $this->getModifiedConflictStrength($conflict['card']);
-            //TO DO : just a test
-            $modifiedStrength['fleet']=15;
             $landForces = explode(',' , $proposal->parameters[2+5*$i]) ;
             $landTotal = $landForces[0] + 2*$landForces[1] ;
             $fleets = $proposal->parameters[3+5*$i] ;
@@ -5997,7 +6039,6 @@ class Game
                 $output['canDecide'] = ($this->senate_findOfficial('Dictator')['user_id'] == $user_id);
             // 'Deploy' Proposal : Check if a decision is needed by commander(s) to accept being sent to a Conflict with less than adequate Forces
             } elseif ($this->phase=='Senate' && $this->subPhase=='Other business' && end($this->proposals)!==FALSE && end($this->proposals)->type=='Deploy' && end($this->proposals)->outcome===NULL && (count($checkWeasel=$this->senate_getDeployWeaselCheck())>0) ) {
-                // TO DO : Here now
                 $output['state'] = 'Decision' ;
                 $output['type'] = 'Weasel' ;
                 $output['canDecide'] = in_array($user_id, $checkWeasel) ;
