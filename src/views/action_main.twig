@@ -77,7 +77,8 @@ Abroad (loyal) : <b>{{legionsInfo['awayLoyal']['regular']}}</b> regulars, <b>{{l
 Abroad (rebel) : <b>{{legionsInfo['awayRebel']['regular']}}</b> regulars, <b>{{legionsInfo['awayRebel']['veteran']}}</b> veterans.<br>
 In garrison    : <b>{{legionsInfo['garrison']['regular']}}</b> regulars, <b>{{legionsInfo['garrison']['veteran']}}</b> veterans.<br>
 FLEETS : <br>
-In Rome        : <b>{{content['game'].getNbOfFleets()}}</b>
+In Rome        : <b>{{content['game'].getNbOfFleets()['Rome']}}</b><br>
+Total          : <b>{{content['game'].getNbOfFleets()['Total']}}</b>
 
 <hr>
 

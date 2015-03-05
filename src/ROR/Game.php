@@ -366,10 +366,13 @@ class Game
      * @return int
      */
     public function getNbOfFleets() {
-        $result = 0 ;
+        $result = array('Rome'=>0 , 'Total'=>0) ;
         foreach($this->fleet as $fleet) {
+            if ($fleet->location == 'Rome' ) {
+                $result['Rome']++;
+            }
             if ($fleet->location <> NULL ) {
-                $result++;
+                $result['Total']++;
             }
         }
         return $result ;
@@ -2053,7 +2056,7 @@ class Game
                 // Forces maintenance
                 // TO DO : Correct the below, use 'totals' from $this->getLegionDetails()
                 $nbLegions = $this->getNbOfLegions();
-                $nbFleets = $this->getNbOfFleets();
+                $nbFleets = $this->getNbOfFleets()['Total'];
                 $totalCostForces=2*($nbLegions + $nbFleets) ;
                 if ($totalCostForces>0) {
                     $this->treasury-=$totalCostForces ;
@@ -3896,7 +3899,8 @@ class Game
     
     /**
      * Validates a proposal's parameters against a specific rule
-     * @param type $rule 'Pair'|'inRome'|'office'|'censorRejected'
+     * @param type $rule 'Pair'|'inRome'|'NO_or_inRome'|'boolean'|'office'|'censorRejected'|'cantProsecuteSelf'|'censorCantBeProsecutor'|'prosecutionRejected'<br>
+     * |'possibleGovernors'|'possibleProvinces'|'concessionOddParameters'|'concessionEvenParameters'|'Forces'|'Deploy'
      * @param array $parameters the array of parameters of the proposal
      * @param integer $index The index of the parameter to be validated, if needed (for some rules, it's obvious, like 'pair')
      * @return mixed TRUE if validated | message explaining why it didn't validate
@@ -4061,6 +4065,7 @@ class Game
                 $veterans = 0 ;
                 $fleets = 0 ;
                 $specificVeterans = array() ;
+                $legionDetails = $this->getLegionDetails() ;
                 // Various checks : conflict exists, commander exists, commander is in Rome, commander can command forces ,
                 //                  number of veterans is equal or greater than number of specific veterans , no specific veteran is picked twice , enough support fleets
                 for ($i=0; $i<$groupedProposals; $i++) {
@@ -4080,6 +4085,9 @@ class Game
                     for ($j=2 ; $j<count($landForces) ; $j++) {
                         if (in_array($landForces[$j] , $specificVeterans)) {
                             return _('Error - same veteran legion picked twice.');
+                        }
+                        if ( ($legionDetails[$landForces[$j]]['veteran']=='NO') || ($legionDetails[$landForces[$j]]['location']!='Rome') ) {
+                            return sprintf(_('Error - Veteran legion %d not found or not in Rome.') , $landForces[$j]);
                         }
                         $specificVeterans[] = $landForces[$j] ;
                     }
@@ -4375,50 +4383,59 @@ class Game
                     }
                 } elseif (end($this->proposals)->type=='Deploy') {
                     // TO DO - here now
-                    // Senator->conflict is the card ID of the conflict for which the senator is a commander / MoH
+                    // Senator->conflict is the card ID of the conflict for which the senator is a commander (not MoH, who is automatically considered to accompany the Dictator)
                     // fleet->location or legion->location is the Senator ID of the commander
                     $parameters = end($this->proposals)->parameters ;
-                    for ($i = 0 ; count($parameters)/5 ; $i++) {
-                        $commander = $this->getSenatorWithID($parameters[5*$i]) ;
-                        $conflictAll = $this->getSpecificCard($parameters[5*$i+1]) ;
-                        $listOfLegions = explode(',',$parameters[5*$i + 2]) ;
-                        $specificVeteran = array() ;
-                        $legionDetails = $this->getLegionDetails() ;
-                        $veteranError = FALSE ;
-                        $fleetDetails = $this->getFleetDetails() ;
-                        // TO DO : Check if all legions are indeed available (regulars, veterans, specific veterans)
-                        foreach($listOfLegions as $key=>$value) {
-                            switch($key) {
-                                case 0 :
-                                   $nbRegulars = $value ;
-                                    break ;
-                                case 1 :
-                                   $nbVeterans = $value ;
-                                    break ;
-                                default :
-                                    if ( ($legionDetails[$value]['veteran']=='NO') || ($legionDetails[$value]['location']!='Rome') ) {
-                                        $veteranError = TRUE ;
-                                    } else {
+                    // First, check that the proposals is indeed correct
+                    $validation = $this->senate_validateParameter('Deploy', $parameters) ;
+                    if ($validation!==TRUE) {
+                        return array(array($validation , 'error' , $user_id));
+                    } else {
+                        // As several deploy can be grouped, and each deploy has 5 parameters, we need to go through parameters in multiples of 5 
+                        for ($i = 0 ; $i<count($parameters)/5 ; $i++) {
+                            $commander = $this->getSenatorWithID($parameters[5*$i]) ;
+                            $conflictAll = $this->getSpecificCard('id' , $parameters[5*$i+1]) ;
+                            $listOfLegions = explode(',',$parameters[5*$i + 2]) ;
+                            $specificVeteran = array() ;
+                            foreach($listOfLegions as $key=>$value) {
+                                switch($key) {
+                                    case 0 :
+                                        $nbRegulars = $value ;
+                                        break ;
+                                    case 1 :
+                                        $nbVeterans = $value ;
+                                        break ;
+                                    default :
                                         $specificVeteran[] = $value ;
-                                    }
+                                        $this->legion[$value]->location = $commander->senatorID ;
+                                }
+                            }
+                            $nbFleets = $parameters[5*$i + 3];
+                            $conflict = $conflictAll['card'] ;
+                            $commander->conflict = $conflict->id ;
+                            // Send the regulars
+                            for ($i=1 ; $i<=25 ; $i++) {
+                                if ($this->legion[$i]->location=='Rome' && $this->legion[$i]->veteran==FALSE && $nbRegulars>0) {
+                                    $this->legion[$i]->location = $commander->senatorID ;
+                                    $nbRegulars-- ;
+                                }
+                            }
+                            // Send the veterans among the non-specific ones
+                            for ($i=1 ; $i<=25 ; $i++) {
+                                if ($this->legion[$i]->location=='Rome' && $this->legion[$i]->veteran!==FALSE && !in_array($i , $specificVeteran) && $nbVeterans>0) {
+                                    $this->legion[$i]->location = $commander->senatorID ;
+                                    $nbVeterans-- ;
+                                }
+                            }
+                            // Send the fleets
+                            for ($i=1 ; $i<=25 ; $i++) {
+                                if ($this->fleet[$i]->location=='Rome' && $nbFleets>0) {
+                                    $this->fleet[$i]->location = $commander->senatorID ;
+                                    $nbFleets-- ;
+                                }
                             }
                         }
-                        $nbFleets = $parameters[5*$i + 3];
-                        if ($commander === FALSE) {
-                            return array(array(_('Deploy : Error on commander.') , 'error' , $user_id));
-                        } elseif ($conflictAll === FALSE) {
-                            return array(array(_('Deploy : Error on conflict.') , 'error' , $user_id));
-                        } elseif($nbRegulars > $legionDetails ['totals']['Rome']['regular']) {
-                            return array(array(_('Deploy : Error on regular legions.') , 'error' , $user_id));
-                        } elseif($nbVeterans > $legionDetails ['totals']['Rome']['veteran']) {
-                            return array(array(_('Deploy : Error on veteran legions.') , 'error' , $user_id));
-                        } elseif($veteranError) {
-                            return array(array(_('Deploy : Error on specific veteran legion.') , 'error' , $user_id));
-                        } elseif($nbFleets > $fleetDetails['total']) {
-                            return array(array(_('Deploy : Error on fleets.') , 'error' , $user_id));
-                        } else {
-                            $conflict = $conflictAll['card'] ;
-                        }
+                        return array(array(_('The Senate agrees on : ').$this->senate_getDeployProposalDetails($parameters)));
                     }
                 }
                 // TO DO : all other types
