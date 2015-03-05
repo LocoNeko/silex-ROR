@@ -1,5 +1,9 @@
 {% block content %}
 <pre>
 {{ card.name }} ({{ card.type }})
+{% if description is defined %}
+    {{description[0]}}<br>
+    {{description[1]}}
+{% endif %}
 </pre>
 {% endblock %}

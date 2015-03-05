@@ -79,12 +79,9 @@ class Proposal {
                             $thisSenatorsVotes+=$senator->INF ;
                         }
                         break ;
-                    case 'Assassin prosecution' :
-                        // TO DO : Accused get +1 but parameter is party, not senator
-                        break ;
+                    // TO DO : Priest get +1 to military proposals
                     case 'Deploy' :
                     case 'Recall Proconsul' :
-                        // TO DO : Priest get +1
                         break ;
                     default :
                 }

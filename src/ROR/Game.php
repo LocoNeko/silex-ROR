@@ -496,6 +496,41 @@ class Game
         }
         return $result;
     }
+
+    /**
+     * 
+     * @param Conflict $conflict
+     * @return string The description of the conflict
+     */
+    public function getConflictDescription($conflict) {
+        if (get_class($conflict)!='Conflict') {
+            $result=array() ;
+            $result[0]=$conflict->description;
+            $commanderGlobal=$this->getSpecificCard('conflict', $conflict->id) ;
+            $commander=$commanderGlobal['card'] ;
+            if ($commander!==FALSE) {
+                $nbRegulars = 0 ;
+                $nbVeterans = 0 ;
+                $nbFleets = 0 ;
+                for ($i=1 ; $i<=25 ; $i++) {
+                    if ($this->legion[$i]->location===$commander->senatorID) {
+                        if ($this->legion[$i]->veteran===FALSE) {
+                            $nbRegulars++ ;
+                        } else {
+                            $nbVeterans++ ;
+                        }
+                    }
+                    if ($this->fleet[$i]->location===$commander->senatorID) {
+                        $nbFleets++;
+                    }
+                }
+                $result[1]=sprintf(_('Currently attacked by %s with %d/%d/%d') , $commander->name , $nbRegulars , $nbVeterans , $nbFleets);
+            }
+            return $result ;
+        } else {
+            return $this->name ;
+        }
+    }
     
     /**
      * 
@@ -942,13 +977,17 @@ class Game
      * 
      * @param type $property
      * @param type $value
-     * @return array 'card' => $card object , 'where' => 'senator|forum|curia|a war deck...' , 'deck' => deck object , and 'senator' & 'party' if 'where' is 'senator'.<br>
+     * @return array 'card' => $card object , 'where' => 'senator|party|forum|curia|a war deck...' , 'deck' => deck object ,<br>
+     * 'senator' & 'party' if 'where' is 'senator' , 'party' if 'where' is 'party'<br>
      * Warning : The party CAN BE 'forum'<br>
      * returns FALSE if the card was not found
      */
     public function getSpecificCard($property , $value) {
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
+                if (isset($senator->$property) && $senator->$property == $value) {
+                    return array ('card' => $senator , 'where' => 'party' , 'party' => $party );
+                }
                 foreach ($senator->controls->cards as $card) {
                     if (isset($card->$property) && $card->$property == $value) {
                         return array ('card' => $card , 'where' => 'senator' , 'deck' => $senator->controls , 'senator' => $senator , 'party' => $senator );
