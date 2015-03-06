@@ -15,5 +15,8 @@ class Card
         $this->name = ( is_string($data[1]) ? $data[1] : null) ;
         $this->type = ( in_array($data[2],self::$VALID_TYPES) ? $data[2] : null ) ;
     }
-    
+
+    public function encodeVars() {
+        return urlencode(serialize(get_object_vars($this))) ;
+    }
 }

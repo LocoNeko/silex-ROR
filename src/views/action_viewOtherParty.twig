@@ -11,8 +11,7 @@ Current vote total : <b>{{party.getTotalVotes()}}</b><br>
 <div class="row">
 {% for senator in party.senators.cards %}
     <div class="span3">
-    {% embed "action_viewSenator.twig" with {'senator': senator , 'leader' : party.leaderID==senator.senatorID } only %}
-    {% endembed %}
+        <img src="/images/DynamicImage.php?vars={{senator.encodeVars()}}&leader={{(content['game'].getSenatorWithID(party.leaderID).senatorID==senator.senatorID ? 1 : 0)}}">
     </div>
 {% endfor %}
 </div>
