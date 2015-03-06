@@ -11,8 +11,21 @@ SENATORS : (Current vote total : {{content['game'].party[user_id].getTotalVotes(
 <div class="row">
 {% for senator in content['game'].party[user_id].senators.cards %}
     <div class="span3">
+{#
     {% embed "action_viewSenator.twig" with {'senator': senator , 'leader' : content['game'].party[user_id].leaderID==senator.senatorID } only %}
     {% endembed %}
+#}
+    <img src="/images/DynamicImage.php?name={{senator.name}}&
+         MIL={{senator.MIL}}&
+         ORA={{senator.ORA}}&
+         LOY={{senator.LOY}}&
+         POP={{senator.POP}}&
+         INF={{senator.INF}}&
+         knights={{senator.knights}}&
+         treasury={{senator.treasury}}&
+         office={{senator.office}}&
+         priorConsul={{senator.priorConsul}}
+         ">
     </div>
 {% endfor %}
 </div>

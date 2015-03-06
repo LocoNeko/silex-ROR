@@ -8,17 +8,11 @@
 {% if leader%}
 LEADER
 {% endif %}
-{% if senator.office %}
-{{ senator.office }}
-{% else %}
-
-{% endif %}
+{{ senator.office }}{% if senator.inRome == false %} (not in Rome){% endif %} 
 MIL {{ senator.MIL }}     ORA {{ senator.ORA }}
 LOY {{ senator.LOY }}     INF {{ senator.INF }}
 {% if senator.priorConsul %}
 Prior Consul
-{% else %}
-
 {% endif %}
 {{ senator.knights }} knights , {{ senator.treasury }} T.
 {% if playable is defined %}

@@ -140,5 +140,5 @@ class Senator extends Card
         }
         return $result ;
     }
-    
+        
 }
