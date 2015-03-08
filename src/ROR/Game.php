@@ -503,12 +503,12 @@ class Game
      * @return string The description of the conflict
      */
     public function getConflictDescription($conflict) {
-        if (get_class($conflict)!='Conflict') {
+        if ($conflict->type=='Conflict') {
             $result=array() ;
             $result[0]=$conflict->description;
             $commanderGlobal=$this->getSpecificCard('conflict', $conflict->id) ;
             $commander=$commanderGlobal['card'] ;
-            if ($commander!==FALSE) {
+            if ($commander!=FALSE) {
                 $nbRegulars = 0 ;
                 $nbVeterans = 0 ;
                 $nbFleets = 0 ;
@@ -525,10 +525,12 @@ class Game
                     }
                 }
                 $result[1]=sprintf(_('Currently attacked by %s with %d/%d/%d') , $commander->name , $nbRegulars , $nbVeterans , $nbFleets);
+            } else {
+                $result[1]='';
             }
             return $result ;
         } else {
-            return $this->name ;
+            return array(0 => 'Card error' , 1 => 'Wrong conflict') ;
         }
     }
     

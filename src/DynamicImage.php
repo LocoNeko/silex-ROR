@@ -1,6 +1,6 @@
 <?php
     header("Content-type: image/png");
-    $image = imagecreatefrompng('Senator.png') ;
+    $image = imagecreatefrompng('../web/images/Senator.png') ;
     if(!$image) {
         /* Create a blank image */
         $image  = imagecreatetruecolor(150, 30);
@@ -53,18 +53,18 @@
                 text_with_shadow($image, 30, 0, 48 , 120, $black, $font, $vars['treasury']);
             }
             if ($vars['office']!=NULL) {
-                $officeImage = imagecreatefrompng('Office_'.$vars['office'].'.png') ;
+                $officeImage = imagecreatefrompng('../web/images/Office_'.$vars['office'].'.png') ;
                 if ($officeImage) {
                     imagecopy($image , imagescale($officeImage , 96 , -1 , IMG_BICUBIC_FIXED) , 100 , 50 , 0 , 0 , 96 , 96) ;
+                    imagedestroy($officeImage) ;
                 }
-                imagedestroy($officeImage) ;
             }
             if ($vars['priorConsul']) {
-                $priorConsulImage = imagecreatefrompng('priorConsul.png') ;
+                $priorConsulImage = imagecreatefrompng('../web/images/priorConsul.png') ;
                 if ($priorConsulImage) {
                     imagecopy($image , imagescale($priorConsulImage , 64 , -1 , IMG_BICUBIC_FIXED) , 250 , 50 , 0 , 0 , 64 , 64) ;
+                    imagedestroy($priorConsulImage) ;
                 }
-                imagedestroy($priorConsulImage) ;
             }
         }
     }
