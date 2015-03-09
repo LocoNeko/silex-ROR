@@ -1,0 +1,24 @@
+{% block content %}
+    {% if card.type=='Family' or card.type=='Statesman'%}
+        <div class="span3 sprite sprite-Senator">
+            <div class="sprite-position-name">{{card.name}}</div>
+            <div class="sprite-position-MIL">{{card.MIL}}</div>
+            <div class="sprite-position-ORA">{{card.ORA}}</div>
+            <div class="sprite-position-LOY">{{card.LOY}}</div>
+            <div class="sprite-position-treasury">{{card.treasury}}</div>
+            {% if card.INF > 0 %}
+                <div class="sprite sprite-Marker_{{card.INF % 10}} sprite-position-INF"></div>
+            {% endif %}
+            {% if card.INF >= 10 %}
+                <div class="sprite sprite-Marker_{{card.INF / 10}} sprite-position-INF10"></div>
+            {% endif %}
+            <div class="sprite sprite-Marker_{{card.POP}} sprite-position-POP"></div>
+            {% if card.knights> 0 %}
+                <div class="sprite sprite-Marker_{{card.knights}}knights sprite-position-knights"></div>
+            {% endif %}
+            {% if card.office != null %}
+                <div class="sprite sprite-Office_{{card.office|replace({' ': '-'})}} sprite-position-office"></div>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}
