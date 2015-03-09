@@ -11,7 +11,7 @@ Current vote total : <b>{{party.getTotalVotes()}}</b><br>
 <div class="row">
 {% for senator in party.senators.cards %}
     <div class="span3">
-        <img src="../src/DynamicImage.php?vars={{senator.encodeVars()}}&leader=0">
+        {#<img src="../src/DynamicImage.php?vars={{senator.encodeVars()}}&leader=0">#}
     </div>
 {% endfor %}
 </div>

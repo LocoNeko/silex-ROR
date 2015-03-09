@@ -85,5 +85,5 @@ $app['user.controller']->setLayoutTemplate('layout.twig');
 $app->mount('/silex-ror/user', $u);
 
 // ROR Controller Provider
-$app->mount('/silex-ror', new ROR\RORControllerProvider());
+$app->mount('/', new ROR\RORControllerProvider());
 $app->run();

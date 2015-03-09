@@ -10,12 +10,14 @@ Treasury : {{ content['game'].party[user_id].treasury}} T<br>
 SENATORS : (Current vote total : {{content['game'].party[user_id].getTotalVotes()}})<br>
 <div class="row">
 {% for senator in content['game'].party[user_id].senators.cards %}
-    <div class="span3">
 {#
     {% embed "action_viewSenator.twig" with {'senator': senator , 'leader' : content['game'].party[user_id].leaderID==senator.senatorID } only %}
     {% endembed %}
 #}
+{#
         <img src="../src/DynamicImage.php?vars={{senator.encodeVars()}}&leader={{( ((content['game'].party[user_id].leaderID is defined) and (content['game'].party[user_id].leaderID==senator.senatorID)) ? 1 : 0)}}">
-    </div>
+#}
+    {% embed "action_viewCardCSS.twig" with {'card': senator , 'leader' : content['game'].party[user_id].leaderID==senator.senatorID } only %}
+    {% endembed %}
 {% endfor %}
 </div>

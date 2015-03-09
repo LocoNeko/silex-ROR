@@ -4,9 +4,7 @@
         {% block head %}
             <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.1/css/bootstrap-combined.min.css" rel="stylesheet">
             <title>{% block title %}{% endblock %}</title>
-            <style type="text/css">
-                body { padding: 10px; }
-            </style>
+            <link rel="stylesheet" type="text/css" href="{{ app.request.basepath }}/css/sprite.css">
             <script src="localhost:/js/when/when.js"></script>
             <script src="http://autobahn.s3.amazonaws.com/js/autobahn.min.js"></script>
             <script>
