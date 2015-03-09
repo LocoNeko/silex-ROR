@@ -30,10 +30,10 @@
 {% endif %}
 
 {# SENATORS LIST #}
-.<br>
+<br>
 <div class="row">
 {% for senator in party.senators.cards %}
-    {% embed "action_viewCardCSS.twig" with {'card': senator , 'leader' : content['game'].party[user_id].leaderID==senator.senatorID } only %}
+    {% embed "action_viewCardCSS.twig" with {'card': senator , 'leader' : party.leaderID==senator.senatorID } only %}
     {% endembed %}
 {% endfor %}
 </div>

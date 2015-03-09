@@ -1,7 +1,16 @@
 {% block content %}
     {% if card.type=='Family' or card.type=='Statesman'%}
         <div class="span3 sprite sprite-Senator">
-            <div class="sprite-position-name">{{card.name}}</div>
+            {# Name in red if the Senator is the party leader. 'leader' must be passed to the template to work #}
+            <div class="sprite-position-name" {{((leader is defined) and leader) ? 'style="color: red;"' : ''}}>{{card.name}}</div>
+            {# SenatorID
+               - If the card has a Statesman, say so in a tooltip, and put brackets around SenatorID
+               - If the Statesman is in hand, 'playable' should be set (returns a boolean flag and a message), the message will be the tooltip
+            #}
+            <div class="sprite-position-senatorID" {{ card.hasStatesman ? 'title="A Statesman exist for this Family"' : ''}} >
+                {{ card.hasStatesman ? '[' ~ card.senatorID ~ ']' : card.senatorID }}
+                {{ ((playable is defined) and playable['flag']) ? ' - Playable'~ playable['message'] : ''}}
+            </div>
             <div class="sprite-position-MIL">{{card.MIL}}</div>
             <div class="sprite-position-ORA">{{card.ORA}}</div>
             <div class="sprite-position-LOY">{{card.LOY}}</div>
@@ -12,13 +21,19 @@
             {% if card.INF >= 10 %}
                 <div class="sprite sprite-Marker_{{card.INF / 10}} sprite-position-INF10"></div>
             {% endif %}
-            <div class="sprite sprite-Marker_{{card.POP}} sprite-position-POP"></div>
+            {% if card.POP > 0 %}
+                <div class="sprite sprite-Marker_{{card.POP}} sprite-position-POP"></div>
+            {% endif %}
             {% if card.knights> 0 %}
                 <div class="sprite sprite-Marker_{{card.knights}}knights sprite-position-knights"></div>
+            {% endif %}
+            {% if card.corrupt %}
+                <div class="sprite sprite-Marker_Corrupt sprite-position-corrupt"></div>
             {% endif %}
             {% if card.office != null %}
                 <div class="sprite sprite-Office_{{card.office|replace({' ': '-'})}} sprite-position-office"></div>
             {% endif %}
         </div>
+    {% else %}
     {% endif %}
 {% endblock %}
