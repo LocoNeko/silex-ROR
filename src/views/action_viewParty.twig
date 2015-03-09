@@ -1,22 +1,38 @@
-{{content['game'].party[user_id].name}}, 
-Leader : 
-{%if content['game'].party[user_id].leaderID is defined and content['game'].getSenatorWithID(content['game'].party[user_id].leaderID) != FALSE %}
-{{content['game'].getSenatorWithID(content['game'].party[user_id].leaderID).name}},
-
+{# PARTY NAME #}
+{% if self %}
+    YOUR PARTY : <b>{{party.name}}</b>
 {% else %}
-None ,
+    {{party.fullName()}}
 {% endif %}
-Treasury : {{ content['game'].party[user_id].treasury}} T<br>
-SENATORS : (Current vote total : {{content['game'].party[user_id].getTotalVotes()}})<br>
+
+{# PARTY LEADER #}
+| LEADER: 
+{% set leader = content['game'].getSenatorWithID(party.leaderID) %}
+{% if leader!=FALSE %}
+    <b>{{leader.name}}</b>
+{% else %}
+    NONE
+{% endif %}
+
+{# TREASURY #}
+{% if self %}
+    | Treasury: <b>{{ party.treasury}} T</b>
+{% else %}
+    | {{ (party.treasury>0) ? 'not ' : '' }}empty </b>
+{% endif %}
+
+{# VOTES #}
+| Current vote total : <b>{{party.getTotalVotes()}}</b>
+
+{# CARDS IN HAND FOR NON-SELF #}
+{% if not self %}
+| player has <b>{{party.hand.nbCards()}} card{{party.hand.nbCards()!=1 ? 's' : ''}}</b> in hand
+{% endif %}
+
+{# SENATORS LIST #}
+.<br>
 <div class="row">
-{% for senator in content['game'].party[user_id].senators.cards %}
-{#
-    {% embed "action_viewSenator.twig" with {'senator': senator , 'leader' : content['game'].party[user_id].leaderID==senator.senatorID } only %}
-    {% endembed %}
-#}
-{#
-        <img src="../src/DynamicImage.php?vars={{senator.encodeVars()}}&leader={{( ((content['game'].party[user_id].leaderID is defined) and (content['game'].party[user_id].leaderID==senator.senatorID)) ? 1 : 0)}}">
-#}
+{% for senator in party.senators.cards %}
     {% embed "action_viewCardCSS.twig" with {'card': senator , 'leader' : content['game'].party[user_id].leaderID==senator.senatorID } only %}
     {% endembed %}
 {% endfor %}

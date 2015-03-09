@@ -40,8 +40,7 @@ Phase : Senate - {{content['game'].subPhase}}<br>
 {% endif %}
 <hr>
 {# DISPLAY PLAYER'S PARTY #}
-YOUR PARTY :<br>
-{% embed 'action_viewParty.twig' %}
+{% embed 'action_viewParty.twig' with {'self' : TRUE , 'party' : content['game'].party[user_id]} %}
 {% endembed %}
 
 {# IF THERE IS CAPTIVES, SHOW THEM AND GIVE A CHANCE TO PAY THE RANSOM #}
@@ -62,9 +61,10 @@ YOUR HAND :<br>
 OTHER PARTIES :<br>
 {% for party in content['game'].party %}
     {% if party.user_id != user_id%}
-        {% embed 'action_viewOtherParty.twig' %}
-        {% endembed %}<br><hr>
+        {% embed 'action_viewParty.twig' with {'self' : FALSE , 'party' : party} %}
+        {% endembed %}
     {% endif %}
+    <br>
 {% endfor %}
 
 {# OTHER INFO #}
