@@ -297,82 +297,85 @@
 }
 
 /*
-    Positions
+    Positions (Senator)
 */
 
 .sprite-position-name {
+    position: absolute;
+    width: 90%;
+    margin-left: 5%;
     font-size: 150%;
     text-shadow: 1px 1px #777777;
     text-align: center ;
-    margin-top: 10px;
-}
-
-.sprite-position-senatorID {
-    position: absolute;
-    font-weight: bold;
-    left: 190px;
-    top: 30px;
-    font-size: 120%;
+    top: 15px;
 }
 
 .sprite-position-MIL {
+    position: absolute;
+    width: 50px;
     font-size: 150%;
     font-weight: bold;
     text-shadow: 1px 1px #777777;
-    text-align: right;
-    margin-right: 25px;
-    margin-top: 19px;
+    text-align: center;
+    right: 20px;
+    top: 60px;
 }
 
 .sprite-position-ORA {
+    position: absolute;
+    width: 50px;
     font-size: 150%;
     font-weight: bold;
     text-shadow: 1px 1px #777777;
-    text-align: right;
-    margin-right: 25px;
-    margin-top: 19px;
+    text-align: center;
+    right: 20px;
+    top: 95px;
 }
 
 .sprite-position-LOY {
+    position: absolute;
+    width: 50px;
     font-size: 150%;
     font-weight: bold;
     text-shadow: 1px 1px #777777;
-    text-align: right;
-    margin-right: 25px;
-    margin-top: 19px;
+    text-align: center;
+    right: 20px;
+    top: 130px;
 }
 
 .sprite-position-treasury {
+    position: absolute;
+    width: 50px;
     font-size: 300%;
     font-weight: bold;
     text-shadow: 1px 1px #777777;
-    text-align: left;
-    margin-left: 60px;
-    margin-top: -50px;
+    text-align: center;
+    left: 50px;
+    top: 105px;
 }
 
 .sprite-position-POP {
     position: absolute;
     left: 25px;
-    top: 198px;
+    top: 197px;
 }
 
 .sprite-position-INF {
     position: absolute;
-    left: 207px;
-    top: 198px;
+    left: 206px;
+    top: 197px;
 }
 
 .sprite-position-INF10 {
     position: absolute;
-    left: 139px;
-    top: 198px;
+    left: 143px;
+    top: 197px;
 }
 
 .sprite-position-knights {
     position: absolute;
-    left: 328px;
-    top: 198px;
+    left: 317px;
+    top: 197px;
 }
 
 .sprite-position-office {
@@ -383,6 +386,49 @@
 
 .sprite-position-corrupt {
     position: absolute;
-    left: 260px;
+    left: 250px;
     top: 120px;
+}
+
+.sprite-position-PriorConsul {
+    position: absolute;
+    left: 250px;
+    top: 90px;
+}
+
+/*
+    Positions (Cards)
+*/
+
+.sprite-position-card-name {
+    font-size: 150%;
+    text-shadow: 1px 1px #777777;
+    text-align: center ;
+    margin-top: 30px;
+}
+
+.sprite-position-card-subname {
+    font-size: 100%;
+    text-shadow: 1px 1px #777777;
+    text-align: center ;
+    margin-top: 0px;
+}
+
+.sprite-position-card-text {
+    position: absolute;
+    font-weight: bold;
+    left: 40px;
+    top: 90px;
+    color: #224;
+    text-shadow: 1px 1px #AAA;
+    width: 170px;
+}
+
+.sprite-position-card-attacks {
+    position: absolute;
+    font-weight: bold;
+    left: 40px;
+    top: 230px;
+    color: #224;
+    text-shadow: 1px 1px #AAA;
 }

@@ -1,15 +1,15 @@
 {% block content %}
     {% if card.type=='Family' or card.type=='Statesman'%}
         <div class="span3 sprite sprite-Senator">
-            {# Name in red if the Senator is the party leader. 'leader' must be passed to the template to work #}
-            <div class="sprite-position-name" {{((leader is defined) and leader) ? 'style="color: red;"' : ''}}>{{card.name}}</div>
-            {# SenatorID
-               - If the card has a Statesman, say so in a tooltip, and put brackets around SenatorID
-               - If the Statesman is in hand, 'playable' should be set (returns a boolean flag and a message), the message will be the tooltip
-            #}
-            <div class="sprite-position-senatorID" {{ card.hasStatesman ? 'title="A Statesman exist for this Family"' : ''}} >
+            {# Senator's name :
+                - In red if the Senator is the party leader. 'leader' must be passed to the template to work or will default to FALSE
+                - If the Statesman is in hand, 'playable' should be set (returns a boolean flag and a message), otherwise, defaults to an empty message
+                - The Statesman message will be set as a tooltip ('title' property)
+                - If the card has a Statesman, put brackets around SenatorID
+             #}
+            <div class="sprite-position-name" {{leader|default(false) ? 'style="color: red;"' : ''}} title="{{playable['message']|default('')}}">
+                {{card.name}}<br>
                 {{ card.hasStatesman ? '[' ~ card.senatorID ~ ']' : card.senatorID }}
-                {{ ((playable is defined) and playable['flag']) ? ' - Playable'~ playable['message'] : ''}}
             </div>
             <div class="sprite-position-MIL">{{card.MIL}}</div>
             <div class="sprite-position-ORA">{{card.ORA}}</div>
@@ -30,11 +30,23 @@
             {% if card.corrupt %}
                 <div class="sprite sprite-Marker_Corrupt sprite-position-corrupt"></div>
             {% endif %}
+            {% if card.priorConsul %}
+                <div class="sprite sprite-Marker_PriorConsul sprite-position-PriorConsul"></div>
+            {% endif %}
             {% if card.office != null %}
                 <div class="sprite sprite-Office_{{card.office|replace({' ': '-'})}} sprite-position-office"></div>
             {% endif %}
         </div>
     {% elseif card.type=='Conflict' %}
+        <div class="span3 sprite sprite-BlankCard">
+            <div class="sprite-position-card-name">{{card.name}}</div>
+            <div class="sprite-position-card-subname">{{card.description}} (1 of {{card.nbOfMatch}} {{card.matches}})</div>
+            <div class="sprite-position-card-text">Inactive until attacked or Matched.
+                {% if card.creates!=null %}
+                    <br><br>Victory creates {{card.creates}}</div>
+                {% endif %}
+            <div class="sprite-position-card-attacks">Attacks :{{card.attacks}}</div>
+        </div>
     {% else %}
     {% endif %}
 {% endblock %}
