@@ -11,8 +11,16 @@
 .sprite-Senator {
     position: relative;
     width: 400px;
-    height: 275px;
-    background-position: -501px -5px;
+    height: 287px;
+    background-position: -663px -5px;
+    z-index: 1;
+}
+
+.sprite-BlankCard {
+    position: relative;
+    width: 400px;
+    height: 287px;
+    background-position: -5px -5px;
     z-index: 1;
 }
 
@@ -23,169 +31,223 @@
 .sprite-Marker_-1 {
     width: 52px;
     height: 52px;
-    background-position: -5px -5px;
+    background-position: -415px -5px;
+}
+
+.sprite-Marker_-2 {
+    width: 52px;
+    height: 52px;
+    background-position: -477px -5px;
+}
+
+.sprite-Marker_-3 {
+    width: 52px;
+    height: 52px;
+    background-position: -539px -5px;
+}
+
+.sprite-Marker_-4 {
+    width: 52px;
+    height: 52px;
+    background-position: -601px -5px;
+}
+
+.sprite-Marker_-5 {
+    width: 52px;
+    height: 52px;
+    background-position: -415px -67px;
+}
+
+.sprite-Marker_-6 {
+    width: 52px;
+    height: 52px;
+    background-position: -477px -67px;
+}
+
+.sprite-Marker_-7 {
+    width: 52px;
+    height: 52px;
+    background-position: -539px -67px;
+}
+
+.sprite-Marker_-8 {
+    width: 52px;
+    height: 52px;
+    background-position: -601px -67px;
+}
+
+.sprite-Marker_-9 {
+    width: 52px;
+    height: 52px;
+    background-position: -415px -129px;
 }
 
 .sprite-Marker_0 {
     width: 52px;
     height: 52px;
-    background-position: -67px -5px;
+    background-position: -477px -129px;
 }
 
 .sprite-Marker_1 {
     width: 52px;
     height: 52px;
-    background-position: -129px -5px;
+    background-position: -539px -129px;
 }
 
 .sprite-Marker_10knights {
     width: 52px;
     height: 52px;
-    background-position: -191px -5px;
+    background-position: -601px -129px;
 }
 
-.sprite-Marker_1knight {
+.sprite-Marker_1knights {
     width: 52px;
     height: 52px;
-    background-position: -253px -5px;
+    background-position: -415px -191px;
 }
 
 .sprite-Marker_2 {
     width: 52px;
     height: 52px;
-    background-position: -315px -5px;
+    background-position: -477px -191px;
 }
 
 .sprite-Marker_2knights {
     width: 52px;
     height: 52px;
-    background-position: -377px -5px;
+    background-position: -539px -191px;
 }
 
 .sprite-Marker_3 {
     width: 52px;
     height: 52px;
-    background-position: -439px -5px;
+    background-position: -601px -191px;
 }
 
 .sprite-Marker_3knights {
     width: 52px;
     height: 52px;
-    background-position: -5px -67px;
+    background-position: -415px -253px;
 }
 
 .sprite-Marker_4 {
     width: 52px;
     height: 52px;
-    background-position: -67px -67px;
+    background-position: -477px -253px;
 }
 
 .sprite-Marker_4knights {
     width: 52px;
     height: 52px;
-    background-position: -129px -67px;
+    background-position: -539px -253px;
 }
 
 .sprite-Marker_5 {
     width: 52px;
     height: 52px;
-    background-position: -191px -67px;
+    background-position: -601px -253px;
 }
 
 .sprite-Marker_5knights {
     width: 52px;
     height: 52px;
-    background-position: -253px -67px;
+    background-position: -5px -315px;
 }
 
 .sprite-Marker_6 {
     width: 52px;
     height: 52px;
-    background-position: -315px -67px;
+    background-position: -67px -315px;
 }
 
 .sprite-Marker_6knights {
     width: 52px;
     height: 52px;
-    background-position: -377px -67px;
+    background-position: -129px -315px;
 }
 
 .sprite-Marker_7 {
     width: 52px;
     height: 52px;
-    background-position: -439px -67px;
+    background-position: -191px -315px;
 }
 
 .sprite-Marker_7knights {
     width: 52px;
     height: 52px;
-    background-position: -5px -129px;
+    background-position: -253px -315px;
 }
 
 .sprite-Marker_8 {
     width: 52px;
     height: 52px;
-    background-position: -67px -129px;
+    background-position: -315px -315px;
 }
 
 .sprite-Marker_8knights {
     width: 52px;
     height: 52px;
-    background-position: -129px -129px;
+    background-position: -377px -315px;
 }
 
 .sprite-Marker_9 {
     width: 52px;
     height: 52px;
-    background-position: -191px -129px;
+    background-position: -439px -315px;
 }
 
 .sprite-Marker_9knights {
     width: 52px;
     height: 52px;
-    background-position: -253px -129px;
+    background-position: -501px -315px;
 }
 
 .sprite-Marker_Corrupt {
     width: 52px;
     height: 52px;
-    background-position: -315px -129px;
+    background-position: -563px -315px;
 }
 
 .sprite-Marker_DisbandedFront {
     width: 52px;
     height: 52px;
-    background-position: -377px -129px;
+    background-position: -625px -315px;
+}
+
+.sprite-Marker_Major {
+    width: 52px;
+    height: 52px;
+    background-position: -5px -377px;
 }
 
 .sprite-Marker_PriestBack {
     width: 52px;
     height: 52px;
-    background-position: -439px -129px;
+    background-position: -67px -377px;
 }
 
 .sprite-Marker_PriestFront {
     width: 52px;
     height: 52px;
-    background-position: -5px -191px;
+    background-position: -129px -377px;
 }
 
 .sprite-Marker_PriorConsul {
     width: 52px;
     height: 52px;
-    background-position: -67px -191px;
+    background-position: -191px -377px;
 }
 
 .sprite-Marker_RansomBack {
     width: 52px;
     height: 52px;
-    background-position: -129px -191px;
+    background-position: -253px -377px;
 }
 
 .sprite-Marker_RansomFront {
     width: 52px;
     height: 52px;
-    background-position: -191px -191px;
+    background-position: -315px -377px;
 }
 
 /*
@@ -195,43 +257,43 @@
 .sprite-Office_Censor {
     width: 96px;
     height: 96px;
-    background-position: -253px -191px;
+    background-position: -377px -377px;
 }
 
 .sprite-Office_Dictator {
     width: 96px;
     height: 96px;
-    background-position: -359px -191px;
+    background-position: -483px -377px;
 }
 
 .sprite-Office_Field-Consul {
     width: 96px;
     height: 96px;
-    background-position: -5px -297px;
+    background-position: -5px -483px;
 }
 
 .sprite-Office_Master-of-Horse {
     width: 96px;
     height: 96px;
-    background-position: -111px -297px;
+    background-position: -111px -483px;
 }
 
 .sprite-Office_Pontifex-Maximus {
     width: 96px;
     height: 96px;
-    background-position: -217px -297px;
+    background-position: -217px -483px;
 }
 
 .sprite-Office_Proconsul {
     width: 96px;
     height: 96px;
-    background-position: -323px -297px;
+    background-position: -323px -483px;
 }
 
 .sprite-Office_Rome-Consul {
     width: 96px;
     height: 96px;
-    background-position: -429px -297px;
+    background-position: -429px -483px;
 }
 
 /*

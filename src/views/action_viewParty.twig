@@ -2,7 +2,7 @@
 {% if self %}
     YOUR PARTY : <b>{{party.name}}</b>
 {% else %}
-    {{party.fullName()}}
+    <b>{{party.fullName()}}</b>
 {% endif %}
 
 {# PARTY LEADER #}
@@ -18,7 +18,7 @@
 {% if self %}
     | Treasury: <b>{{ party.treasury}} T</b>
 {% else %}
-    | {{ (party.treasury>0) ? 'not ' : '' }}empty </b>
+    | Treasury is {{ (party.treasury>0) ? 'not ' : '' }}empty </b>
 {% endif %}
 
 {# VOTES #}
@@ -26,7 +26,7 @@
 
 {# CARDS IN HAND FOR NON-SELF #}
 {% if not self %}
-| player has <b>{{party.hand.nbCards()}} card{{party.hand.nbCards()!=1 ? 's' : ''}}</b> in hand
+| Player has <b>{{party.hand.nbCards()}} card{{party.hand.nbCards()!=1 ? 's' : ''}}</b> in hand
 {% endif %}
 
 {# SENATORS LIST #}
