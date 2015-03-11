@@ -39,11 +39,14 @@ Phase : Senate - {{content['game'].subPhase}}<br>
     {% endembed %}
 {% endif %}
 <hr>
-{# DISPLAY PLAYER'S PARTY #}
-{% embed 'action_viewParty.twig' with {'self' : TRUE , 'party' : content['game'].party[user_id]} %}
-{% endembed %}
 
-{# IF THERE IS CAPTIVES, SHOW THEM AND GIVE A CHANCE TO PAY THE RANSOM #}
+{# DISPLAY PLAYER'S PARTY #}
+<div class="row">
+    {% embed 'action_viewParty.twig' with {'self' : TRUE , 'party' : content['game'].party[user_id]} %}
+    {% endembed %}
+</div>
+
+    {# IF THERE IS CAPTIVES, SHOW THEM AND GIVE A CHANCE TO PAY THE RANSOM #}
 {% if content['game'].listOfCaptives(user_id) %}
     <hr>
     {% embed 'action_captives.twig' %}
@@ -55,13 +58,11 @@ Phase : Senate - {{content['game'].subPhase}}<br>
 YOUR HAND :<br>
 <div class="row">
 {% for card in content['game'].party[user_id].hand.cards %}
-    <div class="span3">
         {#
         'playable' : only useful if the card is a statesman. The 'statesmanPlayable' function should return {FALSE , 'ERROR'} when it's not
         #}
         {% embed "action_viewCardCSS.twig" with {'card': card , 'playable': content['game'].statesmanPlayable (user_id , card) } only %}
         {% endembed %}
-    </div>
 {% endfor %}
 </div>
 
@@ -95,10 +96,8 @@ Total          : <b>{{content['game'].getNbOfFleets()['Total']}}</b>
 FORUM :<br>
 <div class="row">
 {% for card in content['game'].forum.cards %}
-    <div class="span3">
-        {% embed "action_viewCardCSS.twig" with {'card': card } only %}
-        {% endembed %}
-    </div>
+    {% embed "action_viewCardCSS.twig" with {'card': card } only %}
+    {% endembed %}
 {% endfor %}
 </div>
 
@@ -108,10 +107,8 @@ FORUM :<br>
 CURIA :<br>
 <div class="row">
 {% for card in content['game'].curia.cards %}
-    <div class="span3">
-        {% embed "action_viewCardCSS.twig" with {'card': card } only %}
-        {% endembed %}
-    </div>
+    {% embed "action_viewCardCSS.twig" with {'card': card } only %}
+    {% endembed %}
 {% endfor %}
 </div>
 <hr>
@@ -121,41 +118,33 @@ WARS :<br>
 <div class="row">
     <div class="span3">ACTIVE :</div>
 {% for card in content['game'].activeWars.cards %}
-    <div class="span3">
-        {% embed "action_viewCard.twig" with {'card': card } only %}
-        {% endembed %}
-    </div>
+    {% embed "action_viewCardCSS.twig" %}
+    {% endembed %}
 {% endfor %}
 </div>
 <div class="row">
     <div class="span3">UNPROSECUTED :</div>
 {% for card in content['game'].unprosecutedWars.cards %}
-    <div class="span3">
-        {% embed "action_viewCard.twig" with {'card': card } only %}
-        {% endembed %}
-    </div>
+    {% embed "action_viewCardCSS.twig" %}
+    {% endembed %}
 {% endfor %}
 </div>
 <div class="row">
     <div class="span3">IMMINENT :</div>
 {% for card in content['game'].imminentWars.cards %}
-    <div class="span3">
-        {% embed "action_viewCard.twig" with {'card': card } only %}
-        {% endembed %}
-    </div>
+    {% embed "action_viewCardCSS.twig" %}
+    {% endembed %}
 {% endfor %}
 </div>
 <div class="row">
     <div class="span3">INACTIVE :</div>
 {% for card in content['game'].inactiveWars.cards %}
-    <div class="span3">
-        {#
-        {% embed "action_viewCard.twig" with {'card': card , 'description': content['game'].getConflictDescription(card)} only %}
-        {% endembed %}
-        #}
-        {% embed "action_viewCardCSS.twig" %}
-        {% endembed %}
-    </div>
+    {#
+    {% embed "action_viewCard.twig" with {'card': card , 'description': content['game'].getConflictDescription(card)} only %}
+    {% endembed %}
+    #}
+    {% embed "action_viewCardCSS.twig" %}
+    {% endembed %}
 {% endfor %}
 </div>
 

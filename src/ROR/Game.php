@@ -740,7 +740,7 @@ class Game
      * @param \ROR\Senator $statesman
      * @return array 'flag' = TRUE|FALSE , 'message'
      */
-    public function statesmanPlayable ($user_id , Senator $statesman) {
+    public function statesmanPlayable ($user_id , $statesman) {
         if ($statesman->type != 'Statesman') {
             return array('flag' => FALSE, 'message' => _('ERROR'));
         }
@@ -3852,7 +3852,6 @@ class Game
             $using = $this->senate_useProposalHow($user_id , $proposalHow) ;
             array_push($messages, array( sprintf(_('%s {%s} proposes : ') , $using , $user_id).$this->senate_getForcesProposalDetails($parameters) )) ;
             $this->proposals[] = $proposal ;
-            // TO DO
         } elseif ($type=='Garrison') {
             // TO DO
         } elseif ($type=='Deploy') {
@@ -3860,6 +3859,8 @@ class Game
             array_push($messages, array( sprintf(_('%s {%s} proposes : ') , $using , $user_id).$this->senate_getDeployProposalDetails($parameters) )) ;
             $this->proposals[] = $proposal ;
         } elseif ($type=='Recall') {
+            // TO DO
+        } elseif ($type=='Reinforce') {
             // TO DO
         } elseif ($type=='Recall Pontifex') {
             // TO DO
@@ -4742,6 +4743,7 @@ class Game
             case 'Garrison' :
             case 'Deploy' :
             case 'Recall' :
+            case 'Reinforce' :
             case 'Recall Pontifex' :
             case 'Priests' :
             case 'Minor' :
@@ -5559,7 +5561,7 @@ class Game
                         }
                         break;
                     case 'landBillSponsor' :
-                        if ($senator->inRome() && $senator->POP>=3) {
+                        if ($senator->inRome()) {
                             $result[] = array('senatorID' => $senator->senatorID , 'name' => $senator->name , 'party_name' => $party->fullName() , 'user_id' => $party->user_id , 'POP' => $senator->POP ) ;
                         }
                         break;
@@ -5755,19 +5757,21 @@ class Game
         if ($this->landBill[3]==0) {
             unset ($result[-3]);
         }
+        // A Senator with a least 2 / 4 POP is needed to sponsor the repeal of a land bill level 1,2 / 3
         $maxPOP = 1 ;
         foreach ($this->party as $party) {
             foreach ($party->senators->cards as $senator) {
-                if ($senator->POP>$maxPOP && $senator->inRome()) {
+                if ($senator->POP > $maxPOP && $senator->inRome()) {
                     $maxPOP = $senator->POP ;
                 }
             }
         }
-        if ($maxPOP<3) {
+        if ($maxPOP<4) {
             unset ($result[-3]);
         }
         if ($maxPOP<2) {
             unset ($result[-2]);
+            unset ($result[-1]);
         }
         return $result ;
     }
@@ -5834,16 +5838,23 @@ class Game
     private function senate_getListOtherBusiness() {
         $result = array () ;
         // TO DO : List of all possible proposals that are 'other business' :
-        // 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
+        // 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall' , 'Reinforce' ,  'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
+
         // There is at least one concession in the forum
-        
         if ($this->forum->getIdOfCardWithValue('type','Concession')!==FALSE) {
             $result[]=array('Concessions',_('Assign concessions'));
         }
+        
+        // This covers Land bills & their repeal
         foreach ($this->senate_getListPossibleLandBills() as $key=>$value) {
             $result[]=array('LandBill'.$key,$value);
         }
         $result[]=array('Forces',_('Raise/Disband forces'));
+        
+        // Garrisons depend on whether or not there are provinces
+        if (count($this->senate_getListAvailableProvinces())>0) {
+            $result[]=array('Garrison',_('Send and recall garrisons'));
+        }
         $result[]=array('Deploy',_('Deploy forces to fight a Conflict'));
         $result[]=array('Minor',_('Minor motion'));
         return $result ;
@@ -6240,7 +6251,7 @@ class Game
                         $output['list'] = $this->senate_getListAvailableProvinces();
                         $output['possibleGovernors'] = $this->senate_getListAvailableGovernors();
                     /*
-                     * Other Business : 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
+                     * Other Business : 'Concessions' , 'Land Bills' , 'Forces' , 'Garrison' , 'Deploy' , 'Recall' , 'Reinforce' , 'Recall Pontifex' , 'Priests' , 'Consul for life' , 'Minor'
                      */
                     } elseif ( ($this->phase=='Senate') && ($this->subPhase=='Other business') ) {
                         $output['state'] = 'Proposal';
@@ -6251,6 +6262,7 @@ class Game
                             $output['list'] = $this->senate_getListOtherBusiness();
                             $output['possibleConcessionSenators'] = $this->senate_getFilteredListSenators('concession');
                             $output['concessions'] = $this->senate_getListAvailableConcessions();
+                            $output['possibleLandBillsSponsors'] = $this->senate_getFilteredListSenators('landBillSponsor');
                             $output['legions'] = $this->getLegionDetails();
                             $output['fleets'] = $this->getFleetDetails();
                             $output['commanders'] = $this->senate_getFilteredListSenators('commanders') ;

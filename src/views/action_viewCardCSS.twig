@@ -1,6 +1,6 @@
 {% block content %}
     {% if card.type=='Family' or card.type=='Statesman'%}
-        <div class="span3 sprite sprite-Senator">
+        <div class="span3 sprite sprite-Senator" id="Senator_{{card.senatorID}}">
             {# Senator's name :
                 - In red if the Senator is the party leader. 'leader' must be passed to the template to work or will default to FALSE
                 - If the Statesman is in hand, 'playable' should be set (returns a boolean flag and a message), otherwise, defaults to an empty message
@@ -48,5 +48,8 @@
             <div class="sprite-position-card-attacks">Attacks :{{card.attacks}}</div>
         </div>
     {% else %}
+        <div class="span3 sprite sprite-BlankCard">
+            <div class="sprite-position-card-name">{{card.name}}</div>
+        </div>
     {% endif %}
 {% endblock %}

@@ -7,6 +7,8 @@
             <link rel="stylesheet" type="text/css" href="{{ app.request.basepath }}/css/sprite.css">
             <script src="localhost:/js/when/when.js"></script>
             <script src="http://autobahn.s3.amazonaws.com/js/autobahn.min.js"></script>
+            <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+            <script src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
             <script>
                 var conn = new ab.Session(
                     'ws://localhost:'+{{ws_port|default ('80')}} // The host (our Ratchet WebSocket server) to connect to. We need a port by default so I put 80, but ws will basically not work when ws_port is not provided

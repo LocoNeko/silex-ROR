@@ -1,6 +1,36 @@
 {# JS to handle dynamic content for Prosecutions & Other business #}
 {% block myScripts %}
     <script type="text/javascript">
+        
+        $( init );
+ 
+        function init() {
+            $('div[id^="Senator_"]').each(function() {
+                $(this).draggable({
+                    scroll:true,
+                    start: function (event, ui) {
+                       $(this).data("startingScrollTop",window.pageYOffset);
+                    },
+                    drag: function(event,ui){
+                       var st = parseInt($(this).data("startingScrollTop"));
+                       ui.position.top -= st;
+                    },
+                    cursor: 'move' ,
+                    helper: 'clone'
+                });
+            });
+            $('div[id="land_bill_sponsor"]').droppable( {
+                drop: handleDropEvent
+            } );
+            $('div[id="land_bill_cosponsor"]').droppable( {
+                drop: handleDropEvent
+            } );
+        }
+
+        function handleDropEvent( event, ui ) {
+            var draggable = ui.draggable;
+            alert( draggable.attr('id') + ' was dropped onto '+ event.target.id );
+        }
 
         function decompressProsecutionParameters() {
             index = compressedParameters.value.indexOf(",")+1;
@@ -10,6 +40,7 @@
         
         function pickOtherBusiness() {
             document.getElementById("Concessions").style.display = "none";
+            document.getElementById("LandBills").style.display = "none";
             document.getElementById("LandBill1").style.display = "none";
             document.getElementById("LandBill2").style.display = "none";
             document.getElementById("LandBill3").style.display = "none";
@@ -24,18 +55,23 @@
                     document.getElementById("Concessions").style.display = "block";
                     break;
                 case "LandBill1":
+                    document.getElementById("LandBills").style.display = "block";
                     document.getElementById("LandBill1").style.display = "block";
                     break;
                 case "LandBill2":
+                    document.getElementById("LandBills").style.display = "block";
                     document.getElementById("LandBill2").style.display = "block";
                     break;
                 case "LandBill3":
+                    document.getElementById("LandBills").style.display = "block";
                     document.getElementById("LandBill3").style.display = "block";
                     break;
                 case "LandBill-2":
+                    document.getElementById("LandBills").style.display = "block";
                     document.getElementById("LandBill-2").style.display = "block";
                     break;
                 case "LandBill-3":
+                    document.getElementById("LandBills").style.display = "block";
                     document.getElementById("LandBill-3").style.display = "block";
                     break;
                 case "Forces":
@@ -142,7 +178,7 @@
                 }
             }
         }
-        
+
     </script>
 {% endblock %}
 
@@ -329,6 +365,12 @@
             <span id="LandBill-3" style="display: none;">
                 Repeal Land Bill III<BR>
             </span>
+            <span id="LandBills" style="display: none;">
+                <div class="row">
+                    <div class="span3" style="width: 400px; height: 287px; border: 1px solid #999;" id="land_bill_sponsor">SPONSOR</div>
+                    <div class="span3" style="width: 400px; height: 287px; border: 1px solid #999;" id="land_bill_cosponsor">CO-SPONSOR</div>
+                </div>
+            </span>
             <span id="Forces" style="display: none;">
                 Raise/Disband Forces<BR>
                 <table>
@@ -481,9 +523,11 @@
             Choose voting order. Doesn't apply to dictator appointment by Consuls
         #}
         {% if output['type']!='Dictator Appointment' %}
-            Choose voting order :<br>
-            {% embed 'action_senate_votingOrder.twig' %}
-            {% endembed %}
+            <div class="row">
+                Choose voting order :<br>
+                {% embed 'action_senate_votingOrder.twig' %}
+                {% endembed %}
+            </div>
         {% endif %}
         <br>
         {#<button onClick="decompressForcesParameters();" type="submit" class="btn-danger">MAKE PROPOSAL</button>#}
