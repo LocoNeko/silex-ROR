@@ -5,7 +5,7 @@
         $( init );
  
         function init() {
-            $('div[id^="Senator_"]').each(function() {
+            $('div[id^="Card_"]').each(function() {
                 $(this).draggable({
                     scroll:true,
                     start: function (event, ui) {
@@ -19,17 +19,25 @@
                     helper: 'clone'
                 });
             });
-            $('div[id="land_bill_sponsor"]').droppable( {
-                drop: handleDropEvent
-            } );
-            $('div[id="land_bill_cosponsor"]').droppable( {
+            
+            $('div[id^="CardSlot"]').droppable( {
                 drop: handleDropEvent
             } );
         }
 
         function handleDropEvent( event, ui ) {
-            var draggable = ui.draggable;
-            alert( draggable.attr('id') + ' was dropped onto '+ event.target.id );
+            $(event.target).find('div[id^="Card_"]').remove();
+            var clonedDraggable = ui.draggable.clone();
+            clonedDraggable.css({'margin-left':'0px'});
+            $(this).append(clonedDraggable);
+        }
+        
+        function testing() {
+            $(".sprite-CardSlot").each(function() {
+                var cardSlotID = $(this).attr("id") ;
+                var cardID = $(this).find('div[id^="Card_"]').attr("id");
+                alert(cardSlotID + " : " + cardID);
+            });
         }
 
         function decompressProsecutionParameters() {
@@ -367,8 +375,8 @@
             </span>
             <span id="LandBills" style="display: none;">
                 <div class="row">
-                    <div class="span3" style="width: 400px; height: 287px; border: 1px solid #999;" id="land_bill_sponsor">SPONSOR</div>
-                    <div class="span3" style="width: 400px; height: 287px; border: 1px solid #999;" id="land_bill_cosponsor">CO-SPONSOR</div>
+                    <div class="span3 sprite-CardSlot" id="CardSlot1">SPONSOR</div>
+                    <div class="span3 sprite-CardSlot" id="CardSlot2">CO-SPONSOR</div>
                 </div>
             </span>
             <span id="Forces" style="display: none;">
@@ -530,8 +538,8 @@
             </div>
         {% endif %}
         <br>
-        {#<button onClick="decompressForcesParameters();" type="submit" class="btn-danger">MAKE PROPOSAL</button>#}
-        <button type="submit" onClick="otherBusinessParameters();" class="btn-danger">MAKE PROPOSAL</button>
+        <button type="submit" onClick="otherBusinessParameters();" class="btn-danger">MAKE PROPOSAL</button><BR>
+        <button type="button" onClick="testing();" class="btn-danger">TEST</button>
         {#
             Once the Senate is adjourned, players must have a way to signify they don't want to keep the Senate open
         #}
@@ -637,12 +645,12 @@
     {#
         Veto
     #}
-    {% if output['possibleVetos']|length >0%}
+    {% if (output['possibleVetos']|length >0) %}
         <form class="form-horizontal" method="POST" action="{{ path('Action' , {'game_id' : game_id , 'action' : 'senate_vote'} ) }}">
             Veto the proposal using :<br>
             <input type="hidden" name="useVeto" value="YES">
             <select name="veto" id="veto">
-                {% for veto in output['possibleVetos']%}
+                {% for veto in output['possibleVetos'] %}
                     {% if veto=='Tribune card' %}
                         <option value="Card">Tribune Card</option>
                     {% else %}

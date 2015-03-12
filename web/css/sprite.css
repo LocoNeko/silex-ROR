@@ -24,6 +24,16 @@
     z-index: 1;
 }
 
+.sprite-CardSlot {
+    position: relative;
+    width: 400px;
+    height: 307px;
+    border: 5px solid #999;
+    -moz-border-radius: 15px;
+    border-radius: 15px;
+    box-shadow: 5px 5px 5px #888888;
+}
+
 /*
     Standard markers (52x52 px)
 */
@@ -431,4 +441,12 @@
     top: 230px;
     color: #224;
     text-shadow: 1px 1px #AAA;
+}
+
+.sprite-position-card-id {
+    position: absolute;
+    font-size: 100%;
+    text-shadow: 1px 1px #777777;
+    left: 275px;
+    top: 254px;
 }
